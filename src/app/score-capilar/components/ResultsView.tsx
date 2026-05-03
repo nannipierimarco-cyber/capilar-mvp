@@ -8,14 +8,12 @@ import { cn } from "@/lib/utils";
 import type { ScoreCapilarResult } from "@/lib/scoreCapilar";
 import type { UserScoreReport } from "@/lib/userScoreReport";
 
-const PRIORITY_CONFIG: Record<
-  ScoreCapilarResult["prioridad"],
-  { label: string; cls: string }
-> = {
-  baja: { label: "Baja", cls: "text-emerald-700 bg-emerald-50 border-emerald-200" },
-  media: { label: "Media", cls: "text-yellow-700 bg-yellow-50 border-yellow-200" },
-  "media-alta": { label: "Media-alta", cls: "text-orange-700 bg-orange-50 border-orange-200" },
-  alta: { label: "Alta", cls: "text-red-700 bg-red-50 border-red-200" },
+const PRIORITY_CONFIG: Record<string, { cls: string }> = {
+  "Muy buen punto de partida":          { cls: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+  "Buen punto de partida":              { cls: "text-teal-700 bg-teal-50 border-teal-200" },
+  "Conviene monitorear":                { cls: "text-yellow-700 bg-yellow-50 border-yellow-200" },
+  "Conviene revisar con médico":        { cls: "text-orange-700 bg-orange-50 border-orange-200" },
+  "Revisión prioritaria recomendada":   { cls: "text-red-700 bg-red-50 border-red-200" },
 };
 
 export default function ResultsView({
@@ -32,7 +30,7 @@ export default function ResultsView({
   onMedicalCtaClick?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const priority = PRIORITY_CONFIG[result.prioridad];
+  const priority = PRIORITY_CONFIG[result.prioridad] ?? { cls: "text-muted-foreground bg-muted border-border" };
 
   async function handleShare() {
     const url =
@@ -102,8 +100,11 @@ export default function ResultsView({
               priority.cls
             )}
           >
-            Prioridad orientativa: {priority.label}
+            {result.prioridad}
           </span>
+          <p className="text-xs text-muted-foreground mt-3">
+            Mientras más alto el score, más favorable es tu perfil capilar preliminar.
+          </p>
         </div>
 
         {/* Edad capilar */}

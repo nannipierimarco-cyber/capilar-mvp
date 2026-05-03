@@ -10,52 +10,52 @@ export interface ScoreCapilarAnswers {
 
 export interface ScoreCapilarResult {
   score: number;
-  prioridad: "baja" | "media" | "media-alta" | "alta";
+  prioridad: string;
   ruta: string;
   edadCapilar: number;
 }
 
 const EDAD_POINTS: Record<string, number> = {
-  "18–24": 5,
-  "25–34": 10,
-  "35–44": 15,
-  "45–54": 20,
-  "55+": 25,
+  "18–24": -3,
+  "25–34": -6,
+  "35–44": -10,
+  "45–54": -14,
+  "55+": -18,
 };
 
 const ZONA_POINTS: Record<string, number> = {
-  "Entradas": 10,
-  "Coronilla": 15,
-  "Densidad general": 12,
-  "Caída difusa": 10,
-  "Post-trasplante": 8,
-  "Estoy evaluando trasplante": 20,
-  "No estoy seguro": 5,
+  "Entradas": -10,
+  "Coronilla": -14,
+  "Densidad general": -12,
+  "Caída difusa": -12,
+  "Post-trasplante": -8,
+  "Estoy evaluando trasplante": -22,
+  "No estoy seguro": -6,
 };
 
 const TIEMPO_POINTS: Record<string, number> = {
-  "Menos de 3 meses": 5,
-  "3–6 meses": 8,
-  "6–12 meses": 12,
-  "Más de 1 año": 18,
-  "Más de 3 años": 22,
+  "Menos de 3 meses": -4,
+  "3–6 meses": -7,
+  "6–12 meses": -11,
+  "Más de 1 año": -16,
+  "Más de 3 años": -20,
 };
 
 const AVANCE_POINTS: Record<string, number> = {
-  "Estable": 5,
-  "Lento": 8,
-  "Rápido": 20,
-  "Por épocas": 10,
-  "No sé": 5,
+  "Estable": -4,
+  "Lento": -8,
+  "Rápido": -22,
+  "Por épocas": -10,
+  "No sé": -6,
 };
 
 const BUSCA_POINTS: Record<string, number> = {
-  "Entender qué me pasa": 5,
-  "Prevenir que avance": 10,
-  "Mejorar densidad": 12,
-  "Saber si necesito trasplante": 20,
-  "Seguimiento post-trasplante": 10,
-  "Comparar opciones": 8,
+  "Entender qué me pasa": -5,
+  "Prevenir que avance": -8,
+  "Mejorar densidad": -12,
+  "Saber si necesito trasplante": -22,
+  "Seguimiento post-trasplante": -10,
+  "Comparar opciones": -8,
 };
 
 const EDAD_BASELINE: Record<string, number> = {
@@ -68,7 +68,7 @@ const EDAD_BASELINE: Record<string, number> = {
 
 export function computeScore(answers: ScoreCapilarAnswers): number {
   const raw =
-    50 +
+    100 +
     (EDAD_POINTS[answers.edad] ?? 0) +
     (ZONA_POINTS[answers.zona] ?? 0) +
     (TIEMPO_POINTS[answers.tiempo] ?? 0) +
@@ -77,11 +77,12 @@ export function computeScore(answers: ScoreCapilarAnswers): number {
   return Math.min(100, Math.max(0, raw));
 }
 
-export function computePriority(score: number): "baja" | "media" | "media-alta" | "alta" {
-  if (score <= 39) return "baja";
-  if (score <= 59) return "media";
-  if (score <= 79) return "media-alta";
-  return "alta";
+export function computePriority(score: number): string {
+  if (score >= 85) return "Muy buen punto de partida";
+  if (score >= 70) return "Buen punto de partida";
+  if (score >= 50) return "Conviene monitorear";
+  if (score >= 30) return "Conviene revisar con médico";
+  return "Revisión prioritaria recomendada";
 }
 
 export function computeRoute(answers: ScoreCapilarAnswers, score: number): string {
@@ -94,16 +95,18 @@ export function computeRoute(answers: ScoreCapilarAnswers, score: number): strin
   if (answers.zona === "Post-trasplante" || answers.busca === "Seguimiento post-trasplante") {
     return "Seguimiento post-trasplante";
   }
-  if (score >= 60) return "Revisión médica capilar online";
-  return "Educación y monitoreo";
+  if (score >= 70) return "Educación y monitoreo";
+  if (score >= 50) return "Monitoreo + posible revisión médica";
+  return "Revisión médica capilar online";
 }
 
 export function computeApparentAge(answers: ScoreCapilarAnswers, score: number): number {
   const baseline = EDAD_BASELINE[answers.edad] ?? 40;
-  if (score < 40) return baseline - 2;
-  if (score <= 59) return baseline;
-  if (score <= 79) return baseline + 3;
-  return baseline + 5;
+  if (score >= 85) return baseline - 4;
+  if (score >= 70) return baseline - 2;
+  if (score >= 50) return baseline + 1;
+  if (score >= 30) return baseline + 4;
+  return baseline + 7;
 }
 
 export function computeResult(answers: ScoreCapilarAnswers): ScoreCapilarResult {

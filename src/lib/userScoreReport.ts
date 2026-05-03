@@ -36,6 +36,12 @@ LENGUAJE PERMITIDO:
 - "un médico puede revisar", "si corresponde"
 - "no constituye diagnóstico médico", "no reemplaza una evaluación profesional"
 
+INTERPRETACIÓN DEL SCORE:
+- El Score Capilar va de 0 a 100. Un score ALTO (ej. 80–100) significa un perfil preliminar más favorable.
+- Un score BAJO (ej. 0–40) significa más razones para revisar el caso con un médico pronto.
+- NUNCA interpretes un score alto como algo negativo o urgente.
+- NUNCA interpretes un score bajo como algo positivo o tranquilizador.
+
 TONO:
 - Español neutro chileno/latinoamericano.
 - Cálido, claro, premium y simple.
@@ -102,25 +108,25 @@ export function generateFallbackReport(params: {
   const { answers, score, ruta } = params;
 
   let friendly_summary: string;
-  if (score < 40) {
-    friendly_summary = `Según tus respuestas, tu situación capilar está en una etapa donde actuar con anticipación marca la diferencia. Es un buen momento para entender mejor tu caso antes de que avance.`;
-  } else if (score < 60) {
-    friendly_summary = `Según tus respuestas, tu caso tiene señales que vale la pena revisar con orientación profesional. No estás solo en esto — hay un camino claro para entender tu situación.`;
-  } else if (score < 80) {
-    friendly_summary = `Según tus respuestas y las fotos cargadas, tu perfil indica que una evaluación profesional puede ayudarte a entender tus opciones. Es un paso natural y tiene sentido darlo pronto.`;
+  if (score >= 85) {
+    friendly_summary = `Según tus respuestas, tu perfil capilar preliminar luce favorable. Es un buen momento para informarte y mantener hábitos que apoyen la salud de tu cabello.`;
+  } else if (score >= 70) {
+    friendly_summary = `Según tus respuestas, tu perfil capilar está en un punto donde monitorear y entender tu evolución puede marcar la diferencia. Hay un camino claro para avanzar con claridad.`;
+  } else if (score >= 50) {
+    friendly_summary = `Según tus respuestas, tu caso tiene señales que vale la pena seguir de cerca. Una orientación profesional puede ayudarte a entender qué está pasando y qué opciones tienes disponibles.`;
   } else {
-    friendly_summary = `Según tus respuestas y las fotos cargadas, tu situación merece atención profesional. Hay opciones disponibles y lo más valioso es entender tu caso con claridad antes de decidir.`;
+    friendly_summary = `Según tus respuestas, tu perfil indica que una revisión profesional puede ser un paso valioso. Hay opciones disponibles y lo más importante es entender tu caso con claridad antes de decidir.`;
   }
 
   let score_explanation: string;
-  if (score < 40) {
-    score_explanation = `Tu Score de ${score}/100 refleja un perfil en etapa temprana. Cuanto antes evalúes tu caso con un profesional, más herramientas tienes disponibles.`;
-  } else if (score < 60) {
-    score_explanation = `Tu Score de ${score}/100 refleja un perfil intermedio. Una revisión profesional puede orientarte sobre las alternativas que corresponden según tu situación.`;
-  } else if (score < 80) {
-    score_explanation = `Tu Score de ${score}/100 refleja un perfil que se beneficia de atención profesional pronto. Una evaluación médica te permite entender las opciones con claridad.`;
+  if (score >= 85) {
+    score_explanation = `Tu Score de ${score}/100 refleja un perfil preliminar favorable. Cuanto antes entiendas tu situación, más herramientas tienes para cuidar tu cabello a largo plazo.`;
+  } else if (score >= 70) {
+    score_explanation = `Tu Score de ${score}/100 refleja un perfil en etapa de monitoreo. Una orientación profesional puede ayudarte a entender tu evolución con más claridad.`;
+  } else if (score >= 50) {
+    score_explanation = `Tu Score de ${score}/100 indica que vale la pena revisar tu caso con orientación profesional. Una evaluación médica te permite entender las opciones según tu perfil declarado.`;
   } else {
-    score_explanation = `Tu Score de ${score}/100 refleja un perfil avanzado. El paso más importante es entender tu caso en detalle con un especialista para evaluar las alternativas disponibles.`;
+    score_explanation = `Tu Score de ${score}/100 indica que una revisión profesional pronto puede ser útil. El paso más importante es entender tu caso en detalle para evaluar las alternativas disponibles.`;
   }
 
   const common_mistakes: [string, string, string] = [
