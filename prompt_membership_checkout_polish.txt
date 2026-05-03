@@ -1,0 +1,104 @@
+Polish the membership selection and checkout pages for Nilo.
+
+Context:
+The membership page already supports:
+- 6 months
+- 3 months
+- 1 month
+- shipping cost $3.990 added in checkout
+- Flow payment integration
+
+Goal:
+Make the final conversion flow feel premium, clear and trustworthy.
+The user should clearly understand what they are buying and why payment happens before medical review.
+
+Important:
+- Background must be white, not cream.
+- Any logo/text/brand label that currently says “Capilar” should say “Nilo”.
+- Do not change payment API unless necessary.
+- Do not break Flow integration.
+- Do not break pricing logic.
+- Do not break membership query params.
+- Keep compliance.
+
+Membership page:
+Title:
+“Elige tu membresía capilar”
+
+Subtitle:
+“Tu plan combina revisión médica, tratamiento sujeto a indicación, farmacia autorizada, despacho y seguimiento.”
+
+Add product card above pricing:
+Title:
+“Plan Inicio Nilo”
+Main line:
+“Dutasteride + Minoxidil”
+Label:
+“Sujeto a revisión médica”
+
+Include:
+- Revisión médica
+- Receta si corresponde
+- Farmacia autorizada
+- Despacho a domicilio
+- Seguimiento por WhatsApp + AI
+- Historial capilar consolidado
+
+Keep pricing cards:
+6 meses:
+- $19.990/mes
+- Total $119.940
+- Más popular
+- Ahorra 33%
+
+3 meses:
+- $24.990/mes
+- Total $74.970
+- Ahorra 17%
+
+1 mes:
+- $29.990/mes
+- Total $29.990
+
+Add note:
+“El envío se agrega en el siguiente paso.”
+
+Checkout:
+Make the summary crystal clear:
+- Plan Inicio Nilo
+- Membership selected
+- Dutasteride + Minoxidil, sujeto a revisión médica
+- Subtotal membership
+- Envío $3.990
+- Total final
+
+Payment/review copy:
+“Reserva tu plan. El cargo queda sujeto a revisión médica. Si el médico determina que no corresponde avanzar, no activaremos el tratamiento y gestionaremos la devolución del pago.”
+
+Consent checkbox:
+“He leído y acepto el consentimiento médico informado, los términos y condiciones y la política de privacidad.”
+
+CTA:
+“Ir al pago”
+
+Add small FAQ accordion if simple:
+1. “¿Me están cobrando antes de la revisión médica?”
+Answer:
+“Sí. El pago reserva tu plan y activa la revisión médica. Si el médico determina que no corresponde avanzar, gestionaremos la devolución.”
+
+2. “¿La receta está garantizada?”
+Answer:
+“No. La receta y el tratamiento dependen exclusivamente del criterio médico.”
+
+3. “¿Quién prepara o dispensa el tratamiento?”
+Answer:
+“Una farmacia autorizada, solo cuando existe indicación médica.”
+
+Visual style:
+- White background.
+- Black/dark text.
+- Clean cards with subtle border/shadow.
+- Premium, simple, mobile-first.
+- Avoid cream/off-white page background.
+
+Run npm.cmd run build and summarize files changed.

@@ -1,0 +1,226 @@
+Update only the Treatment Journey plan page (the page where we currently recommend the capillary plan for the treatment path).
+
+Goal:
+Simplify the page radically so the user sees only ONE recommended option and understands clearly what they are buying.
+
+Very important:
+- Do NOT show multiple package options.
+- Do NOT show “Continuidad mensual”, “Evaluación de recuperación capilar”, or any alternative cards/options.
+- Do NOT make the user compare plans.
+- This page should present a single recommended plan: “Plan Inicio Capilar”.
+- The content should be visual, structured in blocks/cards, and easy to scan on mobile.
+- It should not feel text-heavy.
+
+Context:
+This is the treatment journey, meaning the user is on the “frenar la caída” path.
+
+Core product positioning:
+The user is buying a complete capillary program / membership that includes:
+1. Clinical consultation / medical review by a doctor
+2. Prescription if clinically appropriate
+3. Monthly coordination of oral minoxidil magistral + dutasteride
+4. Coordination with authorized pharmacy
+5. Home delivery
+6. WhatsApp follow-up supported by AI
+7. Consolidated hair history
+8. Progressive photo history / capillary tracking
+
+Compliance:
+- Do not say prescription guaranteed.
+- Do not say treatment guaranteed.
+- Do not guarantee the doctor will prescribe.
+- Do not mention doses.
+- It is okay to mention minoxidil and dutasteride as the expected treatment components of this path, but clearly subject to medical review.
+- Say that the doctor defines whether treatment is clinically appropriate.
+- Say that medication is prepared/dispensed by authorized pharmacy.
+- Do not say AI diagnoses alopecia.
+- AI should be described as a follow-up copilot / support layer, not a diagnostic system.
+
+Implementation request:
+
+1. Keep only ONE plan on this page
+
+The page should have a top hero / recommendation section:
+Title:
+“Tu plan recomendado para frenar la caída”
+
+Subtitle:
+“Un programa capilar completo para empezar desde casa, sujeto a revisión médica.”
+
+Main card / price block:
+Plan name:
+“Plan Inicio Capilar”
+
+Price:
+“$49.990”
+
+Small label:
+“Recomendado para empezar”
+
+Short summary:
+“Incluye revisión médica, receta si corresponde, coordinación con farmacia, despacho a domicilio y seguimiento capilar.”
+
+Primary CTA button:
+“Reservar Plan Inicio Capilar”
+
+Secondary small text below CTA:
+“El cargo queda sujeto a revisión médica.”
+
+2. Remove all other options
+
+Delete or hide:
+- “Plan Inicio” if duplicated elsewhere as separate card
+- “Continuidad mensual”
+- “Evaluación de recuperación capilar”
+- any “elige tu modalidad” section
+- any comparison between packages
+
+This page should only show one offer.
+
+3. Create a highly visual “Qué incluye tu plan” section
+
+This section must be easy to scan.
+Use a 2-column layout on desktop and stacked cards on mobile.
+Each item should be its own card/block with:
+- icon or small image on the left/top
+- short title
+- 1–2 lines of explanation
+
+Use existing images if available; if not, use clean icons (Lucide or similar).
+
+Include these 6 clear blocks:
+
+Block 1
+Title:
+“Consulta médica capilar”
+Body:
+“Un médico revisa tus respuestas, fotos y antecedentes para definir si corresponde avanzar.”
+
+Block 2
+Title:
+“Receta y tratamiento”
+Body:
+“Si corresponde clínicamente, el médico indica receta para el tratamiento capilar de esta ruta, típicamente minoxidil y dutasteride.”
+
+Block 3
+Title:
+“Farmacia autorizada”
+Body:
+“Coordinamos la preparación o dispensación con una farmacia autorizada.”
+
+Block 4
+Title:
+“Despacho a domicilio”
+Body:
+“Tu tratamiento se coordina para llegar a tu casa de forma recurrente.”
+
+Block 5
+Title:
+“Seguimiento por WhatsApp + AI”
+Body:
+“La plataforma usa inteligencia como copiloto de seguimiento para ayudarte a registrar avances y resolver dudas frecuentes.”
+
+Block 6
+Title:
+“Historial capilar consolidado”
+Body:
+“Tus fotos y evolución quedan ordenadas para construir un historial progresivo de tu caso.”
+
+4. Add a second section:
+“¿Qué estás comprando exactamente?”
+
+This should be a visual checklist or boxed summary, not a long paragraph.
+
+Title:
+“¿Qué estás comprando exactamente?”
+
+Include bullets/check items:
+- “Evaluación médica capilar”
+- “Receta si corresponde”
+- “Coordinación mensual del tratamiento”
+- “Farmacia autorizada”
+- “Despacho a domicilio”
+- “Seguimiento por WhatsApp”
+- “Historial de fotos y evolución”
+- “Acompañamiento para continuidad del tratamiento”
+
+At the bottom of this section add a clear message:
+“Este plan no es solo una receta. Es una membresía de continuidad capilar.”
+
+5. Add a simple “Cómo funciona” section
+
+Use 4 horizontal/vertical steps with icons:
+
+Step 1:
+“Completas tu evaluación”
+“Respondes preguntas y subes fotos.”
+
+Step 2:
+“Un médico revisa tu caso”
+“Define si corresponde avanzar con tratamiento.”
+
+Step 3:
+“Coordinamos farmacia y despacho”
+“Si corresponde, activamos receta, farmacia y entrega.”
+
+Step 4:
+“Empieza tu seguimiento”
+“Haces seguimiento por WhatsApp y construyes tu historial capilar.”
+
+6. Add a small trust/compliance box
+
+Title:
+“Importante”
+
+Copy:
+“El tratamiento final depende exclusivamente de la revisión médica. Los medicamentos solo se preparan o dispensan mediante farmacia autorizada cuando corresponde clínicamente.”
+
+Optional second line:
+“La inteligencia de la plataforma funciona como apoyo de seguimiento e historial, no como diagnóstico médico.”
+
+7. Visual design instructions
+
+The page must feel premium and very clear.
+Use:
+- mobile-first design
+- cream / off-white background
+- white cards
+- rounded-2xl cards
+- subtle shadow
+- green/gold accents consistent with the current design
+- strong hierarchy for:
+  1. plan name
+  2. price
+  3. what’s included
+  4. CTA
+- avoid huge text walls
+- make the sections easy to scan quickly
+
+8. CTA behavior
+
+Primary CTA everywhere on this page should lead to checkout:
+- /checkout?plan=inicio
+
+Use the same CTA copy:
+“Reservar Plan Inicio Capilar”
+
+On mobile, if appropriate, add a sticky bottom CTA bar.
+
+9. Files
+
+Most likely update:
+- src/app/plans/page.tsx
+or the specific route used for treatment package display if different.
+
+Only modify the treatment plan page and small related CTA text if needed.
+Do not modify quiz logic, admin, Supabase, or unrelated pages.
+
+10. Build
+
+When finished:
+- run npm.cmd run build
+- summarize exactly:
+  - files changed
+  - sections removed
+  - sections added
+  - whether build passed

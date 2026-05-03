@@ -1,0 +1,297 @@
+Update the Nilo capillary funnel by adding a membership plan selection page before checkout.
+
+Use the existing funnel refinement context as base:
+- Nilo has two journeys:
+  1. Frenar la caída
+  2. Evaluar trasplante / recuperación capilar
+- Do not copy BOE branding, text, images, exact layout, or exact UI.
+- Use Nilo branding.
+- Keep compliance: no diagnosis, no guaranteed prescription, no guaranteed medication, no guaranteed results.
+- The doctor makes the final medical decision.
+- Medication is only prescribed if clinically appropriate and dispensed/prepared by an authorized pharmacy.
+- Do not break Supabase saving, AI report generation, doctor portal, admin, photos, or Flow payment integration.
+
+New requirement:
+Add a new membership selection page after the treatment recommendation / plan page and before checkout.
+
+Flow should become:
+quiz → results/recommendation → plan page → membership selection → checkout → Flow payment
+
+Goal:
+The user should choose the duration of the membership they want to pay for:
+- 6 months
+- 3 months
+- 1 month
+
+Use the same pricing structure:
+- 6 meses: $19.990/mes, total $119.940, badge “Más popular”, badge “Ahorra 33%”
+- 3 meses: $24.990/mes, total $74.970, badge “Ahorra 17%”
+- 1 mes: $29.990/mes, total $29.990
+
+Important:
+There is an additional shipping cost of $3.990.
+Do not hide it.
+However, shipping can be communicated in the checkout summary page instead of the membership selection page if that keeps the selection cleaner.
+Recommended:
+- Membership selection page shows plan prices.
+- Checkout page shows:
+  - selected membership subtotal
+  - envío: $3.990
+  - total final
+
+1. Create or update route
+
+Create a new route:
+src/app/membership/page.tsx
+
+It should read query params:
+- journey=treatment or journey=transplant
+- plan=inicio
+- selected intake id if currently passed around
+
+For treatment journey, show the membership selection page.
+
+If transplant journey is not ready for paid membership yet, show a compliant version or redirect to checkout/consultation flow safely.
+
+2. Membership selection page design
+
+The page should be clean, premium, mobile-first, and inspired by the clarity of a medical D2C plan selection page, but not copied.
+
+Top section:
+Title:
+“Elige tu membresía”
+
+Subtitle:
+“Tu plan incluye revisión médica, coordinación con farmacia autorizada, despacho y seguimiento capilar.”
+
+Add a product/program card above the pricing options.
+
+Product card:
+Title:
+“Plan Inicio Capilar”
+
+Main line:
+“Dutasteride + Minoxidil”
+
+Small label:
+“Sujeto a revisión médica”
+
+Included row/list:
+- “Revisión médica”
+- “Receta si corresponde”
+- “Farmacia autorizada”
+- “Seguimiento con AI”
+- “Historial capilar”
+- “Despacho a domicilio”
+
+Compliance note:
+“El tratamiento final depende exclusivamente de la revisión médica. Nilo no diagnostica ni prescribe automáticamente.”
+
+3. Pricing cards
+
+Create three large selectable pricing cards.
+
+Option A:
+Title:
+“6 meses”
+Badge:
+“Más popular”
+Savings badge:
+“Ahorra 33%”
+Monthly price:
+“$19.990/mes”
+Total:
+“Total $119.940”
+Supporting text:
+“Para quienes quieren continuidad y mejor precio mensual.”
+
+Option B:
+Title:
+“3 meses”
+Savings badge:
+“Ahorra 17%”
+Monthly price:
+“$24.990/mes”
+Total:
+“Total $74.970”
+Supporting text:
+“Para comenzar con seguimiento durante el primer ciclo.”
+
+Option C:
+Title:
+“1 mes”
+Monthly price:
+“$29.990/mes”
+Total:
+“Total $29.990”
+Supporting text:
+“Para probar el servicio durante el primer mes.”
+
+Selection behavior:
+- User can select only one.
+- Default selected option should be 6 months.
+- Selected card should have strong border/highlight.
+- CTA at bottom should be sticky on mobile.
+
+CTA:
+“Continuar”
+
+CTA should link to:
+`/checkout?plan=inicio&membership=6m`
+or:
+`/checkout?plan=inicio&membership=3m`
+or:
+`/checkout?plan=inicio&membership=1m`
+
+4. Pricing logic
+
+Add a centralized mapping, preferably in a shared file if one exists:
+- membership=6m → months=6, monthlyPrice=19990, subtotal=119940
+- membership=3m → months=3, monthlyPrice=24990, subtotal=74970
+- membership=1m → months=1, monthlyPrice=29990, subtotal=29990
+- shipping=3990
+
+Do not trust client-side price.
+Checkout and payment API must determine amount server-side based on the selected membership param.
+
+5. Update checkout page
+
+Update:
+src/app/checkout/page.tsx
+
+Checkout should read:
+- plan=inicio
+- membership=6m / 3m / 1m
+
+Show final summary card:
+Title:
+“Ya casi terminamos”
+
+Plan summary:
+- Plan Inicio Capilar
+- Dutasteride + Minoxidil, sujeto a revisión médica
+- Membership selected:
+  - “Membresía 6 meses” or “Membresía 3 meses” or “Membresía 1 mes”
+- Revisión médica
+- Receta si corresponde
+- Farmacia autorizada
+- Despacho a domicilio
+- Seguimiento por WhatsApp + AI
+- Historial capilar
+
+Price breakdown:
+- Membresía: selected subtotal
+- Envío: $3.990
+- Total: subtotal + 3.990
+
+Examples:
+- 6m total: $119.940 + $3.990 = $123.930
+- 3m total: $74.970 + $3.990 = $78.960
+- 1m total: $29.990 + $3.990 = $33.980
+
+Add text:
+“El costo de envío se agrega al final del pedido.”
+
+Required checkbox:
+“He leído y acepto el consentimiento médico informado, los términos y condiciones y la política de privacidad.”
+
+Main refund/review copy:
+“Reserva tu plan. El cargo queda sujeto a revisión médica. Si el médico determina que no corresponde avanzar, no activaremos el tratamiento y gestionaremos la devolución del pago.”
+
+CTA:
+“Ir al pago”
+
+6. Update Flow payment create route
+
+Update:
+src/app/api/payments/flow/create/route.ts
+
+It must accept:
+- plan=inicio
+- membership=6m / 3m / 1m
+
+Server-side amount should be:
+- selected membership subtotal + shipping 3990
+
+Do not allow client to pass arbitrary amount.
+
+Payment subject examples:
+- “Plan Inicio Capilar — Membresía 6 meses”
+- “Plan Inicio Capilar — Membresía 3 meses”
+- “Plan Inicio Capilar — Membresía 1 mes”
+
+Store in orders table:
+- plan
+- amount
+- currency
+- status
+- provider fields
+
+If orders table has no membership fields, either:
+A. add columns:
+   - membership_months integer
+   - membership_monthly_price integer
+   - shipping_amount integer default 3990
+or
+B. store membership in plan/provider metadata if existing schema supports it.
+
+Prefer adding safe columns if needed:
+alter table public.orders add column if not exists membership_months integer;
+alter table public.orders add column if not exists membership_monthly_price integer;
+alter table public.orders add column if not exists shipping_amount integer default 3990;
+
+Update supabase/schema.sql accordingly if schema changes are needed.
+
+7. Update plan page CTA
+
+Wherever the user currently clicks:
+“Reservar Plan Inicio Capilar”
+
+Change link to:
+`/membership?plan=inicio&journey=treatment`
+
+Do not send the user directly to checkout from the treatment plan page.
+
+8. Compliance
+
+Do not say:
+- “tratamiento aprobado”
+- “receta garantizada”
+- “medicamento garantizado”
+- “resultado garantizado”
+- “diagnóstico”
+- “candidato definitivo”
+
+Use:
+- “sujeto a revisión médica”
+- “receta si corresponde”
+- “farmacia autorizada”
+- “si el médico determina que corresponde”
+- “seguimiento”
+- “historial capilar”
+
+9. Visual style
+
+Use:
+- mobile-first
+- clean white/cream background
+- rounded cards
+- subtle shadow
+- black/dark primary CTA
+- clear selected state
+- sticky bottom CTA on mobile
+- Nilo branding
+- no external BOE assets, no copied illustrations
+
+10. Build
+
+Run:
+npm.cmd run build
+
+Summarize:
+- files changed
+- new membership page route
+- checkout changes
+- Flow amount logic changes
+- any Supabase schema migration required
+- whether build passed

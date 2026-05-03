@@ -1,0 +1,305 @@
+Implement Sprint: multi-doctor portal and medical review workflow for the capillary MVP.
+
+Context:
+The app already has:
+- patient quiz;
+- Supabase;
+- admin;
+- AI doctor report;
+- patient detail page with AI report;
+- checkout/plans flow.
+
+Now we need a doctor portal that can support more than one doctor.
+
+Important business context:
+- The platform will have multiple doctors.
+- Each doctor needs their own access/login.
+- Doctors need a simple dashboard to see assigned patients and upcoming consultations.
+- Doctors should see patient intake answers, photos, and AI preliminary report.
+- Doctors must be able to enter a medical decision and notes.
+- Doctor availability should be supported.
+- For now, use Calendly link integration per doctor.
+- Do not build a complex scheduling system from scratch yet.
+- Calendly can be integrated in two phases:
+  Phase 1: store each doctor’s Calendly URL and use it for booking links.
+  Phase 2 later: integrate Calendly API/webhooks to sync scheduled appointments.
+
+Goal:
+Create a simple but scalable doctor portal with individual doctor accounts, patient assignment, Calendly link support, and medical review workflow.
+
+Compliance/security:
+- Do not expose patient data publicly.
+- Do not send medical details in email.
+- AI report is internal and must be reviewed by doctor.
+- AI report is not diagnosis, prescription, or approval.
+- The doctor makes the final decision.
+- Do not break the existing admin flow.
+- Do not expose Supabase service role key to client.
+- Keep patient data protected.
+
+Preferred auth:
+Use Supabase Auth for doctor login if possible.
+If full auth is too complex, implement the database schema and protected doctor routes with a clear temporary fallback, but prefer Supabase Auth.
+
+Roles:
+- admin: can see all patients and doctors.
+- doctor: can only see patients assigned to them.
+
+1. Database schema
+
+Add or update Supabase schema with:
+
+Table: doctor_profiles
+Fields:
+- id uuid primary key default gen_random_uuid()
+- user_id uuid references auth.users(id) on delete cascade
+- full_name text not null
+- email text not null
+- specialty text
+- license_number text
+- calendly_url text
+- availability_notes text
+- max_consultations_per_day integer
+- is_active boolean default true
+- created_at timestamptz default now()
+
+Table: medical_reviews
+Fields:
+- id uuid primary key default gen_random_uuid()
+- patient_id uuid references public.patients(id) on delete cascade
+- intake_id uuid references public.intakes(id) on delete cascade
+- doctor_id uuid references public.doctor_profiles(id)
+- status text default 'pending_review'
+- medical_decision text
+- doctor_notes text
+- consultation_scheduled_at timestamptz
+- calendly_event_url text
+- reviewed_at timestamptz
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+
+Suggested status values:
+- pending_assignment
+- pending_booking
+- consultation_booked
+- pending_review
+- needs_more_info
+- approved_to_advance
+- not_eligible_online
+- referred_to_clinic
+- completed
+
+If there is already a consultations table that can be reused safely, consider whether to extend it instead of duplicating. But prioritize a clean MVP.
+
+Update supabase/schema.sql with these tables and RLS policies.
+
+RLS:
+- admin/service role can read/write all.
+- doctors can read their own doctor_profile.
+- doctors can read medical_reviews assigned to their doctor_profile.
+- doctors can update medical_reviews assigned to them.
+- doctors can read related patient/intake/photo/report data only for assigned reviews if feasible.
+If RLS becomes too complex, explain what remains, but do not leave routes public.
+
+2. Doctor login
+
+Create:
+/doctor/login
+
+Requirements:
+- Email/password login using Supabase Auth.
+- After login, redirect to /doctor.
+- If already logged in, redirect to /doctor.
+- If login fails, show a clear error.
+- Style: simple, premium, mobile-first.
+
+3. Doctor dashboard
+
+Create:
+/doctor
+
+Protected route.
+
+Title:
+“Panel médico”
+
+Subtitle:
+“Consultas y pacientes asignados para revisión.”
+
+Dashboard cards:
+- “Pendientes de agenda”
+- “Consultas agendadas”
+- “Pendientes de revisión”
+- “Revisados este mes”
+
+Then show a table/card list of assigned patients.
+
+Each row/card should show:
+- patient name
+- patient email or phone
+- journey type
+- created_at
+- consultation status
+- scheduled date/time if available
+- AI report status: generado / pendiente
+- risk level if available
+- button: “Revisar caso”
+
+Button links to:
+/doctor/patients/[id]
+
+4. Doctor patient detail
+
+Create:
+/doctor/patients/[id]
+
+Protected route.
+Doctor can only access if the patient/intake is assigned to that doctor.
+
+Page sections:
+
+A. Patient summary
+- name
+- age
+- sex
+- city
+- phone/email
+- journey type
+- created_at
+
+B. Consultation status
+- current status
+- scheduled date/time
+- Calendly event URL if available
+- doctor assigned
+
+C. Intake answers
+Show key quiz answers in a clean format.
+
+D. Photos
+Show uploaded photos if available.
+
+E. AI preliminary report
+Show the same AI report section currently available in admin:
+- resumen del caso
+- observación preliminar de fotos
+- ruta preliminar sugerida
+- nivel de atención
+- señales de alerta
+- preguntas sugeridas
+- consideraciones clínicas posibles
+- próximo paso operacional
+- nota interna
+
+Add note:
+“Este informe fue generado por AI como apoyo preliminar. No constituye diagnóstico, prescripción ni aprobación de tratamiento. Debe ser revisado por el médico.”
+
+F. Medical decision form
+Fields:
+- status select with Spanish labels:
+  - “Revisión pendiente”
+  - “Solicitar más información”
+  - “Corresponde avanzar con tratamiento”
+  - “No corresponde avanzar por este flujo”
+  - “Derivar a evaluación clínica”
+  - “Consulta completada”
+- medical_decision textarea
+- doctor_notes textarea
+- save button:
+  “Guardar decisión médica”
+
+When saved:
+- update medical_reviews
+- set reviewed_at when final decision is selected
+- show success message
+
+5. Admin doctor management
+
+Update /admin or create /admin/doctors.
+
+Admin should be able to see a list of doctors:
+- name
+- email
+- specialty
+- license number
+- Calendly URL
+- active status
+- assigned patients count
+
+If simple, create a read-only list first.
+If feasible, add create/edit doctor form:
+- full name
+- email
+- specialty
+- license number
+- calendly_url
+- availability_notes
+- max consultations per day
+- is_active
+
+Important:
+If creating Supabase Auth users from admin is complex, document manual creation:
+- create doctor user in Supabase Auth
+- create doctor_profiles row linked to auth user_id
+
+6. Patient assignment
+
+Admin should be able to assign a patient/intake to a doctor.
+
+In admin patient detail or admin dashboard:
+- Add doctor assignment select/list
+- On assign:
+  - create or update medical_reviews row for that patient/intake with doctor_id
+  - status should become pending_booking or pending_review depending on current flow
+
+If this is too much for one step, implement assignment at least in admin patient detail.
+
+7. Calendly integration — Phase 1
+
+Do NOT implement full Calendly API yet.
+
+For each doctor:
+- Store calendly_url in doctor_profiles.
+- When patient is assigned to doctor, show “Agendar consulta” link using that doctor’s calendly_url.
+- On admin and doctor dashboard, show the Calendly URL.
+- In patient-facing success/checkout if feasible, show:
+  “Agenda tu consulta médica”
+  linking to the assigned doctor’s Calendly URL.
+
+If no doctor is assigned yet, show:
+“Te enviaremos el link de agenda una vez asignado el médico.”
+
+Add developer TODO:
+“TODO Phase 2: integrate Calendly webhooks/API to automatically update consultation_scheduled_at and calendly_event_url after booking.”
+
+8. Calendly integration — future placeholder
+
+Add comments or TODO documentation:
+Future flow:
+- Calendly webhook fires when invitee.created
+- backend matches event by patient_id/intake_id or prefilled email
+- update medical_reviews.consultation_scheduled_at
+- store calendly_event_url
+- status becomes consultation_booked
+
+Do not implement this now unless very straightforward.
+
+9. Existing admin compatibility
+
+Do not remove existing /admin flow.
+Existing admin should keep working.
+Existing AI report section should still display.
+
+10. Build
+
+Run:
+npm.cmd run build
+
+Summarize:
+- files changed
+- schema migrations required
+- how to create doctor users
+- how doctors log in
+- how patients are assigned
+- how Calendly link works in Phase 1
+- what remains for Calendly Phase 2

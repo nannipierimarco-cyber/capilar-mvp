@@ -1,0 +1,57 @@
+Add a visual hair loss pattern question to the Nilo quiz.
+
+Goal:
+Improve the capillary assessment by asking the user to select the visual pattern that best represents their hair loss.
+
+Important:
+- Background must be white, not cream.
+- Any logo/text/brand label that currently says “Capilar” should say “Nilo”.
+- Do not copy external illustrations.
+- Create original simple Nilo-styled visual cards using CSS/SVG/icons.
+- Do not break Supabase saving.
+- Do not break AI doctor report.
+- Do not break existing quiz, photos, admin, doctor portal, membership, checkout, or Flow.
+
+Add quiz step:
+Question:
+“¿Cuál imagen representa mejor tu patrón de caída?”
+
+Options:
+1. “Sin caída visible”
+2. “Entradas leves”
+3. “Entradas notorias”
+4. “Coronilla leve”
+5. “Entradas y coronilla”
+6. “Pérdida difusa”
+7. “Calvicie avanzada”
+8. “En parches”
+9. “No estoy seguro”
+
+UX:
+- mobile-first
+- white background
+- clean cards
+- simple original silhouette/abstract hair pattern visuals
+- selected state clearly visible
+- one main question on screen
+- progress bar consistent with rest of quiz
+- centered Nilo branding/logo
+- top-left back arrow if already used elsewhere
+
+Data:
+- Store selected value in the intake payload.
+- Show selected hair pattern in admin patient detail.
+- Include selected hair pattern in the AI doctor report input if feasible.
+- If schema change is required, provide exact SQL migration.
+- Prefer storing in an existing flexible field if available.
+
+Compliance:
+- Do not diagnose.
+- Use this only as patient-reported visual pattern.
+
+Run npm.cmd run build and summarize:
+- files changed
+- whether new field is saved
+- whether it appears in admin
+- whether AI report receives it
+- any SQL needed

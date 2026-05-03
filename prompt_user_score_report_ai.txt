@@ -1,0 +1,240 @@
+You are working on my existing Next.js app for Nilo, a Chilean digital health platform focused first on capillary health.
+
+We already have:
+- A /score-capilar funnel.
+- A Score Capilar flow with a mini quiz.
+- Basic lead capture.
+- 2 photo uploads: frontal and top.
+- A results screen.
+- An existing AI report flow for doctors.
+
+Important:
+We must keep two AI reports completely separate.
+
+REPORT 1: User Score Report
+- For the user / lead.
+- Simple, friendly, educational, informal.
+- Conversion-oriented.
+- Shown after the free Score Capilar.
+- Must not diagnose.
+- Must not prescribe.
+- Must not recommend medication or dosage.
+- Must not mention final medical conclusions.
+- Must not say the user has alopecia.
+- Must not guarantee results.
+- Must not create fear or shame.
+- Goal: give clarity, increase trust, and motivate the user to complete the medical evaluation.
+
+REPORT 2: Doctor AI Report
+- Already exists or is being built elsewhere.
+- For internal clinical/doctor use only.
+- More complete and clinical.
+- Must remain separate from the user report.
+- Do not modify or mix this doctor report unless absolutely necessary.
+- Do not reuse the doctor report output for the user.
+- Do not expose doctor report fields to the user.
+
+Goal of this task:
+Create or integrate a separate “User Score Report” generation system for /score-capilar.
+
+The User Score Report should be generated after:
+- mini quiz answers are completed
+- contact data is submitted
+- 2 photos are uploaded
+- deterministic score is calculated
+
+The User Score Report should use:
+- quiz answers
+- score
+- score label
+- capillary apparent age
+- preliminary route
+- main concern area
+- photo presence/metadata if available
+- optionally photos as image inputs only if the app already supports image input to OpenAI safely
+
+Important implementation principle:
+If image analysis is not already implemented or is uncertain, do not pretend to analyze the photos.
+In that case, generate the report based on quiz answers + score + uploaded photo presence.
+Use language like:
+“según tus respuestas y las fotos cargadas”
+but avoid claims like:
+“detectamos clínicamente...”
+or
+“la IA diagnosticó...”
+
+User-visible report name:
+“Mapa Capilar Nilo”
+
+Result screen should show:
+- Score Capilar
+- Score label
+- Edad capilar aparente
+- Ruta preliminar
+- Friendly summary from AI
+- Score explanation from AI
+- 3 common mistakes from AI
+- 3 next steps from AI
+- CTA to complete medical evaluation
+- Secondary CTA to share score
+
+Required JSON output from the User Score Report AI:
+{
+  "friendly_summary": "",
+  "score_explanation": "",
+  "main_concern_area": "",
+  "preliminary_route_explanation": "",
+  "common_mistakes": ["", "", ""],
+  "next_steps": ["", "", ""],
+  "cta_title": "",
+  "cta_body": "",
+  "cta_button": "",
+  "disclaimer": ""
+}
+
+Required tone:
+- Spanish, Chile/LatAm neutral.
+- Clear.
+- Warm.
+- Premium.
+- Simple.
+- Responsible.
+- Not too clinical.
+- Not alarmist.
+- Not cheesy.
+- Not salesy in an aggressive way.
+
+The CTA should usually be:
+cta_title: “Confirma tu ruta con revisión médica”
+cta_body: “Tu Score te orienta. La revisión médica permite que un profesional revise tus antecedentes y fotos con más detalle.”
+cta_button: “Completar evaluación médica”
+
+Compliance rules for generated content:
+The AI must never say:
+- “tienes alopecia”
+- “tienes alopecia androgenética”
+- “necesitas minoxidil”
+- “necesitas dutasteride”
+- “debes tomar...”
+- “tu tratamiento es...”
+- “diagnóstico”
+- “garantizado”
+- “vas a recuperar pelo”
+- “vas a perder pelo si no...”
+
+Allowed language:
+- “orientación preliminar”
+- “perfil preliminar”
+- “según tus respuestas”
+- “podría ser útil revisar”
+- “ruta preliminar”
+- “si decides avanzar”
+- “un médico puede revisar”
+- “si corresponde”
+- “no constituye diagnóstico médico”
+- “no reemplaza una evaluación profesional”
+
+Prompt template for OpenAI should include:
+SYSTEM:
+You generate a simple, educational and conversion-oriented capillary score report for a user of Nilo. This is not a medical diagnosis. This is not a prescription. You must be careful, friendly and compliant.
+
+USER:
+Generate the user-facing Mapa Capilar Nilo based on:
+- quiz answers
+- deterministic score
+- score label
+- capillary apparent age
+- preliminary route
+- main concern area
+- uploaded photo status
+
+Return only valid JSON with the required schema.
+
+Implementation requirements:
+1. Inspect the current codebase first.
+2. Identify where the /score-capilar logic is implemented.
+3. Identify whether there is already an OpenAI utility/client.
+4. Identify the existing doctor AI report implementation, but do not modify it unless needed.
+5. Create a separate user report module, with clear naming, for example:
+   - userScoreReport.ts
+   - generateUserScoreReport.ts
+   - user-score-report prompt
+6. Keep the user report separate from the doctor report.
+7. If OpenAI API key/env is already configured, use the existing setup.
+8. If not configured, create a safe placeholder/fallback that generates a deterministic non-AI report from the same fields.
+9. Add a fallback user report so the funnel never breaks if OpenAI fails.
+10. Save the generated user report if persistence already exists.
+11. If persistence is not configured, keep it in state and add a TODO.
+12. Do not expose clinical/doctor report data to the user.
+13. Do not change the existing doctor report logic.
+14. Do not change the payment/medical intake flow.
+15. Add loading state:
+   “Estamos preparando tu Mapa Capilar...”
+16. Add error fallback:
+   “No pudimos generar el reporte personalizado en este momento, pero tu Score Capilar está listo.”
+17. Add event tracking hooks if tracking utility exists:
+   - user_score_report_generation_started
+   - user_score_report_generated
+   - user_score_report_failed
+   - user_score_report_viewed
+   - user_score_report_medical_cta_clicked
+18. If no tracking utility exists, log to console with a simple trackEvent helper or TODO.
+
+UI copy to add near report:
+Title:
+“Tu Mapa Capilar Nilo”
+
+Subtitle:
+“Una orientación preliminar para entender tu ruta capilar. No constituye diagnóstico médico.”
+
+Bridge sentence:
+“Tu Score te orienta. Tu Mapa Capilar te explica. La revisión médica confirma tu ruta.”
+
+Primary CTA:
+“Completar evaluación médica”
+
+Secondary CTA:
+“Compartir mi Score”
+
+Suggested report layout:
+1. Score card
+2. Edad capilar aparente
+3. Ruta preliminar
+4. AI friendly summary
+5. Qué significa tu score
+6. Errores comunes
+7. Próximos pasos
+8. CTA medical evaluation
+9. Disclaimer
+
+Disclaimer:
+“Este resultado es preliminar y educativo. No constituye diagnóstico médico ni indicación de tratamiento. La recomendación final depende de una revisión profesional.”
+
+Important:
+Do this in two phases.
+
+PHASE 1:
+- Read the current codebase.
+- Do not edit files yet.
+- Explain:
+  1. Where /score-capilar is implemented
+  2. Where the current score logic lives
+  3. Whether there is an existing OpenAI client
+  4. Whether there is an existing doctor report module
+  5. Which files you would create or modify
+  6. How you will keep user report and doctor report separated
+  7. Any assumptions or risks
+
+Wait for my approval before coding.
+
+PHASE 2:
+- Implement only after approval.
+- Keep changes focused.
+- Do not modify unrelated files.
+- After implementation, tell me:
+  1. What changed
+  2. Which files were created/modified
+  3. How to test locally
+  4. What env vars are needed
+  5. What happens if OpenAI fails
+  6. Any TODOs

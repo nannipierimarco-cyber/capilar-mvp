@@ -1,0 +1,180 @@
+Implement an AI-generated preliminary doctor report after a patient completes the capillary quiz.
+
+Goal:
+When a patient finishes the quiz and the intake is saved, the app should generate an AI preliminary report that helps the doctor review the case faster and with more context.
+
+Important positioning:
+The AI report is internal only.
+It is NOT shown to the patient.
+It is NOT a diagnosis.
+It is NOT a prescription.
+It is NOT an approval.
+It is only a support document for the doctor.
+
+Compliance:
+- Do not say AI diagnoses alopecia.
+- Do not say AI approves treatment.
+- Do not recommend final medication or doses.
+- Do not prescribe.
+- Do not guarantee results.
+- Use language like “possible consideration for doctor review”, “preliminary route”, “red flags to review”, “questions for physician”.
+- The doctor makes the final decision.
+
+Functional requirements:
+
+1. After quiz submit
+When the user completes the quiz and the intake is saved to Supabase, trigger AI report generation.
+
+2. AI report content
+Generate a structured internal report with these fields:
+
+- summary_for_doctor:
+  A concise summary of the patient’s answers, hair loss history, goals and relevant context.
+
+- preliminary_route:
+  One of:
+  “medical_treatment_review”
+  “transplant_evaluation”
+  “combined_medical_and_clinic_review”
+  “needs_detailed_doctor_review”
+
+- risk_level:
+  One of:
+  “low”
+  “medium”
+  “high”
+
+- red_flags:
+  Array of possible red flags from the intake, if any.
+  If none, return empty array.
+
+- doctor_questions:
+  Array of suggested questions the doctor should clarify.
+
+- possible_considerations:
+  Array of possible categories for doctor review.
+  Allowed examples:
+  “topical_minoxidil_review”
+  “oral_minoxidil_review”
+  “five_alpha_reductase_inhibitor_review”
+  “pharmacy_coordination”
+  “clinic_evaluation”
+  “pre_transplant_stabilization”
+  “needs_in_person_evaluation”
+  “do_not_advance_without_doctor_review”
+
+- operational_next_step:
+  One of:
+  “standard_medical_review”
+  “request_more_information”
+  “doctor_priority_review”
+  “clinic_partner_pre_screen”
+  “do_not_route_to_checkout_until_reviewed”
+
+- patient_facing_copy_suggestion:
+  A safe, compliant message that could be shown to the patient later if needed. It must not mention diagnosis, approval or prescription.
+
+- internal_note:
+  A clear note saying this report is AI-generated and must be reviewed by a licensed physician.
+
+3. Store the report
+Create a table or storage mechanism for the AI report.
+
+Preferred:
+Create a new Supabase table:
+ai_doctor_reports
+
+Fields:
+- id uuid primary key
+- patient_id uuid nullable
+- intake_id uuid not null
+- summary_for_doctor text
+- preliminary_route text
+- risk_level text
+- red_flags jsonb
+- doctor_questions jsonb
+- possible_considerations jsonb
+- operational_next_step text
+- patient_facing_copy_suggestion text
+- internal_note text
+- model_name text
+- created_at timestamp default now()
+
+If adding a migration is too risky, instead add JSON/text fields to the existing intake display layer and explain what schema changes are needed.
+
+4. API route
+Create an internal server-side API route:
+src/app/api/ai/doctor-report/route.ts
+
+This route should:
+- receive intake_id or intake payload
+- fetch the relevant intake data from Supabase server-side
+- call the AI model server-side
+- validate/parse structured JSON
+- save the report in Supabase
+- return success/failure
+
+Use environment variable:
+OPENAI_API_KEY
+
+Do not expose the API key to the client.
+
+5. Model call
+Use a cost-efficient model suitable for structured summarization/classification.
+The prompt must instruct the model:
+- You are not diagnosing.
+- You are not prescribing.
+- You are preparing an internal preliminary review note for a licensed doctor.
+- Return only valid JSON matching the schema.
+
+If the OpenAI SDK is not installed, install and configure it.
+If installation is not appropriate, create a clear TODO and mocked function structure.
+
+6. Admin display
+Update the patient detail admin page:
+src/app/admin/patients/[id]/page.tsx
+
+Add a new section:
+“Informe preliminar AI para médico”
+
+Show:
+- summary_for_doctor
+- preliminary_route
+- risk_level
+- red_flags
+- doctor_questions
+- possible_considerations
+- operational_next_step
+- internal_note
+
+Make it visually clear:
+“Este informe es generado por AI y debe ser revisado por un médico. No constituye diagnóstico ni prescripción.”
+
+7. Manual fallback
+Add a button in admin if simple:
+“Generar informe AI”
+This should call the API route for the patient/intake if no report exists.
+
+If adding the button is too complex, make report generation automatic after quiz submit and document how to retry.
+
+8. Error handling
+If AI generation fails:
+- quiz submission should still succeed
+- patient should still reach results
+- log the error server-side
+- admin should show “Informe AI pendiente” or “No generado”
+
+9. Cost control
+Avoid calling AI repeatedly:
+- generate only once per intake by default
+- if report exists, do not regenerate unless manually requested
+
+10. Build
+After implementation:
+- run npm.cmd run build
+- summarize:
+  - files changed
+  - schema changes needed
+  - environment variables needed
+  - how the report is generated
+  - how doctor sees it in admin

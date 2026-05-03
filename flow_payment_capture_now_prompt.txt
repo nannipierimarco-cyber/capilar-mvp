@@ -1,0 +1,214 @@
+Implement MVP payment integration using Flow Chile with immediate payment capture.
+
+Important business requirement:
+The customer must pay now.
+This is NOT an authorization-only flow.
+This is NOT “save card and charge later”.
+This is “pay now, then medical review”.
+
+Core flow:
+1. User completes quiz.
+2. User sees result.
+3. User chooses Plan Inicio Capilar.
+4. User pays now through Flow.
+5. After successful payment, order status becomes:
+   paid_pending_medical_review
+6. Doctor reviews the case.
+7. If doctor determines it corresponds to advance:
+   treatment/farmacy/delivery process continues.
+8. If doctor determines it does not correspond:
+   doctor marks the case as not eligible / does not correspond.
+   order status becomes refund_pending.
+   operations team processes refund manually in Flow during MVP.
+
+Core checkout copy:
+“Reserva tu plan. El cargo queda sujeto a revisión médica. Si el médico determina que no corresponde avanzar, no activaremos el tratamiento y te devolveremos el pago.”
+
+Compliance:
+- Do not say prescription approved.
+- Do not say treatment guaranteed.
+- Do not say medication guaranteed.
+- Do not say we sell medication directly.
+- Say the doctor defines if treatment is clinically appropriate.
+- Say medication is prepared/dispensed by authorized pharmacy when applicable.
+
+Payment provider:
+Use Flow Chile for MVP.
+Use immediate captured payment.
+Do not implement authorization-only.
+Do not implement card tokenization yet.
+Do not implement recurring charges yet.
+
+Environment variables:
+FLOW_API_KEY=
+FLOW_SECRET_KEY=
+FLOW_BASE_URL=
+NEXT_PUBLIC_APP_URL=
+
+1. Database
+
+Check if there is already an orders table.
+If not, create SQL for:
+
+orders:
+- id uuid primary key default gen_random_uuid()
+- patient_id uuid references patients(id) on delete set null
+- intake_id uuid references intakes(id) on delete set null
+- plan text not null
+- amount integer not null
+- currency text default 'CLP'
+- status text default 'payment_pending'
+- payment_provider text default 'flow'
+- provider_order_id text
+- provider_token text
+- provider_payment_id text
+- provider_status text
+- paid_at timestamptz
+- refund_requested_at timestamptz
+- refunded_at timestamptz
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+
+Statuses:
+- payment_pending
+- payment_started
+- paid_pending_medical_review
+- payment_failed
+- refund_pending
+- refunded
+- cancelled
+
+2. Flow payment creation
+
+Create server-side helper:
+src/lib/payments/flow.ts
+
+Create API route:
+src/app/api/payments/flow/create/route.ts
+
+This route should:
+- validate plan server-side
+- set plan=inicio amount=49990 CLP
+- create order row with status payment_pending
+- call Flow payment/create
+- save provider token/order data
+- update order status to payment_started
+- return Flow payment URL
+
+Plan:
+plan=inicio
+name="Plan Inicio Capilar"
+amount=49990
+
+Subject:
+“Plan Inicio Capilar — revisión médica y coordinación”
+
+Return URLs:
+urlReturn = NEXT_PUBLIC_APP_URL + "/checkout/return"
+urlConfirmation = NEXT_PUBLIC_APP_URL + "/api/payments/flow/confirm"
+
+3. Flow confirmation webhook
+
+Create:
+src/app/api/payments/flow/confirm/route.ts
+
+It should:
+- receive Flow confirmation
+- verify payment with Flow API if required
+- if payment is paid/successful:
+  update order status to paid_pending_medical_review
+  set paid_at
+- if failed:
+  update status to payment_failed
+- store provider_status
+- return valid response to Flow
+
+4. Checkout return page
+
+Create or update:
+src/app/checkout/return/page.tsx
+
+It should show:
+- “Estamos confirmando tu pago”
+- If confirmed:
+  “Pago recibido. Tu caso quedó pendiente de revisión médica.”
+- If pending:
+  “Tu pago está siendo confirmado. Te avisaremos apenas quede registrado.”
+- If failed:
+  “No pudimos confirmar el pago. Puedes intentarlo nuevamente o hablar con soporte.”
+
+5. Checkout page
+
+Update:
+src/app/checkout/page.tsx
+
+CTA:
+“Pagar y enviar a revisión médica”
+
+On click:
+- call /api/payments/flow/create
+- redirect user to Flow payment URL
+
+Keep this text visible:
+“Tu pago activa la revisión médica y la coordinación del proceso. La receta y el tratamiento solo se emiten si el médico determina que corresponde clínicamente.”
+
+Refund note:
+“Si el médico determina que no corresponde avanzar, no activaremos el tratamiento y gestionaremos la devolución del pago según la política del piloto.”
+
+6. Success page
+
+Update:
+src/app/success/page.tsx
+
+Use:
+“Pago recibido. Tu caso quedó pendiente de revisión médica.”
+
+Next steps:
+1. “Un médico revisará tu evaluación.”
+2. “Si corresponde, coordinaremos receta, farmacia autorizada y despacho.”
+3. “Si el médico necesita más información, te contactaremos.”
+4. “Si el médico determina que no corresponde avanzar, gestionaremos la devolución del pago.”
+
+Do not say treatment approved.
+
+7. Doctor/admin decision integration
+
+When doctor saves a decision:
+- If decision/status is not_eligible_online or doctor_not_eligible_online or similar:
+  If there is a paid order for the intake, set order status to refund_pending.
+- Do not automatically refund yet.
+- Show admin/operations a clear label:
+  “Reembolso pendiente”
+
+In MVP, refund is manual in Flow dashboard or future API refund.
+
+8. Admin display
+
+In admin patient detail, show:
+- payment status
+- order amount
+- paid_at
+- refund status
+- if refund_pending, show:
+  “Reembolso pendiente — procesar manualmente en Flow”
+
+9. Security
+
+- Flow secret only server-side.
+- Do not trust client amount.
+- Amount must be determined server-side.
+- Payment alone does not activate treatment.
+- Treatment activation requires doctor decision.
+
+10. Build
+
+Run:
+npm.cmd run build
+
+Summarize:
+- files changed
+- SQL migration needed
+- environment variables needed
+- how immediate capture works
+- how refund_pending is triggered
+- what remains manual for refund processing

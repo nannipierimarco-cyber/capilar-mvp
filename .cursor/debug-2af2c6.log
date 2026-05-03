@@ -1,0 +1,11 @@
+{"sessionId":"2af2c6","hypothesisId":"H1-H5","location":"quiz/page.tsx:handleSubmit:start","message":"submit_start","data":{"journeyType":"treatment","hasHairPattern":true},"timestamp":1777698359120}
+{"sessionId":"2af2c6","hypothesisId":"H2","location":"quiz/page.tsx:handleSubmit:intakeError","message":"Could not find the 'hair_pattern' column of 'intakes' in the schema cache","data":{"code":"PGRST204","details":null,"hint":null},"timestamp":1777698359524}
+{"sessionId":"2af2c6","hypothesisId":"H5","location":"quiz/page.tsx:handleSubmit:catch","message":"[object Object]","data":{},"timestamp":1777698359524}
+{"sessionId":"2af2c6","hypothesisId":"H1-H5","location":"quiz/page.tsx:handleSubmit:start","message":"submit_start","data":{"journeyType":"treatment","hasHairPattern":true},"timestamp":1777698504239}
+{"sessionId":"2af2c6","hypothesisId":"H2","location":"quiz/page.tsx:handleSubmit:intakeError","message":"Could not find the 'hair_pattern' column of 'intakes' in the schema cache","data":{"code":"PGRST204","details":null,"hint":null},"timestamp":1777698504790}
+{"sessionId":"2af2c6","hypothesisId":"H5","location":"quiz/page.tsx:handleSubmit:catch","message":"[object Object]","data":{},"timestamp":1777698504790}
+{"sessionId":"2af2c6","hypothesisId":"H1-H5","location":"quiz/page.tsx:handleSubmit:start","message":"submit_start","data":{"journeyType":"treatment","hasHairPattern":true},"timestamp":1777698526437}
+{"sessionId":"2af2c6","hypothesisId":"H2","location":"quiz/page.tsx:handleSubmit:intakeError","message":"Could not find the 'hair_pattern' column of 'intakes' in the schema cache","data":{"code":"PGRST204","details":null,"hint":null},"timestamp":1777698526765}
+{"sessionId":"2af2c6","hypothesisId":"H5","location":"quiz/page.tsx:handleSubmit:catch","message":"[object Object]","data":{},"timestamp":1777698526765}
+{"sessionId":"2af2c6","hypothesisId":"H1-H5","location":"quiz/page.tsx:handleSubmit:start","message":"submit_start","data":{"journeyType":"treatment","hasHairPattern":true},"timestamp":1777698602305}
+{"sessionId":"2af2c6","hypothesisId":"H2","location":"quiz/page.tsx:handleSubmit:success_pre_navigate","message":"submit_ok","data":{},"timestamp":1777698602713}

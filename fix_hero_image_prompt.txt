@@ -1,0 +1,40 @@
+Ajusta solo la imagen hero del intro del quiz de Nilo.
+
+Problema:
+La imagen se está cortando demasiado. Solo se ve una franja de la cabeza/cuello y no se entiende bien la composición completa de antes/después.
+
+Objetivo:
+Que la imagen se vea más completa y balanceada en mobile, mostrando cabeza + hombros/polera, sin romper el layout.
+
+Requisitos:
+- Mantener fondo blanco.
+- Mantener el copy actual.
+- Mantener el layout de 3 pasos.
+- No tocar lógica del quiz.
+- No tocar Supabase.
+- No tocar AI report.
+- No tocar admin.
+- No tocar doctor portal.
+- No tocar membership.
+- No tocar checkout.
+- No tocar Flow.
+- Usar object-contain en vez de object-cover si aplica.
+- Aumentar la altura del contenedor si hace falta, aproximadamente h-[260px] o h-[280px].
+- Mantener bordes redondeados y estilo limpio.
+- La imagen debe mostrar cabeza + hombros/polera, no solo una franja horizontal.
+- Evitar que la imagen quede demasiado alta y empuje todo el contenido demasiado abajo.
+
+Sugerencia técnica:
+Si se está usando Next/Image, revisar el className del Image y el contenedor padre.
+Usar algo similar a:
+- container: relative h-[280px] w-full overflow-hidden rounded-2xl bg-white
+- image: object-contain
+- sizes="(max-width: 768px) 100vw, 480px"
+
+Después corre:
+npm.cmd run build
+
+Al terminar, resume:
+- archivo modificado
+- qué cambiaste en la imagen
+- si el build pasó

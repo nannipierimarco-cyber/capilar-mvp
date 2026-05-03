@@ -1,0 +1,109 @@
+Create two route-specific value proposition sections before checkout.
+
+Context:
+The user reaches this after completing the quiz and seeing their result. We need to show clearly what they are buying before checkout.
+
+There are two journeys:
+1. Frenar caída
+2. Evaluar trasplante / recuperación capilar
+
+Important:
+- The platform is not a clinic and not a pharmacy.
+- The platform sells a complete capillary solution: medical review, coordination, treatment if clinically appropriate, pharmacy coordination, delivery, follow-up, history and clinic referral if needed.
+- Do not prescribe or guarantee results.
+- Do not say “approved”.
+- Do not show exact medication doses.
+- Do not imply we sell medications directly.
+
+For journey “Frenar caída”:
+Create a value prop section/page with:
+
+Title:
+“Tu plan para frenar la caída desde casa”
+
+Subtitle:
+“Un médico revisa tus respuestas y fotos. Si corresponde, puede indicar tratamiento capilar personalizado y coordinamos farmacia autorizada, despacho mensual y seguimiento.”
+
+Visual:
+Use an image from /public if available. If no image is available, create a clean placeholder card showing:
+- tratamiento mensual
+- médico
+- farmacia autorizada
+- WhatsApp / historial capilar
+
+Cards:
+1. “Consulta médica y revisión de fotos”
+2. “Tratamiento personalizado si corresponde”
+3. “Preparación/dispensación en farmacia autorizada”
+4. “Despacho mensual”
+5. “Seguimiento capilar por WhatsApp”
+6. “Historial capilar consolidado”
+
+Add comparison table:
+“Hacerlo solo” vs “Con la plataforma”
+Rows:
+- Buscar médico / Evaluación guiada
+- Conseguir receta / Receta si corresponde
+- Mandar a preparar magistral / Coordinación con farmacia autorizada
+- Acordarse todos los meses / Despacho mensual programado
+- No saber si avanza / Check-ins y fotos de seguimiento
+- Dudas sueltas / Historial capilar consolidado
+
+CTA:
+“Reservar Plan Inicio — $49.990”
+
+Checkout note:
+“Reserva tu plan. El cargo queda sujeto a revisión médica. Si el médico determina que no corresponde avanzar, no activaremos el tratamiento y te devolveremos el pago.”
+
+For journey “Evaluar trasplante”:
+Create a value prop section/page with:
+
+Title:
+“Evalúa si un trasplante tiene sentido para tu caso”
+
+Subtitle:
+“Revisamos tu información, fotos y antecedentes para orientarte sobre los próximos pasos: estabilización médica, exámenes, evaluación clínica o derivación a una clínica capilar partner.”
+
+Add section:
+“Antes de un trasplante, hay que responder 4 preguntas”
+Cards:
+1. “¿Tu caída está estabilizada?”
+2. “¿Eres buen candidato?”
+3. “¿Necesitas exámenes o evaluación médica previa?”
+4. “¿Qué clínica y técnica hacen sentido?”
+
+Add safe exams copy:
+“Si avanzas hacia un procedimiento, la clínica o el médico tratante puede solicitar exámenes para confirmar que estás en condiciones de realizarlo de forma segura. La clínica define los exámenes finales según criterio clínico.”
+
+Cards:
+1. “Análisis de fotos y antecedentes”
+2. “Revisión médica previa”
+3. “Checklist pre-trasplante”
+4. “Conexión con clínica capilar partner”
+5. “Decisión informada”
+6. “Seguimiento posterior”
+
+Add differentiation table:
+“Una clínica tradicional” vs “Nuestra plataforma”
+Rows:
+- Evalúa si eres candidato a su procedimiento / Evalúa cuál camino tiene sentido para ti
+- Foco en cirugía / Foco en tratamiento, seguimiento y cirugía solo si aplica
+- Consulta puntual / Historial y acompañamiento continuo
+- Te cotiza su solución / Te ayuda a entender opciones y preparación
+- Postoperatorio limitado / Seguimiento capilar progresivo
+
+CTA:
+“Solicitar evaluación de recuperación capilar”
+
+Secondary note:
+“Si el médico identifica que primero conviene estabilizar la caída, te orientaremos hacia tratamiento médico antes de avanzar a procedimiento.”
+
+Placement:
+- Put this route-specific value prop after results and before checkout.
+- It can be implemented as a new page /recommended-plan or as part of /results below the main result.
+- Keep it mobile-first, premium, cream background, rounded-2xl cards, subtle shadows, green/gold accents.
+- Keep copy compliant.
+
+After implementation:
+- Run npm.cmd run build.
+- Tell me files changed and how the flow works.

@@ -1,0 +1,53 @@
+Implement Sprint 1 improvements only.
+
+Use the audit you produced as context. Do not refactor the entire app beyond what is needed.
+
+Scope:
+
+1. Quiz conversion:
+- Move personal data collection to the end of the quiz, right before results/submit.
+- The quiz should start with journey selection and then hair-related questions.
+- Keep the existing Supabase data model working.
+
+2. Photo upload:
+- Make only 2 photos required: frontal and crown/coronilla.
+- Make temples/entradas and side/lateral optional.
+- Add a “Completar fotos después” option that allows users to proceed.
+- Add accept="image/*" and capture="environment" to photo inputs.
+
+3. Checkout:
+- Replace the yellow warning placeholder with a polished manual reservation flow.
+- Do not make it look broken or unfinished.
+- Use copy like:
+  “Reserva tu evaluación”
+  “Estamos operando con confirmación manual durante el piloto. Te contactaremos en menos de 24 horas para confirmar pago, agenda médica y próximos pasos.”
+- Add a clear CTA: “Solicitar confirmación por WhatsApp” or “Confirmar mi solicitud”.
+
+4. Results page:
+- Replace passive CTA “Ver planes y precios” with:
+  “Empezar Plan Inicio — $49.990”
+- Link directly to /checkout?plan=inicio.
+- Keep compliance-safe copy.
+- Replace “Tu caso parece apto…” with warmer copy:
+  “Tu evaluación fue recibida. Un médico revisará tu caso y definirá si corresponde tratamiento.”
+
+5. Compliance:
+- Remove any fictitious usage stats like “+500 pacientes evaluados” unless they are real.
+- Remove or reframe algorithmic severity badges like “Inicial / Intermedia / Avanzada”.
+- Add an explicit consent checkbox before medical screening:
+  “Acepto que mis respuestas y fotos sean usadas para una evaluación médica capilar y entiendo que la receta solo será emitida si corresponde clínicamente.”
+- Move the medication/farmacy authorized disclaimer near the hero section, not buried at the bottom.
+- Keep these rules:
+  Do not say prescription approved.
+  Do not guarantee results.
+  Do not say AI diagnoses alopecia.
+  Say medication is prescribed only if clinically appropriate and dispensed by an authorized pharmacy.
+
+6. Plans:
+- If user has completed an intake, plan CTA should go to /checkout?plan=inicio, not back to /quiz.
+- If there is no intake/session, CTA can go to /quiz.
+
+After implementation:
+- Run npm build.
+- Tell me exactly which files changed.
+- Summarize what was implemented and what remains for Sprint 2.

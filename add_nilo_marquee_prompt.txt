@@ -1,0 +1,91 @@
+Implementa SOLO una barra dinámica horizontal de beneficios en la homepage de Nilo.
+
+Objetivo:
+Agregar debajo del hero/header una franja tipo marquee que se mueva horizontalmente, similar en lógica a la barra de confianza de MEDVi, pero sin copiar diseño exacto, iconos exactos ni textos exactos.
+
+IMPORTANTE:
+- Modificar solo la homepage o un componente nuevo específico para esta barra.
+- No tocar quiz.
+- No tocar results.
+- No tocar plans.
+- No tocar membership.
+- No tocar checkout.
+- No tocar payments / Flow.
+- No tocar Supabase.
+- No tocar admin.
+- No tocar doctor portal.
+- No tocar AI report.
+- No rehacer la homepage completa.
+- No cambiar el hero.
+- No cambiar otras secciones.
+- Fondo general de la página debe seguir como está.
+- Marca debe decir Nilo.
+
+Ubicación:
+- Insertar la barra justo debajo del hero/header actual de la homepage.
+- Si ya existe un hero con CTAs, la barra debe ir inmediatamente después de ese bloque.
+- No debe empujar ni romper el layout mobile.
+
+Contenido de la barra:
+Usar estos textos en español:
+
+1. “Médicos habilitados”
+2. “100% online”
+3. “Precio claro”
+4. “Farmacia autorizada”
+5. “Despacho a domicilio”
+6. “Seguimiento capilar”
+7. “Historial capilar”
+8. “Fotos de evolución”
+
+Estilo:
+- Barra horizontal.
+- Movimiento suave e infinito tipo marquee.
+- Fondo blanco o muy sutil.
+- Texto oscuro.
+- Iconos simples si ya existe lucide-react o iconos disponibles.
+- Si usar iconos complica, usar solo texto + separadores.
+- Altura aproximada: 52px a 64px.
+- Letras pequeñas, tipo uppercase o semi-uppercase.
+- Espaciado amplio entre items.
+- Que se vea premium y limpio.
+- No debe parecer un banner publicitario.
+- Evitar overflow horizontal en mobile.
+
+Animación:
+- Movimiento lento y continuo.
+- Duplicar la lista de items para que el loop sea fluido.
+- Si es fácil, pausar en hover.
+- Si es fácil, respetar prefers-reduced-motion mostrando la lista estática o sin animación.
+
+Implementación sugerida:
+- Crear componente si conviene:
+  src/components/ValuePropMarquee.tsx
+- O implementarlo directamente en src/app/page.tsx si es más simple.
+- Usar CSS/Tailwind para animación.
+- No instalar nuevas dependencias.
+
+Copy exacto:
+“Médicos habilitados”
+“100% online”
+“Precio claro”
+“Farmacia autorizada”
+“Despacho a domicilio”
+“Seguimiento capilar”
+“Historial capilar”
+“Fotos de evolución”
+
+No usar:
+- “receta garantizada”
+- “tratamiento garantizado”
+- “resultados garantizados”
+- “aprobado”
+- “diagnóstico automático”
+
+Al terminar:
+1. Corre npm.cmd run build
+2. Resume:
+   - archivos modificados
+   - dónde se insertó la barra
+   - si la animación funciona
+   - si el build pasó

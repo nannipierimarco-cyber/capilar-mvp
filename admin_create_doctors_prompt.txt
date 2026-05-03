@@ -1,0 +1,177 @@
+Necesito mejorar la página /admin/doctors para poder crear doctores directamente desde el admin de Nilo, sin tener que entrar manualmente a Supabase.
+
+Contexto:
+Actualmente los doctores necesitan:
+1. Un usuario en Supabase Auth para poder hacer login en /doctor/login.
+2. Una fila en doctor_profiles vinculada al user_id del usuario Auth.
+
+Objetivo:
+Desde https://nilolabs.vercel.app/admin/doctors, el admin debe poder crear doctores completos.
+
+IMPORTANTE:
+- No tocar home.
+- No tocar quiz.
+- No tocar membership.
+- No tocar checkout.
+- No tocar Flow.
+- No tocar AI report.
+- No tocar doctor portal salvo que sea estrictamente necesario.
+- No romper el login doctor existente.
+- No exponer SUPABASE_SERVICE_ROLE_KEY en el cliente.
+- Crear usuarios Auth solo desde server-side API route.
+
+====================================================
+PARTE 1 — ADMIN DOCTORS PAGE
+====================================================
+
+Actualizar:
+src/app/admin/doctors/page.tsx
+
+Debe mostrar:
+1. Lista de doctores existentes.
+2. Formulario para crear nuevo doctor.
+
+Formulario:
+- full_name: nombre completo
+- email
+- temporary_password
+- specialty
+- license_number
+- calendly_url
+- availability_notes
+- is_active boolean
+
+Labels en español:
+- “Nombre completo”
+- “Email”
+- “Contraseña temporal”
+- “Especialidad”
+- “Número de registro”
+- “Link de Calendly”
+- “Notas de disponibilidad”
+- “Doctor activo”
+
+Botón:
+“Crear doctor”
+
+Al crear exitosamente:
+Mostrar mensaje:
+“Doctor creado correctamente. Ya puede iniciar sesión en el portal médico.”
+
+Si falla:
+Mostrar error claro.
+
+====================================================
+PARTE 2 — API ROUTE SERVER-SIDE
+====================================================
+
+Crear una ruta:
+src/app/api/admin/doctors/create/route.ts
+
+Debe:
+1. Validar que el request venga de admin.
+   - Reutilizar la lógica existente de admin auth si existe.
+   - Si actualmente admin usa ADMIN_SECRET/session/cookie, usar la misma protección.
+2. Leer:
+   - full_name
+   - email
+   - temporary_password
+   - specialty
+   - license_number
+   - calendly_url
+   - availability_notes
+   - is_active
+3. Validar campos obligatorios:
+   - full_name
+   - email
+   - temporary_password
+4. Usar Supabase Admin client con SUPABASE_SERVICE_ROLE_KEY en server-side.
+5. Crear usuario en Supabase Auth:
+   - email
+   - password = temporary_password
+   - email_confirm = true si es posible
+6. Obtener user.id creado.
+7. Insertar fila en public.doctor_profiles:
+   - user_id = user.id
+   - full_name
+   - email
+   - specialty
+   - license_number
+   - calendly_url
+   - availability_notes
+   - is_active
+8. Si el usuario Auth se creó pero falla doctor_profiles, manejar el error claramente.
+9. No loguear contraseñas.
+10. No devolver service role ni datos sensibles.
+
+====================================================
+PARTE 3 — DUPLICADOS
+====================================================
+
+Si ya existe un doctor_profile con ese email:
+- No crear duplicado.
+- Mostrar error:
+“Ya existe un doctor con este email.”
+
+Si ya existe un usuario Auth con ese email:
+- Intentar detectar y mostrar error claro.
+- No crear perfiles duplicados.
+
+====================================================
+PARTE 4 — EDITAR DOCTOR
+====================================================
+
+Si es simple, agregar edición básica de:
+- full_name
+- specialty
+- license_number
+- calendly_url
+- availability_notes
+- is_active
+
+Si editar es mucho para este sprint, dejarlo como TODO y enfocarse en creación.
+
+====================================================
+PARTE 5 — UX
+====================================================
+
+La página debe ser simple:
+- Fondo blanco.
+- Cards limpias.
+- Tabla/lista de doctores.
+- Formulario en card.
+- Mobile-friendly.
+
+En la lista mostrar:
+- Nombre
+- Email
+- Especialidad
+- Número de registro
+- Calendly URL
+- Activo/inactivo
+- Cantidad de pacientes asignados si ya se calcula hoy
+
+====================================================
+PARTE 6 — SEGURIDAD
+====================================================
+
+- La creación de Auth users debe ocurrir solo en server-side route.
+- No exponer service role key.
+- No permitir crear doctores desde una página pública.
+- Proteger con admin auth existente.
+- No loguear temporary_password.
+
+====================================================
+PARTE 7 — BUILD
+====================================================
+
+Al terminar:
+1. Corre npm.cmd run build
+2. Resume:
+   - archivos modificados
+   - ruta API creada
+   - cómo se crea el usuario Auth
+   - cómo se crea doctor_profiles
+   - cómo probarlo
+   - si hay SQL requerido
+   - si build pasó

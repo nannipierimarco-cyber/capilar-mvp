@@ -1,0 +1,39 @@
+Tengo un hydration mismatch en /quiz causado por el componente Progress.
+
+Error:
+aria-valuetext difiere entre server y client:
+server/client muestran "0%" vs "0 %"
+
+Archivo señalado:
+src/components/ui/progress.tsx
+línea 14, ProgressPrimitive.Root
+
+Objetivo:
+Arreglar solo el hydration mismatch del componente Progress.
+
+Requisitos:
+- No tocar lógica del quiz.
+- No tocar RUT.
+- No tocar Supabase.
+- No tocar AI report.
+- No tocar admin.
+- No tocar doctor portal.
+- No tocar membership.
+- No tocar checkout.
+- No tocar Flow.
+- Mantener visualmente igual la barra de progreso.
+- Evitar cualquier valor que cambie por locale entre server y client.
+
+Solución sugerida:
+En src/components/ui/progress.tsx, asegurar que aria-valuetext sea una string estable y sin formateo localizado.
+Opciones aceptables:
+1. Pasar aria-valuetext explícito como `${Math.round(value ?? 0)}%`
+2. O eliminar aria-valuetext si Radix/Progress lo está generando de forma inconsistente y no es necesario.
+3. Si ProgressPrimitive.Root genera aria-valuetext automáticamente, revisar si se puede evitar pasando una prop estable.
+
+El resultado debe evitar que React vea:
+"0%" vs "0 %"
+
+Después:
+- corre npm.cmd run build
+- resume qué cambiaste y si el build pasó.

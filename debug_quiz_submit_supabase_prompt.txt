@@ -1,0 +1,77 @@
+El campo patients.rut ya existe en Supabase y algunos registros ya guardan RUT correctamente.
+
+Pero el submit del quiz sigue fallando con:
+“Ocurrió un error al guardar tu evaluación.”
+
+El error anterior era poco informativo:
+console.error(err) mostraba solo {}
+
+Objetivo:
+Necesito diagnosticar exactamente qué operación de guardado está fallando en src/app/quiz/page.tsx.
+
+Revisar específicamente handleSubmit.
+
+Quiero que agregues logs claros antes y después de cada operación de Supabase dentro de handleSubmit, sin cambiar la lógica de negocio.
+
+Operaciones a identificar:
+1. patient insert/update
+2. intake insert/update
+3. photo insert/update si aplica
+4. AI report trigger si aplica
+5. cualquier otra operación async que ocurra al enviar el quiz
+
+Para cada operación, loguear:
+- nombre de la operación
+- payload keys, no valores sensibles
+- si fue exitosa
+- error.message
+- error.details
+- error.hint
+- error.code
+
+Importante:
+No loguear datos personales completos.
+No loguear RUT completo.
+No loguear email completo.
+No loguear teléfono completo.
+Solo payload keys y errores técnicos.
+
+Además revisar si el código está enviando campos a una tabla que no existen en Supabase, especialmente:
+- rut
+- national_id
+- medical_conditions
+- currently_taking_medication
+- current_medications_detail
+- medications
+- cualquier campo nuevo agregado recientemente
+
+Contexto:
+- rut debe guardarse SOLO en patients.rut
+- rut NO debe enviarse a intakes
+- si hay campos médicos nuevos, deben guardarse en el lugar correcto según la estructura actual del proyecto
+- si intakes no tiene columnas específicas para campos médicos, preferir guardarlos dentro de la estructura JSON/respuestas existente si ya existe, en vez de agregar muchas columnas nuevas
+
+Si encuentras que falta una columna en Supabase:
+- no inventes soluciones silenciosas
+- dame el SQL exacto necesario
+- actualiza también supabase/schema.sql si corresponde
+
+No tocar:
+- home
+- membership
+- checkout
+- payments
+- Flow
+- admin salvo que sea estrictamente necesario
+- doctor portal salvo que sea estrictamente necesario
+- AI report salvo que sea estrictamente necesario para no romper el submit
+
+Después:
+1. Corre npm.cmd run build
+2. Resume:
+   - archivos modificados
+   - qué logs agregaste
+   - qué operación sospechas que está fallando
+   - si detectaste campos enviados a tablas incorrectas
+   - SQL necesario si aplica
+   - si el build pasó

@@ -1,0 +1,132 @@
+Update the AI doctor report so it includes a dedicated photo observation section.
+
+Goal:
+The AI report should analyze the uploaded hair photos as part of the internal preliminary report for the doctor.
+
+Important:
+- The photo analysis is internal only.
+- It is NOT shown to the patient by default.
+- It is NOT a diagnosis.
+- It is NOT a prescription.
+- It is NOT an approval.
+- It is a visual observation to help the doctor review the case faster.
+- The doctor makes the final assessment.
+
+Technical requirement:
+Verify whether the current /api/ai/doctor-report route sends uploaded photo URLs/images to OpenAI.
+If it does not, update the route to fetch the patient’s uploaded photo records from Supabase and include them in the model input.
+
+Photos may be stored in the photos table and/or Supabase Storage.
+Use the existing storage paths/URLs already saved by the app.
+If signed URLs are needed, generate temporary signed URLs server-side before sending them to the model.
+Do not expose service role key to the client.
+
+AI model:
+Use a model that supports image input.
+Keep cost under control:
+- Only include available required photos first: frontal and crown/coronilla.
+- Include optional photos if available: temples/entradas and side/lateral.
+- Do not call AI repeatedly if a report already exists, unless admin clicks regenerate.
+
+Prompt language:
+The model must always respond in Spanish.
+
+Add this section to the report:
+
+“Observación preliminar de fotos”
+
+The section should include:
+1. Fotos recibidas
+   - frontal
+   - coronilla
+   - entradas, if available
+   - lateral, if available
+
+2. Calidad de las fotos
+   - buena / media / baja
+   - mention if lighting, angle, blur, wet hair, gel, distance or coverage may limit review
+
+3. Zonas visibles a revisar
+   Use cautious language:
+   - “se observa posible menor densidad en…”
+   - “la foto sugiere revisar…”
+   - “conviene que el médico confirme…”
+   Do not diagnose.
+
+4. Consistencia con respuestas del paciente
+   Compare photo observations with quiz answers:
+   - Do photos seem consistent with reported area?
+   - Are there areas the patient did not mention but doctor should review?
+   - Are photos insufficient?
+
+5. Recomendación para nuevas fotos
+   If quality is low or missing views, suggest:
+   - pedir foto frontal
+   - pedir foto de coronilla
+   - pedir foto entradas
+   - pedir foto lateral
+   - pedir mejor luz
+   - pedir pelo seco y sin gel
+
+Safe language:
+Do NOT say:
+- “tiene alopecia androgenética”
+- “alopecia avanzada”
+- “candidato a trasplante”
+- “aprobado”
+- “requiere dutasteride/minoxidil”
+- “necesita X tratamiento”
+
+Use:
+- “posible”
+- “sugiere revisar”
+- “conviene confirmar”
+- “observación preliminar”
+- “a validar por médico”
+
+JSON structure:
+Add or update a field:
+photo_observation
+
+It should be an object with:
+- received_photos: string[]
+- photo_quality: "buena" | "media" | "baja" | "insuficiente"
+- visible_areas_to_review: string[]
+- consistency_with_answers: string
+- recommended_additional_photos: string[]
+- photo_observation_summary: string
+
+Admin display:
+Update src/app/admin/patients/[id]/AiReportSection.tsx to show a dedicated section:
+
+Title:
+“Observación preliminar de fotos”
+
+Show:
+- Fotos recibidas
+- Calidad de fotos
+- Zonas visibles a revisar
+- Consistencia con respuestas
+- Fotos adicionales sugeridas
+- Resumen visual preliminar
+
+Add compliance note:
+“Esta observación visual fue generada por AI como apoyo preliminar. No constituye diagnóstico y debe ser validada por un médico.”
+
+Database:
+If ai_doctor_reports table does not have photo_observation, add SQL migration/instruction to add:
+photo_observation jsonb
+
+Update supabase/schema.sql accordingly.
+
+If migration is needed, provide the exact SQL:
+alter table public.ai_doctor_reports add column if not exists photo_observation jsonb;
+
+Build:
+Run npm.cmd run build.
+
+Summarize:
+- files changed
+- whether photo URLs are sent to the model
+- whether database migration is needed
+- how the doctor sees the photo section in admin

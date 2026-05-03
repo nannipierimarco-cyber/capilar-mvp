@@ -1,0 +1,116 @@
+Update only the homepage copy and sections.
+
+Goal:
+The homepage should communicate more clearly that the platform uses intelligent evaluation/AI-assisted organization to help users understand the right capillary path, but without saying AI diagnoses or prescribes.
+
+Important:
+- Do not change quiz logic.
+- Do not change checkout.
+- Do not change Supabase/admin.
+- Do not mention PRP as a primary product on the homepage.
+- The homepage should focus on two paths only:
+  1. Frenar la caída
+  2. Evaluar trasplante / recuperación capilar
+
+Core positioning:
+We help users understand their hair loss before deciding what to do.
+The platform uses intelligent evaluation to organize answers, photos and capillary history.
+A doctor reviews the case and defines whether treatment is clinically appropriate.
+The platform then helps coordinate pharmacy, delivery, follow-up, or clinic referral if needed.
+
+Compliance:
+- Do not say AI diagnoses alopecia.
+- Do not say AI creates the perfect treatment.
+- Do not say prescription approved.
+- Do not guarantee results.
+- Do not say we sell medications directly.
+- Say that treatment is defined by a doctor and dispensed/prepared by authorized pharmacy if clinically appropriate.
+
+1. Hero section
+
+Replace current hero title with:
+“Entiende tu caída antes de decidir qué hacer”
+
+Replace subtitle with:
+“Nuestra evaluación inteligente ordena tus respuestas, fotos e historial capilar para orientarte hacia el próximo paso correcto: frenar la caída con revisión médica o evaluar un trasplante si realmente corresponde.”
+
+CTA:
+“Comenzar evaluación capilar”
+
+Small compliance note near CTA:
+“La inteligencia de la plataforma no diagnostica ni prescribe. Un médico revisa tu caso y define si corresponde tratamiento.”
+
+2. Add or update a section about intelligent evaluation
+
+Title:
+“Una evaluación capilar más inteligente”
+
+Subtitle:
+“No partimos vendiéndote cirugía ni medicamentos. Primero reunimos tus respuestas, fotos e historial para entender tu situación y preparar una revisión médica más clara.”
+
+Cards:
+- “Respuestas guiadas”
+  “Te hacemos preguntas simples sobre caída, zonas afectadas, tratamientos previos y objetivos.”
+- “Fotos capilares”
+  “Tus fotos ayudan a ordenar visualmente tu caso antes de la revisión médica.”
+- “Historial progresivo”
+  “Con el seguimiento, vamos construyendo un historial capilar para entender tu evolución.”
+- “Revisión médica”
+  “El médico toma la decisión final sobre tratamiento, receta o derivación.”
+
+3. Replace any homepage section that says “¿Candidato a PRP o trasplante?”
+
+Do not use PRP as a main title or main product on the homepage.
+
+Replace with:
+Title:
+“¿Tratamiento o trasplante? Primero entendamos tu caso.”
+
+Subtitle:
+“Algunas personas necesitan comenzar por frenar la caída. Otras ya están en una etapa donde tiene sentido evaluar recuperación capilar con una clínica. Nuestra plataforma te ayuda a ordenar esa decisión antes de tomar un camino.”
+
+4. Add a two-path section
+
+Title:
+“Tu ruta capilar puede tener dos caminos”
+
+Card 1:
+Title:
+“Frenar la caída”
+Body:
+“Si todavía tienes pelo que cuidar, el primer paso puede ser estabilizar la caída con revisión médica, receta si corresponde, farmacia autorizada, despacho y seguimiento.”
+
+Card 2:
+Title:
+“Evaluar trasplante”
+Body:
+“Si ya perdiste densidad o estás decidido a recuperar zonas específicas, te ayudamos a preparar tu evaluación, revisar antecedentes y conectarte con una clínica partner si corresponde.”
+
+Add note:
+“No todos necesitan trasplante. Muchas personas primero necesitan estabilizar la caída. Nuestra evaluación existe para ayudarte a entender ese camino antes de tomar una decisión cara o irreversible.”
+
+5. Update any language that over-emphasizes PRP
+
+If PRP appears on homepage, either remove it or replace it with:
+“procedimientos clínicos complementarios”
+
+But do not make it a primary CTA or primary value proposition.
+
+6. Keep visual style
+
+Keep the current premium/clean style:
+- mobile-first
+- cream background
+- rounded cards
+- green/gold accents
+- trustworthy healthtech feel
+
+7. After implementation
+
+Run:
+npm.cmd run build
+
+Summarize:
+- files changed
+- which homepage sections were updated
+- whether build passed

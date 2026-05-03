@@ -1,0 +1,143 @@
+Rebuild the Nilo homepage in a simpler, clearer structure.
+
+Important:
+- Keep the current working app stable.
+- Modify only src/app/page.tsx and small homepage-only components if needed.
+- Do not touch quiz, Supabase, AI report, admin, doctor portal, membership, checkout, Flow or payments.
+- Do not copy MEDVi layout exactly.
+- Use Nilo branding.
+- Background should be white.
+- Keep design simple, premium and mobile-first.
+- Do not over-explain AI.
+
+Goal:
+Simplify the homepage to 4 sections only:
+
+1. Hero
+2. Qué estás comprando
+3. Cómo funciona
+4. CTA final
+
+Remove or hide redundant standalone sections:
+- “Seguimiento capilar con inteligencia”
+- duplicated “Cómo funciona”
+- duplicated “Qué incluye”
+- any repeated explanation of AI/check-ins/history.
+
+SECTION 1 — Hero
+
+Headline:
+“Entiende tu caída antes de decidir qué hacer.”
+
+Subheadline:
+“Nilo te ayuda a saber si hoy tiene más sentido frenar la caída o evaluar un trasplante capilar, con revisión médica y seguimiento.”
+
+Primary CTA:
+“Comenzar evaluación”
+
+Secondary CTA:
+“Estoy evaluando un trasplante”
+
+Below the hero, keep or add a simple value prop strip:
+“Médicos habilitados”
+“100% online”
+“Precio claro”
+“Farmacia autorizada”
+“Despacho a domicilio”
+“Seguimiento capilar”
+
+SECTION 2 — Qué estás comprando
+
+Title:
+“Un plan capilar completo, no solo una receta.”
+
+Subtitle:
+“El Plan Inicio Nilo combina revisión médica, coordinación con farmacia autorizada, despacho y seguimiento para mantener continuidad.”
+
+Create one simple card:
+
+Plan Inicio Nilo
+Dutasteride + Minoxidil
+Sujeto a revisión médica
+
+Checklist:
+- Revisión médica capilar
+- Receta si corresponde
+- Farmacia autorizada
+- Despacho a domicilio
+- Seguimiento por WhatsApp
+- Historial capilar
+
+Compliance note:
+“El tratamiento depende exclusivamente de la revisión médica. Nilo no prescribe ni dispensa medicamentos directamente.”
+
+CTA:
+“Ver membresía”
+Link:
+`/membership?plan=inicio&journey=treatment`
+
+SECTION 3 — Cómo funciona
+
+Title:
+“Cómo avanza tu caso”
+
+Subtitle:
+“Un proceso simple, online y con revisión médica real.”
+
+Three steps:
+
+1. “Completa tu evaluación”
+Body:
+“Responde preguntas y sube fotos de tu pelo.”
+
+2. “Un médico revisa tu caso”
+Body:
+“Revisa tus antecedentes y define si corresponde avanzar.”
+
+3. “Recibe tratamiento o prepara tu trasplante”
+Body:
+“Si corresponde tratamiento, coordinamos farmacia y despacho. Si estás evaluando trasplante, ordenamos antecedentes para avanzar con una clínica partner.”
+
+SECTION 4 — CTA final
+
+Title:
+“Empieza entendiendo tu caso.”
+
+Body:
+“Completa tu evaluación capilar online en menos de 5 minutos.”
+
+CTA:
+“Comenzar evaluación”
+
+Compliance:
+Do not say:
+- aprobado
+- receta garantizada
+- medicamento garantizado
+- resultados garantizados
+- diagnóstico automático
+- candidato a trasplante
+
+Use:
+- sujeto a revisión médica
+- si corresponde
+- farmacia autorizada
+- revisión médica
+- seguimiento
+- historial capilar
+
+Design:
+- White background
+- Clean dark text
+- Green accents
+- Rounded cards
+- Mobile-first
+- No complicated layouts
+- No excessive images
+- Prioritize clarity over decoration
+
+Run npm.cmd run build and summarize:
+- files changed
+- sections removed
+- sections added
+- whether build passed

@@ -1,0 +1,334 @@
+Refine the Nilo capillary funnel based on recent UX learnings from a clean medical D2C funnel, but do NOT copy any external brand, text, illustrations, image style, layout, or exact flow.
+
+Important:
+- Use Nilo branding, not BOE.
+- Do not copy external images, drawings, text, UI, or branding.
+- Keep the product compliant: no diagnosis, no guaranteed prescription, no guaranteed medication, no guaranteed results.
+- The doctor makes the final medical decision.
+- The platform can use AI as a support layer for organization, follow-up and history, but AI does not diagnose or prescribe.
+- Medication is only prescribed if clinically appropriate and dispensed/prepared by an authorized pharmacy.
+- Do not break current Supabase saving, AI report generation, doctor portal, admin, photos, or Flow payment integration.
+
+Context:
+Nilo has two core user journeys:
+1. Frenar la caída
+2. Evaluar trasplante / recuperación capilar
+
+The funnel should be clean, premium, mobile-first, and easier to understand.
+It should feel like a guided capillary assessment, not like a generic form.
+
+Main feedback to incorporate:
+A. We like a simpler intro, but Nilo must also capture people who are already interested in hair transplant.
+B. We like the clean progress bar, back arrow and one-question-per-screen format.
+C. We like one question per screen, but the funnel should not become too long.
+D. We want a visual hair-loss pattern question with original images/illustrations, same logic but not copied.
+E. We want to show a product recommendation around “Dutasteride + Minoxidil”, but with clear disclosure that it is subject to medical review + authorized pharmacy + delivery + AI follow-up.
+F. We like a clear final summary page before payment.
+G. We like a hero image showing a before/after hair contrast, but use our own generated image if available.
+
+Image asset:
+If available, use this public asset:
+public/hero-hair-contrast.png
+It should be used as a hero/intro image, not as a medical claim.
+If the file does not exist, use a clean placeholder and do not break the build.
+
+1. Add / improve quiz intro screen
+
+Create or update the intro of the quiz so it feels simple and premium.
+
+Title:
+“Bienvenido a Nilo”
+
+Subtitle:
+“Empieza entendiendo tu caso antes de decidir qué hacer.”
+
+Use the hero image if available:
+Image path:
+“/hero-hair-contrast.png”
+
+Add a 3-step card:
+1. “Completa tu evaluación”
+   “Responde preguntas simples y sube fotos.”
+2. “Recibe una ruta recomendada”
+   “Te orientamos entre frenar la caída o evaluar recuperación capilar.”
+3. “Un médico revisa tu caso”
+   “Si corresponde, activamos receta, farmacia autorizada, despacho y seguimiento.”
+
+CTA:
+“Quiero evaluarme”
+
+Small compliance note:
+“La evaluación de Nilo no reemplaza una consulta médica. El tratamiento final depende de la revisión de un médico.”
+
+2. Start with two clear routes
+
+Early in the quiz, ask the user what they are looking for.
+
+Question:
+“¿Qué quieres resolver?”
+
+Options:
+A. “Frenar la caída”
+Description:
+“Quiero cuidar el pelo que todavía tengo y entender si corresponde tratamiento médico.”
+
+B. “Evaluar trasplante”
+Description:
+“Ya perdí densidad o estoy considerando una recuperación capilar y quiero saber si tiene sentido avanzar.”
+
+Important:
+Do not mention PRP as a primary route.
+PRP can remain later as “procedimientos clínicos complementarios” if needed, but not as a top-level option.
+
+3. Improve quiz layout
+
+Make the quiz look cleaner and more mobile-first:
+- Nilo logo centered
+- back arrow top-left
+- thin progress bar at the top
+- one main question per screen
+- large rounded option cards
+- sticky bottom CTA
+- optional “¿Por qué lo preguntamos?” helper card
+- avoid long text walls
+- keep enough white space
+- use a clean black or dark primary CTA, consistent with current style
+
+Do not make the funnel unnecessarily long.
+If there are too many medical questions, group them into fewer screens.
+
+4. Add visual hair-loss pattern question
+
+Add a step:
+“¿Cuál imagen representa mejor tu patrón de caída?”
+
+Options:
+- “Sin caída visible”
+- “Entradas leves”
+- “Entradas notorias”
+- “Coronilla leve”
+- “Entradas y coronilla”
+- “Pérdida difusa”
+- “Calvicie avanzada”
+- “En parches”
+- “No estoy seguro”
+
+Important:
+- Do not copy external drawings.
+- Create simple original placeholder silhouette cards using CSS/SVG or simple internal components.
+- If high-quality illustrations are too much, use simple icon cards with abstract head/hair shapes.
+- Store this answer in the intake so it appears in admin and can be used by the AI report.
+
+5. Keep the quiz shorter than the reference funnel
+
+Do not create an excessive number of steps.
+Recommended structure:
+
+A. Intro
+B. Route selection: frenar caída / evaluar trasplante
+C. Basic hair context:
+   - affected zones
+   - visual hair pattern
+   - time since hair loss started
+   - previous treatments
+D. Medical safety:
+   - scalp issues
+   - relevant medical conditions
+   - current medications
+   - additional history
+E. Photos:
+   - frontal
+   - coronilla
+   - entradas optional
+   - lateral optional
+F. Contact details:
+   - name
+   - email
+   - phone
+G. Recommendation
+H. Plan
+I. Checkout
+
+6. Treatment recommendation screen
+
+After the quiz and before the plan page, add or improve a recommendation screen.
+
+For treatment journey:
+Title:
+“Tu ruta recomendada: Plan Inicio Capilar”
+
+Main visual card:
+“Dutasteride + Minoxidil”
+Subtitle:
+“Sujeto a revisión médica”
+
+Supporting text:
+“Según tus respuestas, tu caso puede ser compatible con una revisión médica para tratamiento capilar. Un médico revisará tus antecedentes y fotos para definir si corresponde avanzar.”
+
+Show included layers as small visual chips/cards:
+- “Revisión médica”
+- “Farmacia autorizada”
+- “Despacho a domicilio”
+- “Seguimiento por WhatsApp + AI”
+- “Historial capilar”
+
+Compliance note:
+“El tratamiento final, receta y medicamentos dependen exclusivamente de la revisión médica. Nilo no prescribe ni dispensa medicamentos directamente.”
+
+CTA:
+“Ver Plan Inicio Capilar”
+
+Important:
+It is okay to show “Dutasteride + Minoxidil” as the expected product route, but always with “sujeto a revisión médica”.
+Do not show doses.
+Do not say “aprobado”.
+Do not say “te corresponde”.
+Do not guarantee medication.
+
+7. Transplant recommendation screen
+
+For transplant journey:
+Title:
+“Tu ruta recomendada: Evaluación de recuperación capilar”
+
+Supporting text:
+“Según tus respuestas, puede tener sentido evaluar si necesitas estabilizar la caída, preparar antecedentes o avanzar hacia una clínica capilar partner.”
+
+Show visual chips/cards:
+- “Revisión de fotos”
+- “Historial capilar”
+- “Checklist pre-trasplante”
+- “Evaluación médica”
+- “Clínica partner si corresponde”
+
+CTA:
+“Ver evaluación de recuperación capilar”
+
+Do not say the user is a candidate for transplant.
+Use:
+“evaluar”
+“preparar”
+“si corresponde”
+“a validar por médico / clínica partner”
+
+8. Plan page: one clear plan only
+
+For treatment journey, keep only one plan:
+“Plan Inicio Capilar”
+
+Remove/hide:
+- multiple package cards
+- “Continuidad mensual” as a selectable plan
+- “Evaluación de recuperación capilar” as an alternative on this page
+- any “elige tu modalidad” section
+
+The page should show one offer and be visually easy to scan.
+
+Title:
+“Plan Inicio Capilar”
+
+Price:
+“$49.990”
+
+Subtitle:
+“Revisión médica + receta si corresponde + coordinación de tratamiento + seguimiento.”
+
+Main product line:
+“Dutasteride + Minoxidil”
+Small label:
+“Sujeto a revisión médica”
+
+Included blocks:
+- “Consulta médica capilar”
+  “Un médico revisa tus respuestas, fotos y antecedentes.”
+- “Receta si corresponde”
+  “El médico define si corresponde avanzar con tratamiento.”
+- “Farmacia autorizada”
+  “Coordinamos preparación o dispensación cuando hay receta.”
+- “Despacho a domicilio”
+  “El tratamiento se coordina para llegar a tu casa.”
+- “Seguimiento por WhatsApp + AI”
+  “AI funciona como copiloto de seguimiento e historial, no como diagnóstico.”
+- “Historial capilar consolidado”
+  “Tus fotos y evolución quedan ordenadas para futuras revisiones.”
+
+CTA:
+“Reservar Plan Inicio Capilar”
+
+Compliance note:
+“El pago no garantiza receta ni medicamento. El tratamiento depende exclusivamente de la revisión médica.”
+
+9. Final summary page before payment
+
+Create or update checkout so it feels like a clear final summary before Flow payment.
+
+Title:
+“Ya casi terminamos”
+
+Plan summary card:
+- Plan Inicio Capilar
+- Dutasteride + Minoxidil, sujeto a revisión médica
+- $49.990
+- Revisión médica
+- Receta si corresponde
+- Farmacia autorizada
+- Despacho a domicilio
+- Seguimiento por WhatsApp + AI
+- Historial capilar
+
+Payment provider:
+Use Flow integration already implemented.
+Do not change Flow server routes unless necessary.
+
+Required checkbox:
+“He leído y acepto el consentimiento médico informado, los términos y condiciones y la política de privacidad.”
+
+Main refund/review copy:
+“Reserva tu plan. El cargo queda sujeto a revisión médica. Si el médico determina que no corresponde avanzar, no activaremos el tratamiento y gestionaremos la devolución del pago.”
+
+CTA:
+“Ir al pago”
+
+When clicked:
+Use existing Flow payment creation route.
+
+10. Do not use exaggerated result claims
+
+Do not add:
+- “detener la pérdida de pelo” as a guarantee
+- “promover crecimiento” as a guarantee
+- before/after results unless they are clearly illustrative or real with consent
+- “tratamiento perfecto”
+- “aprobado”
+- “candidato a trasplante”
+
+Use:
+- “ayudar a orientar”
+- “sujeto a revisión médica”
+- “si corresponde”
+- “seguimiento”
+- “historial”
+- “farmacia autorizada”
+- “decisión médica”
+
+11. Admin and AI report
+
+Ensure new fields, especially selected hair pattern and route, are saved and visible in:
+- Supabase intake
+- admin patient detail
+- AI report input if feasible
+
+Do not break current AI doctor report.
+The AI report should be able to use the selected hair pattern as context.
+
+12. Build
+
+Run:
+npm.cmd run build
+
+Summarize:
+- files changed
+- funnel steps changed
+- new or modified quiz fields
+- whether any Supabase schema change is required
+- whether build passed

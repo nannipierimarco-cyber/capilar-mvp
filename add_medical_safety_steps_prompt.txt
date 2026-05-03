@@ -1,0 +1,169 @@
+Necesito agregar 2 páginas adicionales al quiz de Nilo, dentro del flujo de evaluación capilar.
+
+Objetivo:
+Agregar dos pasos de seguridad médica antes de entregar la recomendación:
+1. Condiciones médicas relevantes
+2. Medicamentos actuales
+
+Importante:
+- No copiar literalmente BOE.
+- Usar branding Nilo.
+- Fondo blanco.
+- Logo arriba debe decir “Nilo”.
+- Mantener estilo actual del quiz: mobile-first, barra de progreso, botón atrás, pregunta grande, opciones en cards redondeadas, botón fijo abajo.
+- No tocar home.
+- No tocar membership.
+- No tocar checkout.
+- No tocar Flow.
+- No tocar Supabase salvo que sea necesario para guardar las nuevas respuestas.
+- No tocar admin/doctor portal salvo para mostrar las respuestas nuevas si ya hay un lugar natural donde se listan todas las respuestas.
+- No romper AI report.
+- Las respuestas deben guardarse en el intake y estar disponibles para el informe AI y para el médico.
+
+====================================================
+PÁGINA 1 — CONDICIONES MÉDICAS
+====================================================
+
+Agregar una página en el quiz con esta pregunta:
+
+“¿Tienes o has tenido alguna de estas condiciones médicas?”
+
+Tipo:
+Multi-select. El usuario puede seleccionar más de una opción.
+
+Opciones:
+- “Cáncer de próstata”
+- “Enfermedades inmunológicas”
+- “Presión arterial alta”
+- “Presión arterial baja”
+- “Problemas de tiroides”
+- “Enfermedades del corazón”
+- “Enfermedades del riñón”
+- “Enfermedades del hígado”
+- “Infertilidad o tratamientos de fertilidad”
+- “Ninguna de las anteriores”
+
+Comportamiento:
+- Si el usuario selecciona “Ninguna de las anteriores”, deseleccionar todas las demás opciones.
+- Si el usuario selecciona cualquier otra opción, deseleccionar “Ninguna de las anteriores”.
+- Debe exigir al menos una selección para avanzar.
+- Si no selecciona nada, mostrar error:
+“Por favor selecciona una opción.”
+
+Helper card opcional:
+Title:
+“¿Por qué lo preguntamos?”
+Body:
+“Esta información ayuda al médico a evaluar si corresponde avanzar con tratamiento o si necesita revisar antecedentes adicionales.”
+
+Guardar en intake con un campo claro, por ejemplo:
+medical_conditions
+
+====================================================
+PÁGINA 2 — MEDICAMENTOS ACTUALES
+====================================================
+
+Agregar una página después de condiciones médicas.
+
+Pregunta:
+“¿Tomas algún medicamento actualmente?”
+
+Subtexto:
+“Medicamentos que uses periódicamente.”
+
+Tipo:
+Single choice:
+- “Sí”
+- “No”
+
+Comportamiento:
+- Si selecciona “Sí”, mostrar un campo de texto debajo con la pregunta:
+“¿Cuáles utilizas actualmente?”
+
+Placeholder:
+“Escribe tu respuesta aquí…”
+
+- Si selecciona “No”, no mostrar el textarea.
+- Debe exigir seleccionar “Sí” o “No”.
+- Si selecciona “Sí”, el textarea debe ser obligatorio.
+- Si no completa el textarea, mostrar error:
+“Por favor indica qué medicamentos utilizas.”
+
+Helper card:
+Title:
+“¿Por qué lo preguntamos?”
+Body:
+“Es importante para que el médico evalúe antecedentes y pueda descartar posibles contraindicaciones.”
+
+Guardar en intake con campos claros, por ejemplo:
+currently_taking_medication: boolean
+current_medications_detail: string | null
+
+====================================================
+UBICACIÓN EN EL FLUJO
+====================================================
+
+Ubicar estas páginas dentro del bloque de seguridad médica, idealmente después de las preguntas de cuero cabelludo / historial capilar y antes de fotos o datos de contacto.
+
+Orden sugerido:
+1. Preguntas capilares
+2. Condiciones médicas
+3. Medicamentos actuales
+4. Fotos
+5. Datos de contacto
+6. Recomendación
+
+Actualizar barra de progreso para incluir estos pasos.
+
+====================================================
+DISEÑO
+====================================================
+
+El diseño debe parecer consistente con las demás páginas del quiz.
+
+Requisitos visuales:
+- Fondo blanco
+- Logo “Nilo” centrado arriba
+- Flecha atrás arriba a la izquierda
+- Barra de progreso fina
+- Pregunta grande
+- Opciones en cards redondeadas
+- Check visual cuando está seleccionado
+- Botón negro fijo abajo con texto:
+“Siguiente →”
+- Espaciado cómodo en mobile
+- Que se vea bien en iPhone
+
+No usar:
+- “aprobado”
+- “diagnóstico”
+- “receta garantizada”
+- “medicamento garantizado”
+
+====================================================
+AI REPORT / ADMIN
+====================================================
+
+Asegurar que estas respuestas:
+- se guarden en Supabase/intake;
+- aparezcan en la vista admin del paciente si ya se listan las respuestas;
+- se incluyan en el input del AI report si el AI report toma las respuestas del intake.
+
+El informe AI debe poder ver:
+- condiciones médicas seleccionadas;
+- si toma medicamentos;
+- detalle de medicamentos si respondió sí.
+
+====================================================
+BUILD
+====================================================
+
+Al terminar:
+1. Corre npm.cmd run build
+2. Resume:
+   - archivos modificados
+   - dónde se agregaron los pasos
+   - nombres de los campos guardados
+   - si aparecen en admin / AI report
+   - si hubo que hacer migración SQL
+   - si el build pasó

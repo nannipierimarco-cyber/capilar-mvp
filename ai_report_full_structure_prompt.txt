@@ -1,0 +1,251 @@
+Update the AI preliminary doctor report so it is always generated in Spanish, follows a fixed medical-review structure, and includes a dedicated photo observation section.
+
+Goal:
+The AI preliminary doctor report should help the doctor review the patient faster and with more context after the user completes the capillary quiz.
+
+Important:
+- This report is internal only.
+- It is NOT shown to the patient by default.
+- It is NOT a diagnosis.
+- It is NOT a prescription.
+- It is NOT an approval.
+- It is only a preliminary AI-assisted support document for a licensed physician.
+- The doctor makes the final clinical decision.
+- The AI can summarize, classify, identify possible red flags, suggest questions for the doctor, and observe photos preliminarily.
+- The AI must not diagnose alopecia or prescribe medication.
+
+Files likely involved:
+- src/app/api/ai/doctor-report/route.ts
+- src/app/admin/patients/[id]/AiReportSection.tsx
+- supabase/schema.sql if a database field is needed
+
+1. Language requirement
+
+Update the prompt sent to OpenAI so the model always responds in Spanish.
+
+Add explicit instruction:
+“Responde siempre en español neutro/latinoamericano, claro y profesional. No uses inglés en ningún campo.”
+
+2. Fixed report structure
+
+The AI report should follow this structure:
+
+A. Resumen del caso
+A short paragraph summarizing:
+- objetivo del paciente;
+- tiempo de caída;
+- zonas afectadas;
+- tratamientos previos;
+- fotos disponibles;
+- antecedentes relevantes.
+
+B. Observación preliminar de fotos
+A dedicated visual observation section.
+This section is based only on uploaded photos and must use cautious language.
+
+Include:
+1. Fotos recibidas:
+- frontal;
+- coronilla;
+- entradas, if available;
+- lateral, if available.
+
+2. Calidad de las fotos:
+- buena / media / baja / insuficiente;
+- mention if lighting, angle, blur, wet hair, gel, distance or coverage may limit review.
+
+3. Zonas visibles a revisar:
+Use cautious language:
+- “se observa posible menor densidad en…”
+- “la foto sugiere revisar…”
+- “conviene que el médico confirme…”
+Do not diagnose.
+
+4. Consistencia con respuestas del paciente:
+- compare whether photos seem consistent with reported area;
+- mention any area that the patient did not report but doctor should review;
+- mention if photos are insufficient.
+
+5. Recomendación para nuevas fotos:
+If quality is low or missing views, suggest:
+- pedir foto frontal;
+- pedir foto de coronilla;
+- pedir foto entradas;
+- pedir foto lateral;
+- pedir mejor luz;
+- pedir pelo seco y sin gel.
+
+C. Ruta preliminar sugerida
+One of:
+- “Revisión médica para tratamiento capilar”
+- “Evaluación de recuperación/trasplante”
+- “Ruta combinada: tratamiento + evaluación clínica”
+- “Requiere revisión médica detallada antes de avanzar”
+
+D. Nivel de atención
+One of:
+- “Bajo”
+- “Medio”
+- “Alto”
+
+E. Señales de alerta a revisar
+Bullet list.
+If none:
+“No se detectan señales de alerta relevantes según las respuestas declaradas.”
+
+F. Preguntas sugeridas para el médico
+Bullet list of questions the physician should clarify.
+
+G. Consideraciones clínicas posibles
+Bullet list.
+Use safe language:
+- “Evaluar si corresponde minoxidil tópico”
+- “Evaluar si corresponde minoxidil oral magistral”
+- “Evaluar si corresponde inhibidor 5-alfa reductasa”
+- “Evaluar necesidad de estabilización antes de trasplante”
+- “Evaluar derivación a clínica capilar”
+- “Evaluar si requiere atención presencial”
+
+Do not recommend final medications.
+Do not mention doses.
+
+H. Próximo paso operacional sugerido
+One of:
+- “Revisión médica estándar”
+- “Solicitar más información”
+- “Revisión médica prioritaria”
+- “Pre-screening para clínica partner”
+- “No avanzar a tratamiento hasta revisión médica”
+
+I. Nota para comunicación al paciente
+A short compliant patient-facing draft.
+It must not say diagnosis, approval, prescription guaranteed, or treatment guaranteed.
+
+J. Nota interna de seguridad
+Always include:
+“Este informe fue generado por AI como apoyo preliminar. No constituye diagnóstico, prescripción ni aprobación de tratamiento. Debe ser revisado y validado por un médico habilitado.”
+
+3. Photo input requirement
+
+Verify whether the current /api/ai/doctor-report route sends uploaded photo URLs/images to OpenAI.
+
+If it does not, update the route to fetch the patient’s uploaded photo records from Supabase and include them in the model input.
+
+Photos may be stored in the photos table and/or Supabase Storage.
+Use the existing storage paths/URLs already saved by the app.
+If signed URLs are needed, generate temporary signed URLs server-side before sending them to the model.
+Do not expose the Supabase service role key to the client.
+
+Use a model that supports image input.
+
+Cost control:
+- Include available required photos first: frontal and crown/coronilla.
+- Include optional photos if available: temples/entradas and side/lateral.
+- Do not call AI repeatedly if a report already exists, unless admin clicks regenerate.
+- If no photos are available, still generate the report and set photo quality as “insuficiente”.
+
+4. Safe photo language
+
+Do NOT say:
+- “tiene alopecia androgenética”
+- “alopecia avanzada”
+- “candidato a trasplante”
+- “aprobado”
+- “requiere dutasteride/minoxidil”
+- “necesita X tratamiento”
+
+Use:
+- “posible”
+- “sugiere revisar”
+- “conviene confirmar”
+- “observación preliminar”
+- “a validar por médico”
+
+5. JSON output
+
+Keep the existing JSON schema if possible, but ensure contents are in Spanish.
+
+Map fields like this:
+- summary_for_doctor = A. Resumen del caso
+- preliminary_route = C. Ruta preliminar sugerida, in Spanish
+- risk_level = D. Nivel de atención, in Spanish
+- red_flags = E. Señales de alerta a revisar
+- doctor_questions = F. Preguntas sugeridas para el médico
+- possible_considerations = G. Consideraciones clínicas posibles
+- operational_next_step = H. Próximo paso operacional sugerido
+- patient_facing_copy_suggestion = I. Nota para comunicación al paciente
+- internal_note = J. Nota interna de seguridad
+
+Add or update a field:
+photo_observation
+
+photo_observation should be an object with:
+- received_photos: string[]
+- photo_quality: "buena" | "media" | "baja" | "insuficiente"
+- visible_areas_to_review: string[]
+- consistency_with_answers: string
+- recommended_additional_photos: string[]
+- photo_observation_summary: string
+
+6. Database
+
+If ai_doctor_reports table does not have photo_observation, add SQL migration/instruction to add:
+photo_observation jsonb
+
+Update supabase/schema.sql accordingly.
+
+If migration is needed, provide the exact SQL:
+alter table public.ai_doctor_reports add column if not exists photo_observation jsonb;
+
+Do not break existing reports.
+Do not migrate old reports.
+New reports should be generated in Spanish with the photo section.
+If a report already exists in English, admin can regenerate it.
+
+7. Admin display
+
+Update src/app/admin/patients/[id]/AiReportSection.tsx to show all labels in Spanish:
+
+- “Resumen del caso”
+- “Observación preliminar de fotos”
+- “Ruta preliminar sugerida”
+- “Nivel de atención”
+- “Señales de alerta a revisar”
+- “Preguntas sugeridas para el médico”
+- “Consideraciones clínicas posibles”
+- “Próximo paso operacional sugerido”
+- “Nota para comunicación al paciente”
+- “Nota interna de seguridad”
+
+For the photo section show:
+- Fotos recibidas
+- Calidad de fotos
+- Zonas visibles a revisar
+- Consistencia con respuestas
+- Fotos adicionales sugeridas
+- Resumen visual preliminar
+
+Add compliance note under photo section:
+“Esta observación visual fue generada por AI como apoyo preliminar. No constituye diagnóstico y debe ser validada por un médico.”
+
+8. Error handling
+
+If AI photo analysis fails:
+- quiz submission should still succeed;
+- report generation should either continue without photo analysis or fail gracefully;
+- admin should show “Observación de fotos pendiente” or “No generada”;
+- log the error server-side.
+
+9. Build
+
+Run:
+npm.cmd run build
+
+Then summarize:
+- files changed
+- what changed in the AI prompt
+- whether photo URLs are sent to the model
+- whether database migration is needed
+- exact SQL to run if needed
+- what changed in the admin display
+- whether build passed

@@ -1,0 +1,75 @@
+Update only the homepage positioning and copy for Nilo.
+
+Goal:
+The homepage should clearly position Nilo as a capillary guidance and continuity platform, not as a clinic, not as a pharmacy, and not as a generic medication delivery service.
+
+Important:
+- Background must be white, not cream.
+- Any logo/text/brand label that currently says “Capilar” should say “Nilo”.
+- Do not modify quiz logic.
+- Do not modify checkout.
+- Do not modify Flow payment.
+- Do not modify Supabase/admin/doctor portal.
+- Do not copy external brands or pages.
+- Keep compliance: no diagnosis, no guaranteed prescription, no guaranteed medication, no guaranteed results.
+
+Core message:
+Nilo helps users understand their hair loss before deciding what to do:
+1. Frenar la caída
+2. Evaluar trasplante / recuperación capilar
+
+Hero:
+Title:
+“Entiende tu caída antes de decidir qué hacer.”
+
+Subtitle:
+“Nilo te ayuda a identificar si hoy necesitas frenar la caída o evaluar una recuperación capilar más avanzada, con revisión médica, farmacia autorizada, seguimiento e historial capilar.”
+
+Primary CTA:
+“Comenzar evaluación”
+
+Secondary CTA:
+“Estoy evaluando un trasplante”
+
+Small note:
+“La evaluación de Nilo orienta tu siguiente paso, pero no reemplaza la revisión médica.”
+
+Add or update section:
+“Dos caminos posibles”
+
+Card 1:
+Title:
+“Frenar la caída”
+Body:
+“Si todavía tienes pelo que cuidar, el primer paso puede ser evaluar tratamiento médico, receta si corresponde, farmacia autorizada, despacho y seguimiento.”
+
+Card 2:
+Title:
+“Evaluar trasplante”
+Body:
+“Si ya perdiste densidad o estás considerando recuperación capilar, te ayudamos a ordenar antecedentes, fotos e historial antes de avanzar con una clínica partner.”
+
+Add section:
+“Seguimiento capilar con inteligencia”
+
+Body:
+“Nilo usa inteligencia como copiloto de seguimiento: ayuda a ordenar tus respuestas, registrar fotos, construir historial capilar y preparar información para la revisión médica. No diagnostica ni prescribe.”
+
+Cards:
+- “Fotos e historial”
+- “Check-ins por WhatsApp”
+- “Informe preliminar para médico”
+- “Seguimiento de continuidad”
+
+Update any PRP-first language:
+- Do not mention PRP as a primary route.
+- Replace “PRP o trasplante” with “procedimientos clínicos complementarios o recuperación capilar” only if needed.
+- Keep the home focused on two routes: frenar caída / evaluar trasplante.
+
+Visual style:
+- White background.
+- Clean black/dark text.
+- Premium, minimal, mobile-first.
+- Rounded white cards can still use subtle border/shadow, but the page background should remain white.
+
+Run npm.cmd run build and summarize files changed.

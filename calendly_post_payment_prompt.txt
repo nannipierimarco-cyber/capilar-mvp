@@ -1,0 +1,281 @@
+Implement Calendly scheduling layer for Nilo after successful payment.
+
+Context:
+Nilo already has:
+- quiz
+- Supabase
+- AI doctor report
+- admin
+- doctor portal
+- doctor_profiles
+- medical_reviews
+- Flow payment
+- checkout/return
+- success page
+
+Now we need to connect Calendly in a scalable way for multiple doctors.
+
+Business requirements:
+1. After the user pays, they should be able to book a consultation with the assigned doctor.
+2. Doctors will have their availability managed in Calendly.
+3. Nilo should store enough Calendly metadata to know which doctor has which booking link/event type.
+4. Nilo should eventually update the patient case when Calendly confirms a booking.
+
+Important:
+- Do not build a custom calendar availability system from scratch.
+- Calendly should be the source of truth for doctor availability.
+- Nilo should store Calendly links and event type identifiers.
+- Do not break existing Flow payment.
+- Do not break checkout.
+- Do not break Supabase.
+- Do not break doctor portal.
+- Do not break admin.
+- Do not break AI report.
+- Do not expose Calendly API keys to the client.
+
+Goal:
+Create a post-payment scheduling page and prepare the foundation for Calendly availability/webhook sync.
+
+====================================================
+PART 1 — DATABASE
+====================================================
+
+Review existing tables:
+- doctor_profiles
+- medical_reviews
+- orders
+- patients
+- intakes
+
+Update Supabase schema if needed.
+
+Add to doctor_profiles if missing:
+- calendly_url text
+- calendly_event_type_uri text
+- calendly_user_uri text
+- calendly_is_active boolean default true
+- availability_notes text
+
+Add to medical_reviews if missing:
+- consultation_scheduled_at timestamptz
+- calendly_event_url text
+- calendly_event_uri text
+- calendly_invitee_uri text
+- calendly_invitee_email text
+- status text
+
+If the columns already exist, do not duplicate them.
+
+Create migration SQL using:
+alter table ... add column if not exists ...
+
+Update supabase/schema.sql accordingly.
+
+At the end, provide exact SQL I need to run in Supabase.
+
+====================================================
+PART 2 — DOCTOR CALENDLY MANAGEMENT
+====================================================
+
+Update admin doctor management page if it exists:
+src/app/admin/doctors/page.tsx
+
+Or update the existing doctor profile display/edit flow.
+
+Admin should be able to see and edit for each doctor:
+- full_name
+- email
+- specialty
+- license_number
+- calendly_url
+- calendly_event_type_uri
+- calendly_user_uri
+- calendly_is_active
+- availability_notes
+
+If edit form is too much, at least show these fields and document how to edit them in Supabase.
+
+In doctor portal:
+Doctors should be able to see their own Calendly link and availability notes.
+If simple, allow doctor to update their calendly_url and availability_notes from /doctor.
+If not, leave as admin-managed for now.
+
+====================================================
+PART 3 — POST-PAYMENT SCHEDULING PAGE
+====================================================
+
+Create a new route:
+src/app/agendar-consulta/page.tsx
+
+Purpose:
+This page opens after successful payment and lets the patient schedule with the assigned doctor.
+
+Page title:
+“Agenda tu consulta médica”
+
+Subtitle:
+“Tu pago fue recibido. Ahora agenda tu revisión médica online para que un médico pueda evaluar tu caso.”
+
+The page should:
+1. Read order_id, intake_id or patient_id from query params if available.
+2. Fetch the related order/intake/patient.
+3. Find the assigned medical_review and assigned doctor.
+4. If a doctor is assigned and has calendly_url:
+   - show doctor name
+   - show specialty
+   - show a clear button:
+     “Agendar consulta”
+   - link to the doctor’s calendly_url
+5. If no doctor is assigned yet:
+   show:
+   “Estamos asignando un médico a tu caso. Te enviaremos el link de agenda apenas esté disponible.”
+6. If doctor exists but no calendly_url:
+   show:
+   “El link de agenda aún no está disponible. Te contactaremos por WhatsApp para coordinar.”
+
+Design:
+- White background
+- Nilo branding
+- Clean premium card
+- Mobile-first
+- CTA button dark/black or Nilo green
+- Do not overcomplicate
+
+Compliance copy:
+“Esta agenda no garantiza receta ni tratamiento. El médico revisará tu caso y definirá si corresponde avanzar.”
+
+====================================================
+PART 4 — UPDATE PAYMENT RETURN / SUCCESS FLOW
+====================================================
+
+Update checkout return or success flow so after successful payment the patient is guided to schedule.
+
+Existing payment status:
+paid_pending_medical_review
+
+When payment is confirmed:
+- success page should say:
+  “Pago recibido. Tu caso quedó pendiente de revisión médica.”
+- Add CTA:
+  “Agendar consulta médica”
+- Link should go to:
+  /agendar-consulta?order_id=<order_id>
+  or use intake_id/patient_id if order_id is not available.
+
+If order_id is not easy to pass:
+- store latest order id in URL/session/localStorage if already used safely
+- or add a fallback button to /agendar-consulta with patient/intake resolution
+- do not break existing payment confirmation
+
+====================================================
+PART 5 — CALENDLY WEBHOOK FOUNDATION
+====================================================
+
+Create or update route:
+src/app/api/webhooks/calendly/route.ts
+
+This is Phase 2 foundation.
+
+For now:
+- Accept POST.
+- Parse webhook payload.
+- Log event type safely.
+- Handle invitee.created and invitee.canceled.
+- Do not expose secrets.
+- Do not fail the app if matching is not found.
+
+Expected future behavior:
+When Calendly sends invitee.created:
+- match by invitee email, UTM param, order_id, intake_id, or patient_id
+- update medical_reviews:
+  - consultation_scheduled_at
+  - calendly_event_url
+  - calendly_event_uri
+  - calendly_invitee_uri
+  - calendly_invitee_email
+  - status = consultation_booked
+
+When invitee.canceled:
+- update status to pending_booking or consultation_canceled if such status exists
+
+Add TODO comments explaining:
+- Calendly webhook subscription must be created in Calendly dashboard or via API.
+- Use UTM/query params in calendly_url to pass patient/intake/order identifiers if possible.
+- Configure the webhook URL:
+  https://nilolabs.vercel.app/api/webhooks/calendly
+
+If signature verification is available, add placeholder or TODO for signature verification.
+Do not implement insecure complex verification if not sure.
+
+====================================================
+PART 6 — PREFILL CALENDLY LINK
+====================================================
+
+When generating the Calendly URL button, prefill patient data if possible.
+
+If doctor.calendly_url exists and patient info exists, generate link with query params:
+- name
+- email
+- a1 or custom answer fields if safe
+- utm_source=nilo
+- utm_content=intake_id or order_id if safe
+
+Do not expose sensitive medical details in the URL.
+Do not include RUT, medical conditions, medications, or private health data in query params.
+
+Safe query params:
+- name
+- email
+- utm_source=nilo
+- utm_campaign=medical_review
+- utm_content=<intake_id or order_id>
+
+====================================================
+PART 7 — ADMIN / DOCTOR DASHBOARD
+====================================================
+
+Update admin patient detail if simple:
+Show:
+- doctor assigned
+- Calendly URL
+- consultation_scheduled_at
+- calendly_event_url
+- review status
+
+Update doctor patient detail if simple:
+Show:
+- consultation status
+- scheduled time if available
+- Calendly event URL if available
+- button to open Calendly link
+
+Do not break existing doctor decision form.
+
+====================================================
+PART 8 — ENV VARS
+====================================================
+
+Prepare for optional Calendly API/webhook later.
+
+Add documentation comments that these may be needed:
+CALENDLY_API_TOKEN=
+CALENDLY_WEBHOOK_SIGNING_KEY=
+
+Do not require these env vars for the MVP link-based booking page to work.
+
+====================================================
+PART 9 — BUILD
+====================================================
+
+Run:
+npm.cmd run build
+
+Summarize:
+- files changed
+- SQL migration needed
+- new page URL
+- how the patient schedules after payment
+- how doctor Calendly links are stored
+- what remains manual in Calendly
+- what remains for webhook Phase 2
+- whether build passed

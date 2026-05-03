@@ -1,0 +1,100 @@
+Implement Sprint 2: simplify the quiz and make it more MEDVi-inspired.
+
+Context:
+The current quiz has 3 journeys: treatment, transplant, both.
+We want to simplify this to 2 journeys:
+1. Frenar caída
+2. Evaluar trasplante
+
+Important:
+- Remove the third journey option.
+- Do not mention PRP as a primary choice. Users may not know what PRP is.
+- PRP can appear later as “tratamientos complementarios en clínica” where relevant.
+- Do not show pricing on the homepage.
+- Pricing should only appear after the assessment/results stage.
+- Keep personal data at the end of the quiz.
+- Keep compliance-safe language.
+
+Detailed changes:
+
+1. Landing page:
+- Remove visible pricing from the homepage.
+- The home should sell the complete solution, not plans/prices.
+- CTA should remain “Comenzar evaluación”.
+- Keep the medication/farmacy authorized compliance note near the hero.
+- Do not show Plan Inicio or Plan Continuidad prices on home.
+
+2. Quiz journey selection:
+Replace the 3 options with 2 options:
+
+Option A:
+Title: “Frenar caída”
+Subtitle: “Quiero mantener mi pelo, reducir la caída y empezar tratamiento médico si corresponde.”
+
+Option B:
+Title: “Evaluar trasplante”
+Subtitle: “Quiero saber si soy candidato a un trasplante capilar y conocer mis opciones.”
+
+3. Quiz flow:
+- After journey selection, go directly into diagnostic questions.
+- Keep personal data collection at the end.
+- Keep photos near the end.
+- Add short positive transition screens similar to MEDVi after key steps, using compliant copy:
+  “Perfecto. Con esta información podemos orientar mejor tu evaluación.”
+  “Ya casi terminamos. Ahora necesitamos revisar algunos antecedentes importantes.”
+
+4. Social proof / trust interstitial:
+- Add a screen after the first diagnostic section.
+- It should feel similar to MEDVi’s testimonial section but without fake testimonials.
+- Use title:
+  “No estás solo: la mayoría posterga el tratamiento por no saber por dónde empezar.”
+- Add 3 trust cards:
+  a. “Evaluación guiada”
+  b. “Médico revisa tu caso”
+  c. “Farmacia autorizada y seguimiento”
+- If there are no real testimonials, do not invent patient quotes.
+- Add placeholder area where future video testimonials can be inserted.
+
+5. Route-specific logic:
+If user selects “Frenar caída”:
+- Ask treatment-related questions:
+  - Have you used minoxidil?
+  - Have you used finasteride or dutasteride?
+  - Did you have side effects?
+  - Are you also open to a clinical evaluation if needed?
+- Later result should recommend Plan Inicio if appropriate.
+
+If user selects “Evaluar trasplante”:
+- Ask transplant-related questions:
+  - Have you had a transplant before?
+  - How soon would you like to do it?
+  - Approximate budget
+  - Are you interested in financing?
+  - Have you used medical treatment before to stabilize hair loss?
+- Later result should recommend clinical evaluation, and mention treatment may be needed to stabilize native hair if clinically appropriate.
+
+6. Results:
+- Results should reflect only two routes.
+- For “Frenar caída”:
+  CTA: “Empezar Plan Inicio — $49.990”
+- For “Evaluar trasplante”:
+  CTA: “Solicitar evaluación de trasplante”
+  Secondary note: “Si corresponde, también podemos orientarte sobre tratamiento médico para estabilizar la caída.”
+
+7. Plans page:
+- Keep pricing on plans page.
+- Do not show pricing on homepage.
+- If user completed intake, CTA goes to checkout.
+- If no intake, CTA goes to quiz.
+
+8. Compliance:
+- Do not say prescription approved.
+- Do not guarantee results.
+- Do not say AI diagnoses alopecia.
+- Say medication is prescribed only if clinically appropriate and dispensed by an authorized pharmacy.
+- Do not invent testimonials or patient counts.
+
+After implementation:
+- Run npm build.
+- Tell me exactly which files changed.
+- Summarize the new quiz flow.

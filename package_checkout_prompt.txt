@@ -1,0 +1,279 @@
+Implement the final conversion flow for the capillary MVP: package selection + payment/reservation page.
+
+Context:
+The current app has landing, quiz, results, plans, checkout and success.
+We now need to add a stronger final funnel step inspired by MEDVi:
+- The user sees the recommended program/package.
+- The package clearly explains what is included.
+- The user chooses a package/monthly option.
+- Then the user goes to payment/reservation.
+- The payment page must communicate that the charge/reservation is subject to medical review.
+
+Important positioning:
+We are not a clinic.
+We are not a pharmacy.
+We do not sell medications directly as merchant principal.
+We sell a complete capillary program:
+- medical review;
+- prescription if clinically appropriate;
+- coordination with authorized pharmacy;
+- monthly treatment coordination;
+- home delivery;
+- WhatsApp/AI-assisted follow-up;
+- photo tracking and consolidated hair history;
+- clinic referral if procedure evaluation makes sense.
+
+Important compliance:
+- Do not say “approved”.
+- Do not say “prescription guaranteed”.
+- Do not guarantee results.
+- Do not say “AI diagnoses alopecia”.
+- Do not say “we sell minoxidil/dutasteride directly”.
+- Say that medication is prescribed only if clinically appropriate and dispensed/prepared by an authorized pharmacy.
+- It is okay to mention that the doctor may evaluate options such as oral minoxidil magistral and dutasteride/finasteride, but do not present fixed doses or a guaranteed medication bundle.
+
+Goal:
+Create a MEDVi-inspired package and payment flow, premium, mobile-first, trustworthy.
+
+Flow should become:
+results → plans/package selection → checkout/payment reservation → success
+
+1. Package selection page
+
+Update /plans or create a new route /package.
+Prefer using /plans if it already exists and is stable.
+
+The page should feel like MEDVi’s “Currently Chosen / Choose Your Package” screen.
+
+Top section:
+Title:
+“Tu programa capilar recomendado”
+
+Subtitle:
+“Todo lo que necesitas para empezar tu plan capilar desde casa, sujeto a revisión médica.”
+
+Add a product/program visual card:
+- Use an existing image from /public if available.
+- If no suitable image exists, create a clean placeholder card showing:
+  - Tratamiento mensual
+  - Médico
+  - Farmacia autorizada
+  - WhatsApp / AI
+  - Historial capilar
+
+Main package card:
+Title:
+“Plan Inicio Capilar”
+
+Subtitle:
+“Revisión médica + coordinación de tratamiento si corresponde + seguimiento inicial.”
+
+Price:
+“$49.990”
+
+Small note:
+“El cargo queda sujeto a revisión médica.”
+
+Include checklist:
+- “Revisión médica capilar online”
+- “Revisión de respuestas, fotos y antecedentes”
+- “Receta si corresponde clínicamente”
+- “Coordinación con farmacia autorizada”
+- “Tratamiento mensual si corresponde”
+- “Despacho a domicilio”
+- “Seguimiento capilar por WhatsApp”
+- “Historial capilar consolidado”
+- “Check-in fotográfico cada 90 días”
+- “AI como copiloto de seguimiento, no como diagnóstico”
+
+Add compliance note:
+“La receta y el tratamiento dependen exclusivamente del criterio médico. Los medicamentos solo se preparan o dispensan en farmacia autorizada cuando corresponde.”
+
+2. Package options
+
+Add a “Elige tu modalidad” section, inspired by MEDVi package cards.
+
+Options:
+
+A. “Plan Inicio”
+Price: “$49.990”
+Description:
+“Ideal para empezar: revisión médica, receta si corresponde, coordinación con farmacia y primer mes de seguimiento.”
+
+CTA:
+“Reservar Plan Inicio”
+
+B. “Continuidad Mensual”
+Price: “$39.990/mes”
+Description:
+“Para mantener continuidad: coordinación mensual, despacho, check-ins, historial capilar y seguimiento por WhatsApp.”
+
+Badge:
+“Después del primer mes”
+
+CTA:
+“Ver continuidad”
+
+Important:
+Do not make the Continuidad plan the main CTA if the user has not completed Plan Inicio.
+Make Plan Inicio the primary option.
+
+C. Optional future card:
+“Evaluación de recuperación capilar”
+Description:
+“Para quienes quieren evaluar opciones clínicas, procedimientos complementarios o trasplante.”
+CTA:
+“Solicitar evaluación clínica”
+This can link to /checkout?plan=transplant or remain secondary.
+
+3. Add a value proof card
+
+Add a card titled:
+“¿Qué hace diferente a Figo Capilar?”
+
+Use bullets:
+- “No partimos vendiendo cirugía: partimos entendiendo tu caída.”
+- “El médico define si corresponde tratamiento.”
+- “La farmacia autorizada prepara o dispensa cuando hay receta.”
+- “El seguimiento no termina con la compra: guardamos tu evolución.”
+- “Si necesitas clínica, llegas con fotos, historial y contexto.”
+
+4. Payment/reservation page
+
+Update /checkout to feel like a real payment/reservation page, not a placeholder.
+
+Title:
+“Reserva tu plan”
+
+Subtitle:
+“Tu pago activa la revisión médica y la coordinación del proceso.”
+
+Primary explanation:
+“Reserva tu plan. El cargo queda sujeto a revisión médica. Si el médico determina que no corresponde avanzar, no activaremos el tratamiento y te devolveremos el pago.”
+
+Add a 3-step section:
+1. “Pagas y envías tu caso a revisión”
+Description:
+“Tu evaluación queda lista para revisión médica.”
+
+2. “Un médico revisa tu caso”
+Description:
+“El médico revisa tus respuestas, fotos y antecedentes. Puede indicar avanzar, pedir más información o definir que este flujo no corresponde.”
+
+3. “Activamos el plan solo si corresponde”
+Description:
+“Si el médico lo indica, coordinamos receta, farmacia autorizada, despacho y seguimiento. Si no corresponde, gestionamos la devolución.”
+
+5. Payment method placeholder
+
+Create a polished payment-method card inspired by MEDVi/Lemonaid.
+
+Since real payments are not integrated yet, do NOT implement payment API.
+
+Add a visual placeholder:
+Title:
+“Método de pago”
+
+Tabs/buttons:
+- “Tarjeta”
+- “Apple Pay”
+- “Link de pago”
+
+Show disabled/fake input fields:
+- Número de tarjeta
+- MM/AA
+- CVC
+
+Add note:
+“Estamos operando con pago seguro manual durante el piloto. Al confirmar, te enviaremos un link de pago seguro.”
+
+Primary CTA:
+“Solicitar link de pago seguro”
+
+Secondary CTA:
+“Hablar con soporte antes de pagar”
+
+Developer comment:
+“TODO: integrate Flow payment links first; later evaluate Flow Cargo Automático or Transbank Oneclick for tokenized payments.”
+
+6. Refund policy section
+
+Add section:
+“¿Qué pasa si el médico determina que no corresponde avanzar?”
+
+Copy:
+“Si el médico determina que no corresponde activar tratamiento a través de la plataforma, te contactaremos para explicar los próximos pasos y gestionaremos la devolución del pago según la política del piloto.”
+
+7. Results page CTA
+
+Update results page CTA to send users to the package selection page, not directly to checkout.
+
+CTA copy:
+“Ver mi programa recomendado”
+
+Link:
+- /plans?plan=inicio or /package?plan=inicio depending on implementation.
+
+8. Keep route-specific logic
+
+If the user journey is treatment / frenar caída:
+The package page should emphasize:
+- medical review;
+- magistral oral minoxidil as a possible option evaluated by physician;
+- dutasteride/finasteride as possible physician-evaluated options;
+- pharmacy coordination;
+- home delivery;
+- WhatsApp/AI follow-up;
+- photo history.
+
+If the user journey is transplant / recuperación:
+The package page should emphasize:
+- medical review;
+- photos and background review;
+- whether stabilization may be needed before transplant;
+- checklist before clinic evaluation;
+- possible pre-op exams defined by clinic/doctor;
+- clinic partner referral if appropriate;
+- consolidated history before reaching clinic.
+
+Do not over-emphasize PRP as a first-level product. Use “procedimientos clínicos complementarios” instead.
+
+9. Visual style
+
+Use:
+- mobile-first layout
+- cream/off-white background
+- white cards
+- rounded-2xl
+- subtle shadows
+- green/gold accents
+- premium serif headings if already used
+- simple check icons
+- clear CTA buttons
+- no yellow warning box
+- no broken placeholder feeling
+
+10. Files
+
+Likely files to update:
+- src/app/results/page.tsx
+- src/app/plans/page.tsx or create src/app/package/page.tsx
+- src/app/checkout/page.tsx
+
+Do not modify:
+- Supabase schema
+- admin
+- quiz logic
+- authentication
+unless absolutely necessary.
+
+11. Build
+
+After implementation run:
+npm.cmd run build
+
+Then summarize:
+- files changed
+- new user flow
+- what copy was added
+- what remains TODO for real payment integration
