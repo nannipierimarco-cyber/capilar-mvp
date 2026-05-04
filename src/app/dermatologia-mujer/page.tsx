@@ -3,6 +3,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { Card, CardContent } from "@/components/ui/card";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { ValuePropMarquee } from "@/components/ValuePropMarquee";
 
 export const metadata: Metadata = {
   title: "Dermatología para mujeres — Nilo",
@@ -14,6 +15,7 @@ export default function DermatologiaMujerPage() {
   return (
     <div className="flex flex-col min-h-screen overflow-x-hidden">
       <Header />
+      <ValuePropMarquee />
       <main className="flex-1">
         <HeroSection />
         <ProblemSection />
