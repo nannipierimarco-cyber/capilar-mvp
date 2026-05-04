@@ -35,12 +35,12 @@ function HeroSection() {
   return (
     <section className="bg-hero-bg py-16 md:py-24">
       <div className="mx-auto max-w-2xl px-4 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-500">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#D4A9BC]">
           Dermatología online para mujeres
         </p>
         <h1 className="mt-4 text-4xl font-bold leading-[1.06] tracking-[-0.03em] text-hero-headline md:text-5xl">
           Tu piel cambia.{" "}
-          <span className="text-rose-600">Tu tratamiento también debería.</span>
+          <span className="text-[#D4A9BC]">Tu tratamiento también debería.</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-hero-muted">
           Completa una evaluación online, crea tu historial inteligente de piel y recibe
@@ -50,7 +50,7 @@ function HeroSection() {
           <LinkButton
             href="/evaluacion-piel"
             size="lg"
-            className="h-12 rounded-full border-0 bg-rose-600 px-8 text-base font-semibold text-white hover:bg-rose-700"
+            className="h-12 rounded-full border-0 bg-[#C999B2] px-8 text-base font-semibold text-white hover:bg-[#BF8BA6]"
           >
             Empezar evaluación de piel
           </LinkButton>
@@ -148,7 +148,7 @@ function HowItWorksSection() {
         <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-4">
           {steps.map((step) => (
             <div key={step.number} className="rounded-2xl bg-white p-6 shadow-none border border-border">
-              <span className="text-4xl font-bold leading-none text-rose-200">
+              <span className="text-4xl font-bold leading-none text-[#D4A9BC]">
                 {step.number}
               </span>
               <h3 className="mt-3 font-semibold text-sm leading-snug">{step.title}</h3>
@@ -172,33 +172,33 @@ function SkinCopilotSection() {
   return (
     <section className="bg-white py-16 md:py-20">
       <div className="mx-auto max-w-4xl px-4">
-        <div className="overflow-hidden rounded-2xl border border-rose-100">
-          <div className="bg-rose-600 px-8 py-8 md:py-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-200">
+        <div className="overflow-hidden rounded-2xl border border-[#EDE5EA]">
+          <div className="bg-[#C999B2] px-8 py-8 md:py-10">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90">
               Novedad
             </p>
             <h2 className="mt-2 text-3xl font-bold text-white md:text-4xl">
               Skin Copilot por WhatsApp
             </h2>
-            <p className="mt-3 max-w-lg text-rose-100 leading-relaxed">
+            <p className="mt-3 max-w-lg text-white/90 leading-relaxed">
               Tu asistente de piel inteligente, disponible cuando lo necesitas. Consulta dudas
               cotidianas con contexto de tu historial real.
             </p>
           </div>
-          <div className="bg-rose-50 px-8 py-8">
+          <div className="bg-[#F2E6EC] px-8 py-8">
             <p className="mb-4 text-sm font-medium text-foreground">Preguntas que puedes hacer:</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {questions.map((q) => (
                 <div
                   key={q}
-                  className="flex items-start gap-3 rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm text-foreground/80"
+                  className="flex items-start gap-3 rounded-xl border border-[#EDE5EA] bg-white px-4 py-3 text-sm text-foreground/80"
                 >
-                  <span className="mt-0.5 shrink-0 text-rose-400">💬</span>
+                  <span className="mt-0.5 shrink-0 text-[#D4A9BC]">💬</span>
                   <span className="leading-snug">{q}</span>
                 </div>
               ))}
             </div>
-            <p className="mt-6 rounded-xl border border-rose-100 bg-white px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-6 rounded-xl border border-[#EDE5EA] bg-white px-4 py-3 text-xs leading-relaxed text-muted-foreground">
               <strong className="font-medium text-foreground">Aviso:</strong> El chat no reemplaza
               una consulta médica. Te orienta según tu historial y deriva a una dermatóloga cuando
               corresponde.
@@ -253,7 +253,7 @@ function DifferentiatorSection() {
       <div className="mx-auto max-w-3xl px-4 text-center">
         <h2 className="text-3xl font-bold text-white md:text-4xl">
           Tu piel tiene memoria.{" "}
-          <span className="text-rose-300">Ahora tu tratamiento también.</span>
+          <span className="text-[#D4A9BC]">Ahora tu tratamiento también.</span>
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/70">
           Guardamos tu historial, fotos, productos, tratamientos, sensibilidad y evolución
@@ -317,7 +317,7 @@ function MedicalTrustSection() {
 
 function FinalCTA() {
   return (
-    <section className="bg-rose-50 py-16 md:py-20">
+    <section className="bg-[#F2E6EC] py-16 md:py-20">
       <div className="mx-auto max-w-xl px-4 text-center">
         <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
           Empieza con una evaluación de piel
@@ -329,7 +329,7 @@ function FinalCTA() {
         <LinkButton
           href="/evaluacion-piel"
           size="lg"
-          className="mt-8 h-12 rounded-full border-0 bg-rose-600 px-10 text-base font-semibold text-white hover:bg-rose-700"
+          className="mt-8 h-12 rounded-full border-0 bg-[#C999B2] px-10 text-base font-semibold text-white hover:bg-[#BF8BA6]"
         >
           Comenzar ahora
         </LinkButton>

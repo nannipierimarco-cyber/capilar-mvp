@@ -1,15 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Globe,
-  ShieldCheck,
-  Tag,
-  Activity,
-  Lock,
-  MessageCircle,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { LinkButton } from "@/components/ui/link-button";
 import Footer from "@/components/layout/Footer";
 import { ValuePropMarquee } from "@/components/ValuePropMarquee";
@@ -26,7 +18,6 @@ export default function HomePage() {
       <main className="flex-1">
         <HeroSection />
         <ValuePropMarquee />
-        <TrustBar />
         <HairCareBlock />
         <SkinCareBlock />
       </main>
@@ -92,14 +83,16 @@ function HeroSection() {
             <CategoryCard
               href="#hair-care"
               label="Hair Care"
-              imageSrc="/hombre3.jpg"
-              imageAlt="Cuidado capilar"
+              imageSrc="/hair-care-category-hero.png"
+              imageAlt="Hombre sonriente con estilo, cuidado capilar"
               imagePosition="object-top"
             />
             <CategoryCard
               href="#skin-care"
               label="Skin Care"
-              imageSrc={null}
+              imageSrc="/skin-care-category-card.png"
+              imageAlt="Mujer sonriente con pelo rubio, skincare y bienestar"
+              imagePosition="object-top"
             />
           </div>
         </div>
@@ -143,13 +136,13 @@ function CategoryCard({
           </>
         ) : (
           <>
-            {/* Premium mauve gradient for Skin Care */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#3d1120] via-[#6b1f3a] to-[#9b3060]" />
-            <div className="absolute -left-4 -top-4 h-36 w-36 rounded-full bg-white/8" />
-            <div className="absolute -bottom-6 -right-6 h-44 w-44 rounded-full bg-white/5" />
-            <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/8" />
-            <div className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            {/* Fallback sin foto: degradado rosa suave */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#e8d6df] via-[#D4A9BC] to-[#EDDEE4]" />
+            <div className="absolute -left-4 -top-4 h-36 w-36 rounded-full bg-white/15" />
+            <div className="absolute -bottom-6 -right-6 h-44 w-44 rounded-full bg-white/12" />
+            <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20" />
+            <div className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
           </>
         )}
 
@@ -162,37 +155,6 @@ function CategoryCard({
         </div>
       </div>
     </a>
-  );
-}
-
-/* ─── TRUST BAR ──────────────────────────────────────────────────────────── */
-
-const trustItems = [
-  { icon: Globe, label: "100% online" },
-  { icon: Tag, label: "Precios claros" },
-  { icon: ShieldCheck, label: "Médicos especialistas" },
-  { icon: Activity, label: "Seguimiento inteligente" },
-  { icon: Lock, label: "Privacidad y seguridad" },
-  { icon: MessageCircle, label: "Atención guiada" },
-];
-
-function TrustBar() {
-  return (
-    <section className="border-b border-border bg-background py-7">
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 sm:gap-x-10">
-          {trustItems.map(({ icon: Icon, label }) => (
-            <div
-              key={label}
-              className="flex items-center gap-2 text-sm text-muted-foreground"
-            >
-              <Icon className="size-4 shrink-0 text-primary" />
-              <span className="whitespace-nowrap font-medium">{label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -302,34 +264,32 @@ const skinBullets = [
 
 function SkinCareBlock() {
   return (
-    <section id="skin-care" className="scroll-mt-4 bg-muted/40 py-16 md:py-24">
+    <section id="skin-care" className="scroll-mt-4 bg-[#F2E6EC] py-16 md:py-24">
       <div className="mx-auto max-w-5xl px-4">
         <div className="flex flex-col gap-8 md:flex-row md:gap-10 lg:gap-14">
 
           {/* Left column: main "image" + benefits — second on mobile, first on desktop */}
           <div className="order-2 shrink-0 md:order-1 md:w-[290px] lg:w-[330px]">
-            {/* Skin Care premium gradient tile */}
-            <div className="relative aspect-square overflow-hidden rounded-2xl shadow-sm bg-gradient-to-br from-[#8b2252] via-[#b52d6a] to-[#d45c86]">
-              <div className="absolute -left-6 -top-6 h-36 w-36 rounded-full bg-white/10" />
-              <div className="absolute -bottom-4 -right-4 h-28 w-28 rounded-full bg-white/8" />
-              <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
-              <div className="absolute bottom-5 left-5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
-                  Skin health
-                </p>
-              </div>
+            <div className="relative aspect-square overflow-hidden rounded-2xl shadow-sm">
+              <Image
+                src="/skin-care-column-hero.png"
+                alt="Mujer sonriente aplicando crema facial en las mejillas, rutina de skincare"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 330px"
+              />
             </div>
-            <div className="mt-4 rounded-2xl border border-rose-100 bg-rose-50 p-6">
-              <p className="text-sm font-semibold leading-snug text-foreground">
+            <div className="mt-4 rounded-2xl border border-[#EDE5EA] bg-[#F2E6EC] p-6">
+              <p className="text-sm font-semibold leading-snug text-[#D4A9BC]">
                 Todo lo que necesitas para tomar mejores decisiones sobre tu piel
               </p>
               <ul className="mt-4 space-y-2.5">
                 {skinBullets.map((b) => (
                   <li
                     key={b}
-                    className="flex items-start gap-2.5 text-sm text-muted-foreground"
+                    className="flex items-start gap-2.5 text-sm text-[#D4A9BC]"
                   >
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-100 text-[10px] font-bold text-rose-500">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[#D4A9BC]/40 bg-white text-[10px] font-bold text-[#D4A9BC]">
                       ✓
                     </span>
                     {b}
@@ -341,33 +301,36 @@ function SkinCareBlock() {
 
           {/* Right column — first on mobile */}
           <div className="order-1 flex flex-1 flex-col gap-5 md:order-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#D4A9BC]">
               Personalized Skin Guidance
             </p>
-            <h2 className="text-3xl font-bold leading-tight tracking-tight md:text-4xl lg:text-[2.6rem]">
+            <h2 className="text-3xl font-bold leading-tight tracking-tight text-[#D4A9BC] md:text-4xl lg:text-[2.6rem]">
               Skin care más simple, guiado por dermatología
             </h2>
 
-            {/* Two portrait tiles */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl shadow-sm bg-gradient-to-br from-[#fce7ef] to-[#f9d0e2]">
-                <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-rose-200/50 blur-2xl" />
-                <div className="absolute bottom-8 left-4 h-20 w-20 rounded-full bg-pink-200/40 blur-xl" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="h-1 w-8 rounded-full bg-rose-200/60" />
-                </div>
+              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl shadow-sm">
+                <Image
+                  src="/skin-care-block-center.png"
+                  alt="Mujer sonriente aplicando crema facial, rutina de skincare"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 46vw, 280px"
+                />
               </div>
-              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl shadow-sm bg-gradient-to-br from-[#f9d5e8] to-[#fde8f2]">
-                <div className="absolute -left-4 top-4 h-28 w-28 rounded-full bg-rose-100/60 blur-2xl" />
-                <div className="absolute bottom-6 right-4 h-16 w-16 rounded-full bg-pink-100/70 blur-xl" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="h-1 w-12 rounded-full bg-rose-200/50" />
-                </div>
+              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl shadow-sm">
+                <Image
+                  src="/skin-care-block-right.png"
+                  alt="Productos de skincare: crema, envase y textura suave"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 46vw, 280px"
+                />
               </div>
             </div>
 
             {/* Text + CTA */}
-            <p className="leading-relaxed text-muted-foreground">
+            <p className="leading-relaxed text-[#D4A9BC]">
               Organiza tu historial, entiende mejor tu piel y recibe una ruta
               clara para dudas de skincare, acné, manchas, sensibilidad o
               seguimiento de tratamientos.
@@ -375,7 +338,7 @@ function SkinCareBlock() {
             <div>
               <LinkButton
                 href="/dermatologia-mujer"
-                className="rounded-full border-0 bg-rose-600 px-8 text-white hover:bg-rose-700"
+                className="rounded-full border-0 bg-[#C999B2] px-8 text-white hover:bg-[#BF8BA6]"
               >
                 Conocer Skin Care
               </LinkButton>

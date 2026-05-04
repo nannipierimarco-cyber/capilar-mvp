@@ -14,7 +14,7 @@ export default function EvaluacionPielPage() {
       <Header />
       <main className="flex-1 flex items-center justify-center">
         <div className="mx-auto max-w-md px-4 py-24 text-center">
-          <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-3xl">
+          <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#F2E6EC] text-3xl">
             🌿
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
