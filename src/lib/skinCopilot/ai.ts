@@ -83,7 +83,7 @@ export async function generateSkinCopilotReply({
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        max_tokens: 350,
+        max_tokens: 260,
         temperature: 0.45,
         messages,
       }),
@@ -96,9 +96,37 @@ export async function generateSkinCopilotReply({
     }
 
     const data = (await res.json()) as OpenAIResponse;
-    return data.choices?.[0]?.message?.content ?? SAFE_REDIRECT;
+    const raw = data.choices?.[0]?.message?.content ?? SAFE_REDIRECT;
+    return formatForWhatsApp(raw);
   } catch (err) {
     console.error("[SkinCopilot] Fetch error:", err);
     return SAFE_REDIRECT;
   }
+}
+
+/** Strips markdown and caps length for WhatsApp delivery. */
+function formatForWhatsApp(text: string): string {
+  const stripped = text
+    .replace(/\*\*(.*?)\*\*/g, "$1")          // bold
+    .replace(/\*(.*?)\*/g, "$1")               // italic
+    .replace(/_{1,2}(.*?)_{1,2}/g, "$1")       // underline/italic
+    .replace(/#{1,6}\s+/g, "")                 // headers
+    .replace(/`{1,3}[^`\n]*`{1,3}/g, "")      // inline code / code blocks
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")   // markdown links → label only
+    .replace(/^\s*[-*•]\s+/gm, "- ")           // normalize bullet points
+    .trim();
+
+  const MAX = 900;
+  if (stripped.length <= MAX) return stripped;
+
+  // Truncate at last sentence boundary before MAX
+  const truncated = stripped.slice(0, MAX);
+  const lastPeriod = Math.max(
+    truncated.lastIndexOf("."),
+    truncated.lastIndexOf("!"),
+    truncated.lastIndexOf("?")
+  );
+  return lastPeriod > MAX * 0.6
+    ? truncated.slice(0, lastPeriod + 1)
+    : truncated.slice(0, MAX - 1) + "…";
 }
