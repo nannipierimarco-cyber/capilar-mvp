@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
 import { type Intake, type Patient, STATUS_LABELS, STATUS_COLORS } from "@/lib/types";
 
 const JOURNEY_LABELS = {
@@ -11,10 +10,29 @@ const JOURNEY_LABELS = {
   both: "Tratamiento + Trasplante",
 };
 
+interface HairMapLead {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  age: number | null;
+  main_concern: string | null;
+  duration: string | null;
+  goal: string | null;
+  final_interest: string | null;
+  created_at: string;
+}
+
+const INTEREST_COLORS: Record<string, string> = {
+  "Evaluar trasplante capilar": "bg-amber-100 text-amber-800",
+  "Soluciones para minimizar la caída": "bg-blue-100 text-blue-800",
+  "Solo quiero conocer mi situación capilar": "bg-gray-100 text-gray-600",
+};
+
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; journey?: string }>;
+  searchParams: Promise<{ status?: string; journey?: string; tab?: string }>;
 }) {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
@@ -23,10 +41,12 @@ export default async function AdminPage({
     redirect("/admin/login");
   }
 
-  const { status: filterStatus, journey: filterJourney } = await searchParams;
+  const { status: filterStatus, journey: filterJourney, tab } = await searchParams;
+  const activeTab = tab === "mapa-capilar" ? "mapa-capilar" : "pacientes";
 
   const supabase = await createClient();
 
+  // Fetch patients (always, for count in header)
   let query = supabase
     .from("intakes")
     .select("*, patients(*)")
@@ -36,8 +56,18 @@ export default async function AdminPage({
   if (filterJourney) query = query.eq("journey_type", filterJourney);
 
   const { data: intakes } = await query;
-
   const rows = (intakes ?? []) as (Intake & { patients: Patient })[];
+
+  // Fetch hair map leads when on that tab
+  let hairMapLeads: HairMapLead[] = [];
+  if (activeTab === "mapa-capilar") {
+    const { data } = await supabase
+      .from("hair_map_leads")
+      .select("id, name, email, phone, age, main_concern, duration, goal, final_interest, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    hairMapLeads = (data ?? []) as HairMapLead[];
+  }
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -57,82 +87,192 @@ export default async function AdminPage({
       </header>
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-        <Filters currentStatus={filterStatus} currentJourney={filterJourney} />
-
-        <div className="mt-4 bg-white rounded-2xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Paciente</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ruta</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Estado</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">
-                    Teléfono
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">
-                    Fecha
-                  </th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                      No hay pacientes que coincidan con los filtros.
-                    </td>
-                  </tr>
-                )}
-                {rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <p className="font-medium">
-                        {row.patients?.first_name} {row.patients?.last_name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{row.patients?.email}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs">
-                        {JOURNEY_LABELS[row.journey_type] ?? row.journey_type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
-                          STATUS_COLORS[row.status]
-                        }`}
-                      >
-                        {STATUS_LABELS[row.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
-                      {row.patients?.phone}
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">
-                      {new Date(row.created_at).toLocaleDateString("es-CL", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/admin/patients/${row.id}`}
-                        className="text-xs text-primary hover:underline font-medium"
-                      >
-                        Ver →
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {/* Tabs */}
+        <div className="flex gap-1 mb-5 bg-white border border-border rounded-xl p-1 w-fit">
+          <Link
+            href="/admin"
+            className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === "pacientes"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Pacientes
+          </Link>
+          <Link
+            href="/admin?tab=mapa-capilar"
+            className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === "mapa-capilar"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Mapa Capilar AI
+          </Link>
         </div>
+
+        {activeTab === "pacientes" && (
+          <>
+            <Filters currentStatus={filterStatus} currentJourney={filterJourney} />
+            <div className="mt-4 bg-white rounded-2xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Paciente</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ruta</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Estado</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">
+                        Teléfono
+                      </th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">
+                        Fecha
+                      </th>
+                      <th className="px-4 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                          No hay pacientes que coincidan con los filtros.
+                        </td>
+                      </tr>
+                    )}
+                    {rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-medium">
+                            {row.patients?.first_name} {row.patients?.last_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{row.patients?.email}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs">
+                            {JOURNEY_LABELS[row.journey_type] ?? row.journey_type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
+                              STATUS_COLORS[row.status]
+                            }`}
+                          >
+                            {STATUS_LABELS[row.status]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
+                          {row.patients?.phone}
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">
+                          {new Date(row.created_at).toLocaleDateString("es-CL", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Link
+                            href={`/admin/patients/${row.id}`}
+                            className="text-xs text-primary hover:underline font-medium"
+                          >
+                            Ver →
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === "mapa-capilar" && (
+          <div className="bg-white rounded-2xl border border-border overflow-hidden">
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-sm">Leads — Mapa Capilar AI</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{hairMapLeads.length} leads registrados</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nombre</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">
+                      Preocupación
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">
+                      Objetivo
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Interés</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">
+                      Edad
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">
+                      Fecha
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hairMapLeads.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                        No hay leads de Mapa Capilar todavía.
+                      </td>
+                    </tr>
+                  )}
+                  {hairMapLeads.map((lead) => (
+                    <tr
+                      key={lead.id}
+                      className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{lead.name ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground">{lead.email ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground">{lead.phone ?? "—"}</p>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
+                        {lead.main_concern ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">
+                        {lead.goal ?? "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {lead.final_interest ? (
+                          <span
+                            className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
+                              INTEREST_COLORS[lead.final_interest] ?? "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {lead.final_interest}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
+                        {lead.age ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">
+                        {new Date(lead.created_at).toLocaleDateString("es-CL", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
