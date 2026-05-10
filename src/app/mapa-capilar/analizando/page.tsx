@@ -37,7 +37,16 @@ export default function AnalizandoPage() {
         }
 
         const answers = JSON.parse(rawAnswers) as Record<string, string>;
-        const photoBase64 = sessionStorage.getItem("mapa_capilar_photo");
+        const photosRaw = sessionStorage.getItem("mapa_capilar_photos");
+        let photosRecord: Record<string, string> | undefined;
+        if (photosRaw) {
+          try {
+            photosRecord = JSON.parse(photosRaw) as Record<string, string>;
+          } catch {
+            photosRecord = undefined;
+          }
+        }
+        const legacyPhoto = sessionStorage.getItem("mapa_capilar_photo");
 
         const minWait = new Promise<void>((resolve) => setTimeout(resolve, 30_000));
 
@@ -52,7 +61,8 @@ export default function AnalizandoPage() {
             previousTreatment: answers.previousTreatment ?? "",
             familyHistory: answers.familyHistory ?? "",
             goal: answers.goal ?? "",
-            photoBase64: photoBase64 ?? undefined,
+            photoBase64: legacyPhoto ?? undefined,
+            photos: photosRecord,
           }),
         })
           .then((r) => r.json())

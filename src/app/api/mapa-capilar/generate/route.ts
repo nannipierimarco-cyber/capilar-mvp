@@ -23,7 +23,7 @@ function buildUserPrompt(a: MapaCapilarAnswers): string {
 - Historial familiar capilar: ${a.familyHistory}
 - Objetivo actual: ${a.goal}
 
-Basándote en la imagen adjunta y estas respuestas, genera un análisis visual orientativo.
+Basándote en las imágenes adjuntas (si el usuario las subió; pueden ser una o varias vistas) y estas respuestas, genera un análisis visual orientativo.
 Responde SOLO con JSON en este formato exacto (sin texto adicional):
 
 {
@@ -47,7 +47,17 @@ Responde SOLO con JSON en este formato exacto (sin texto adicional):
 
 interface RequestBody extends MapaCapilarAnswers {
   photoBase64?: string;
+  /** Vistas opcionales: frontal, entradas, coronilla, lateral → data URLs (puede haber solo algunas) */
+  photos?: Record<string, string>;
 }
+
+const PHOTO_ORDER = ["frontal", "entradas", "coronilla", "lateral"] as const;
+const PHOTO_LABELS: Record<string, string> = {
+  frontal: "Vista frontal",
+  entradas: "Entradas",
+  coronilla: "Coronilla",
+  lateral: "Lateral",
+};
 
 export async function POST(req: NextRequest) {
   let body: RequestBody;
@@ -57,7 +67,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const { concern, duration, previousTreatment, familyHistory, goal, photoBase64 } = body;
+  const { concern, duration, previousTreatment, familyHistory, goal, photoBase64, photos } =
+    body;
 
   if (!concern || !goal) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -82,14 +93,47 @@ export async function POST(req: NextRequest) {
       },
     ];
 
-    if (photoBase64?.startsWith("data:image")) {
-      userContent.push({
-        type: "image_url",
-        image_url: { url: photoBase64, detail: "auto" },
-      });
+    const appendImages = (entries: { label: string; dataUrl: string }[]) => {
+      for (const { label, dataUrl } of entries) {
+        if (!dataUrl.startsWith("data:image")) continue;
+        userContent.push({
+          type: "text",
+          text: `Imagen: ${label}.`,
+        });
+        userContent.push({
+          type: "image_url",
+          image_url: { url: dataUrl, detail: "auto" },
+        });
+      }
+      if (entries.length > 0) {
+        userContent.push({
+          type: "text",
+          text: "Las imágenes son referencia visual general por zona. No hagas afirmaciones clínicas.",
+        });
+      }
+    };
+
+    if (photos && typeof photos === "object") {
+      const ordered: { label: string; dataUrl: string }[] = [];
+      for (const key of PHOTO_ORDER) {
+        const dataUrl = photos[key];
+        if (typeof dataUrl === "string" && dataUrl.startsWith("data:image")) {
+          ordered.push({ label: PHOTO_LABELS[key] ?? key, dataUrl });
+        }
+      }
+      if (ordered.length > 0) {
+        appendImages(ordered);
+      } else if (photoBase64?.startsWith("data:image")) {
+        appendImages([{ label: "Referencia general", dataUrl: photoBase64 }]);
+      }
+    } else if (photoBase64?.startsWith("data:image")) {
+      appendImages([{ label: "Referencia general", dataUrl: photoBase64 }]);
+    }
+
+    if (userContent.length === 1) {
       userContent.push({
         type: "text",
-        text: "Se adjunta foto del cabello del usuario. Úsala solo como referencia visual general. No hagas afirmaciones clínicas.",
+        text: "No hay fotos adjuntas; basa el JSON solo en las respuestas del usuario, sin inventar detalles visuales.",
       });
     }
 

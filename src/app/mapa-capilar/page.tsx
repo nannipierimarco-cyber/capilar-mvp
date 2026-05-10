@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Upload, CheckCircle2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Field } from "@/lib/mapaCapilar";
 
@@ -71,6 +71,36 @@ type Step = "hero" | number | "photo";
 
 const STEP_ORDER: Step[] = ["hero", 0, 1, 2, 3, 4, "photo"];
 
+/** Orden rejilla 2×2 como en el quiz: fila 1 frontal|coronilla, fila 2 entradas|lateral */
+const PHOTO_SLOTS = [
+  {
+    id: "frontal",
+    label: "Frontal",
+    hint: "Frente completa, mirando a la cámara",
+    required: true,
+  },
+  {
+    id: "coronilla",
+    label: "Coronilla",
+    hint: "Vista superior, pelo hacia adelante",
+    required: false,
+  },
+  {
+    id: "entradas",
+    label: "Entradas",
+    hint: "Zona de las entradas laterales",
+    required: false,
+  },
+  {
+    id: "lateral",
+    label: "Lateral",
+    hint: "Perfil completo",
+    required: false,
+  },
+] as const;
+
+type PhotoSlotId = (typeof PHOTO_SLOTS)[number]["id"];
+
 async function compressImage(file: File): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -100,11 +130,9 @@ export default function MapaCapilarPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("hero");
   const [answers, setAnswers] = useState<Answers>({});
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [slotPhotos, setSlotPhotos] = useState<Partial<Record<PhotoSlotId, File>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [photoError, setPhotoError] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stepIndex = STEP_ORDER.indexOf(step);
   const progress =
@@ -132,34 +160,45 @@ export default function MapaCapilarPage() {
     if (idx > 0) goTo(STEP_ORDER[idx - 1]);
   }, [step, goTo]);
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const setSlotFile = useCallback((slot: PhotoSlotId, file: File | null) => {
     setPhotoError(false);
-    setPhotoFile(file);
-    const url = URL.createObjectURL(file);
-    setPhotoPreview(url);
+    setSlotPhotos((prev) => {
+      if (!file) {
+        const next = { ...prev };
+        delete next[slot];
+        return next;
+      }
+      return { ...prev, [slot]: file };
+    });
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!photoFile) {
+    const frontal = slotPhotos.frontal;
+    if (!frontal) {
       setPhotoError(true);
       return;
     }
     setSubmitting(true);
+    sessionStorage.setItem("mapa_capilar_answers", JSON.stringify(answers));
     try {
-      const photoBase64 = await compressImage(photoFile);
-      sessionStorage.setItem("mapa_capilar_answers", JSON.stringify(answers));
-      try {
-        sessionStorage.setItem("mapa_capilar_photo", photoBase64);
-      } catch {
-        // Photo too large for sessionStorage — proceed without it
+      const photosRecord: Partial<Record<PhotoSlotId, string>> = {};
+      for (const s of PHOTO_SLOTS) {
+        const file = slotPhotos[s.id];
+        if (file) photosRecord[s.id] = await compressImage(file);
       }
+      const payload = JSON.stringify(photosRecord);
+      sessionStorage.setItem("mapa_capilar_photos", payload);
+      sessionStorage.setItem("mapa_capilar_photo", photosRecord.frontal!);
     } catch {
-      sessionStorage.setItem("mapa_capilar_answers", JSON.stringify(answers));
+      try {
+        sessionStorage.removeItem("mapa_capilar_photos");
+        sessionStorage.removeItem("mapa_capilar_photo");
+      } catch {
+        /* ignore */
+      }
     }
     router.push("/mapa-capilar/analizando");
-  }, [photoFile, answers, router]);
+  }, [slotPhotos, answers, router]);
 
   const questionIndex = typeof step === "number" ? step : -1;
   const currentQuestion = questionIndex >= 0 ? QUESTIONS[questionIndex] : null;
@@ -169,7 +208,7 @@ export default function MapaCapilarPage() {
       {/* Header */}
       <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100">
         <div className="max-w-md mx-auto px-5 h-14 flex items-center justify-between">
-          <span className="text-lg font-semibold tracking-tight text-gray-900">Nilo</span>
+          <span className="text-lg font-semibold tracking-tight text-gray-900">Perfecto</span>
           {step !== "hero" && (
             <button
               onClick={goBack}
@@ -205,8 +244,9 @@ export default function MapaCapilarPage() {
             </h1>
 
             <p className="text-gray-500 text-base leading-relaxed">
-              Responde 5 preguntas, sube una foto de tu pelo y recibe un mapa visual
-              orientativo de densidad, línea frontal y zonas a observar.
+              Responde 5 preguntas, sube al menos una foto frontal (coronilla y otras vistas son
+              opcionales y mejoran el mapa) y recibe un mapa visual orientativo de densidad, línea
+              frontal y zonas a observar.
             </p>
 
             <button
@@ -227,7 +267,10 @@ export default function MapaCapilarPage() {
               </p>
               {[
                 ["1", "Responde 5 preguntas sobre tu situación capilar"],
-                ["2", "Sube una foto de tu pelo con buena luz"],
+                [
+                  "2",
+                  "Sube una foto frontal obligatoria; coronilla, entradas y lateral son opcionales y mejoran el resultado",
+                ],
                 ["3", "Recibe tu Mapa Capilar AI orientativo en segundos"],
               ].map(([num, text]) => (
                 <div key={num} className="flex items-start gap-3">
@@ -275,114 +318,111 @@ export default function MapaCapilarPage() {
           </div>
         )}
 
-        {/* PHOTO UPLOAD */}
+        {/* PHOTO UPLOAD — patrón visual alineado con PhotoStep del quiz */}
         {step === "photo" && (
           <div className="flex flex-col gap-6">
             <div className="space-y-1.5">
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
                 Último paso
               </p>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Sube una foto clara de tu pelo
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-900">Sube tus fotos</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Idealmente con buena luz, mostrando la zona que más te preocupa: entradas,
-                parte superior o coronilla.
+                Las fotos permiten que el análisis visual orientativo sea más útil.
               </p>
             </div>
 
-            {/* Upload zone */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "relative w-full rounded-2xl border-2 border-dashed transition-all overflow-hidden",
-                photoPreview
-                  ? "border-primary aspect-[4/3]"
-                  : photoError
-                  ? "border-red-400 bg-red-50 aspect-[4/3]"
-                  : "border-gray-300 bg-gray-50 hover:border-primary hover:bg-primary/5 aspect-[4/3]"
-              )}
-            >
-              {photoPreview ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photoPreview}
-                    alt="Vista previa de tu foto"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-                    <div className="bg-white rounded-full p-2.5 shadow-md">
-                      <CheckCircle2 className="w-6 h-6 text-primary" />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-3 p-8">
-                  <Upload
-                    className={cn("w-8 h-8", photoError ? "text-red-400" : "text-gray-400")}
-                  />
-                  <div className="text-center">
-                    <p
-                      className={cn(
-                        "text-sm font-medium",
-                        photoError ? "text-red-600" : "text-gray-600"
-                      )}
-                    >
-                      {photoError ? "La foto es obligatoria para continuar" : "Toca para subir foto"}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">JPG, PNG o WebP</p>
-                  </div>
-                </div>
-              )}
-            </button>
+            <div className="bg-primary/10 rounded-xl p-3 text-xs text-primary/90 space-y-0.5 border border-primary/15">
+              <p className="font-semibold text-primary mb-1">Instrucciones:</p>
+              <p>• Buena luz natural o artificial</p>
+              <p>• Pelo seco, sin gel ni gorro</p>
+              <p>• Cámara estable</p>
+              <p>• Mostrar claramente la zona afectada</p>
+            </div>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              capture="environment"
-              className="hidden"
-              onChange={handleFileChange}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              {PHOTO_SLOTS.map((slot) => {
+                const file = slotPhotos[slot.id] ?? null;
+                const missingFrontal = photoError && slot.required && !file;
+                return (
+                  <label
+                    key={slot.id}
+                    className={cn(
+                      "border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors min-h-[120px]",
+                      file
+                        ? "border-primary bg-primary/5"
+                        : missingFrontal
+                          ? "border-red-300 bg-red-50"
+                          : "border-gray-200 hover:border-primary/40 bg-white"
+                    )}
+                  >
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        e.target.value = "";
+                        setSlotFile(slot.id, f);
+                      }}
+                    />
+                    {file ? (
+                      <>
+                        <span className="text-2xl text-primary">✓</span>
+                        <p className="text-xs font-semibold mt-1 text-primary">{slot.label}</p>
+                        <p className="text-xs text-gray-500 truncate max-w-[120px]">{file.name}</p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-2xl text-gray-400">📷</span>
+                        <p className="text-xs font-semibold mt-1 text-gray-900">{slot.label}</p>
+                        {!slot.required && (
+                          <span className="text-[10px] text-gray-500 bg-amber-50/80 border border-amber-100 px-1.5 py-0.5 rounded-full mt-0.5">
+                            opcional
+                          </span>
+                        )}
+                        <p className="text-xs text-gray-500 mt-0.5 leading-snug">{slot.hint}</p>
+                      </>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
 
-            {photoPreview && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="text-sm text-gray-500 underline underline-offset-2 text-center -mt-2"
-              >
-                Cambiar foto
-              </button>
+            {photoError && (
+              <p className="text-sm text-red-600 text-center bg-red-50 rounded-xl py-3 px-3">
+                Sube la foto frontal para continuar.
+              </p>
             )}
 
-            {/* Tips */}
-            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-2">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wide">
-                Tips para mejor resultado
-              </p>
-              <ul className="text-xs text-gray-600 space-y-1.5">
-                {[
-                  "Buena luz natural o artificial",
-                  "Pelo seco, sin gel ni gorro",
-                  "Mostrar claramente la zona afectada",
-                  "Cámara estable, sin movimiento",
-                ].map((tip) => (
-                  <li key={tip} className="flex items-start gap-2">
-                    <span className="text-primary mt-0.5 font-bold">·</span>
-                    {tip}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <p className="text-xs text-gray-500 text-center leading-relaxed">
+              Solo la foto frontal es obligatoria. Coronilla, entradas y lateral son opcionales y
+              ayudan a afinar el mapa. Son confidenciales y solo las verá el equipo médico asignado.
+            </p>
 
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full bg-primary text-white font-semibold py-4 rounded-2xl text-base hover:bg-primary/90 active:scale-[.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-primary text-white font-semibold py-4 rounded-full text-base hover:bg-primary/90 active:scale-[.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {submitting ? "Preparando análisis..." : "Generar mi mapa"}
+              {submitting ? "Preparando análisis..." : "Continuar"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full text-sm text-gray-500 hover:text-gray-800 transition-colors py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Completar fotos después →
+            </button>
+
+            <button
+              type="button"
+              onClick={goBack}
+              className="text-sm text-gray-500 hover:text-gray-800 flex items-center gap-1 self-start"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver
             </button>
           </div>
         )}
