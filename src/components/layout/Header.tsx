@@ -13,7 +13,7 @@ export default function Header({ hideOnMobile }: { hideOnMobile?: boolean }) {
     >
       <div className="mx-auto max-w-5xl px-4 h-16 flex items-center justify-between">
         <Link href="/" className="font-semibold text-xl tracking-tight text-primary">
-          Nilo
+          Perfecto
         </Link>
         <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
           <Link href="/#como-funciona" className="hover:text-foreground transition-colors">

@@ -1,0 +1,37 @@
+﻿Crea un endpoint temporal de testing:
+
+POST /api/whatsapp/send-test
+
+Objetivo:
+Probar si nuestro backend puede enviar un WhatsApp real usando WhatsApp Cloud API y las env vars de Vercel.
+
+Contexto:
+- Webhook GET ya está verificado.
+- messages ya está suscrito.
+- El botón Probar de Meta genera POST a Vercel.
+- Pero los mensajes reales desde mi WhatsApp al número de prueba de Meta no generan POST.
+- Por ahora quiero seguir usando el número de prueba de Meta, no registrar un número propio.
+
+Requisitos:
+1. Usar la función sendWhatsAppText existente en src/lib/whatsapp.ts.
+2. Usar env vars:
+   - WHATSAPP_ACCESS_TOKEN
+   - WHATSAPP_PHONE_NUMBER_ID
+   - SKIN_COPILOT_ALLOWED_TEST_PHONES
+3. El endpoint debe recibir JSON:
+   {
+     "to": "+56998056526",
+     "message": "Test desde Nilo Skin Copilot. Responde este mensaje para probar el webhook inbound."
+   }
+4. Validar que el número "to" esté dentro de SKIN_COPILOT_ALLOWED_TEST_PHONES.
+5. Normalizar teléfonos comparando solo dígitos.
+6. Si el número no está permitido, responder 403.
+7. Si faltan env vars, responder error claro.
+8. Si WhatsApp API falla, devolver status y error sanitizado, sin mostrar tokens.
+9. No loggear tokens ni secretos.
+10. Marcar el endpoint como temporal de testing.
+11. No tocar modelo, homepage, /score-capilar, /quiz ni landing pages.
+12. Correr build.
+13. No hacer deploy hasta que yo confirme.
+
+Después me muestras los archivos modificados y cómo probarlo con PowerShell.

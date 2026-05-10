@@ -1,0 +1,119 @@
+﻿We need to integrate HubSpot with our existing Next.js + Supabase app for Perfecto Labs.
+
+Context:
+- The app has a /score-capilar funnel.
+- Leads are captured with name, email, WhatsApp, quiz answers, 2 photos, score, score label, capillary apparent age, preliminary route, and user-facing Mapa Capilar.
+- We created a HubSpot service key with these scopes:
+  - crm.objects.contacts.read
+  - crm.objects.contacts.write
+  - crm.objects.deals.read
+  - crm.objects.deals.write
+- The environment variable is:
+  HUBSPOT_ACCESS_TOKEN
+- The token is already stored in Vercel and in .env.local.
+- Do not ask me to paste the token.
+- Supabase remains the product/backend database.
+- HubSpot is for CRM, lifecycle, tasks, sales follow-up, and conversion automation.
+
+Important:
+- Do not expose the HubSpot token in frontend.
+- Use server-side API only.
+- Do not modify the doctor AI report.
+- Do not modify the payment flow.
+- Do not break /score-capilar.
+- Keep user score report and doctor report separate.
+- If HubSpot sync fails, the user flow must still work.
+- Do not send image files to HubSpot for now.
+- Start with basic CRM fields and only send custom properties if available.
+
+Goal:
+Create a server-side HubSpot integration that syncs Score Capilar leads to HubSpot.
+
+Required architecture:
+1. Add a HubSpot helper module, for example:
+   src/lib/hubspot/client.ts
+
+2. Add an internal API route:
+   POST /api/hubspot/sync-lead
+
+3. The integration should create or update a HubSpot contact by email.
+   - If contact exists, update it.
+   - If contact does not exist, create it.
+   - Use HubSpot CRM Contacts API.
+   - Use Authorization Bearer process.env.HUBSPOT_ACCESS_TOKEN.
+
+4. HubSpot should receive these fields:
+   Standard HubSpot fields:
+   - email → email
+   - name → firstname
+   - whatsapp → phone
+
+   Custom fields if available:
+   - vertical → vertical
+   - score → score_capilar
+   - scoreLabel → score_label
+   - capillaryAge → edad_capilar_aparente
+   - preliminaryRoute → ruta_preliminar
+   - mainConcernArea → zona_principal
+   - leadStage → lead_stage
+   - transplantInterest → interes_trasplante
+   - userReportGenerated → mapa_capilar_generado
+   - medicalCtaClicked → evaluacion_medica_clicked
+   - source → fuente
+
+5. If custom HubSpot properties do not exist yet, fail gracefully:
+   - Do not break the user flow.
+   - Log the exact property error.
+   - Prefer syncing standard fields first if custom properties fail.
+   - Add a clear TODO list of HubSpot custom properties I need to create manually.
+
+6. Hook the sync into the /score-capilar flow:
+   - after lead data is submitted and score/report are generated, call /api/hubspot/sync-lead
+   - if sync succeeds, optionally save/log hubspotContactId if persistence exists
+   - if sync fails, continue showing the user result
+
+7. Add tracking/console events:
+   - hubspot_sync_started
+   - hubspot_sync_success
+   - hubspot_sync_failed
+
+8. Add a separate event for when the user clicks the medical CTA:
+   - evaluacion_medica_clicked should be updated in HubSpot if possible
+   - do not block navigation if HubSpot fails
+
+9. Keep two verticals in mind:
+   - capilar now
+   - piel later
+   Add the field vertical = "capilar" for this flow.
+
+10. Do not create deals yet unless it is very easy and safe.
+    For this first version, prioritize creating/updating contacts.
+    Deals can be Phase 2.
+
+Phase 1:
+Read the codebase.
+Do not edit files yet.
+Tell me:
+1. Where Score Capilar lead submission happens
+2. Where Supabase persistence happens
+3. Where to hook HubSpot sync
+4. Whether there is already a tracking utility
+5. What files you will create or modify
+6. What HubSpot properties I need to create manually
+7. Any risks or assumptions
+
+Wait for my approval before coding.
+
+Phase 2:
+After I approve, implement the integration.
+Keep changes focused and minimal.
+Do not modify unrelated files.
+Do not expose HUBSPOT_ACCESS_TOKEN to frontend.
+
+After implementation, report:
+1. Files created/modified
+2. Env vars needed
+3. How to test locally
+4. How to test in production
+5. What happens if HubSpot fails
+6. Exact HubSpot custom properties I still need to create

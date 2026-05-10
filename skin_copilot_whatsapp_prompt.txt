@@ -1,0 +1,494 @@
+﻿Proyecto:
+C:\Users\user\capilar-mvp
+
+Contexto:
+Estamos construyendo Nilo, una plataforma de salud estética digital. Ya existe una landing de cabello masculino, una landing de dermatología mujer / skin care y una homepage multi-vertical.
+
+Ahora quiero avanzar con la arquitectura del chatbot de IA para Skin Care / dermatología mujer.
+
+Objetivo del producto:
+Crear una experiencia tipo ChatGPT, pero dentro de WhatsApp, para que la usuaria no tenga que descargar otra app.
+
+La usuaria podrá escribir por WhatsApp, subir fotos, hacer preguntas sobre skincare, productos, historial, rutina y seguimiento. La IA debe responder de forma automática, con memoria del historial guardado en nuestro servidor.
+
+Muy importante:
+- WhatsApp es solo la interfaz de conversación.
+- El historial, fotos, consentimientos, mensajes y datos de la usuaria deben guardarse en nuestro servidor / base de datos.
+- La IA NO diagnostica.
+- La IA NO prescribe.
+- La IA NO cambia dosis.
+- La IA NO indica medicamentos sujetos a receta.
+- La IA NO reemplaza una consulta médica.
+- La IA puede orientar, organizar historial, explicar, registrar información y derivar a dermatóloga cuando corresponde.
+- No quiero aprobación humana mensaje por mensaje.
+- Sí quiero un sistema automático de clasificación de riesgo para decidir qué puede responder la IA y qué debe derivarse a revisión médica.
+
+Quiero construir esto de forma lean, dejando la arquitectura lista aunque todavía no conectemos credenciales reales de WhatsApp/OpenAI/Supabase si no existen.
+
+--------------------------------------------------
+OBJETIVO TÉCNICO
+--------------------------------------------------
+
+Implementar una primera versión técnica / scaffold de "Skin Copilot" para WhatsApp.
+
+Debe incluir:
+
+1. Estructura de backend para recibir mensajes de WhatsApp.
+2. Estructura de backend para responder mensajes por WhatsApp.
+3. Guardado de mensajes, usuarios, historial y fotos en base de datos.
+4. Motor de IA con prompt seguro.
+5. Clasificador automático de riesgo.
+6. Memoria de usuario recuperada desde base de datos.
+7. Reglas duras para evitar diagnóstico, receta o indicaciones médicas peligrosas.
+8. Un endpoint de prueba para simular conversaciones sin necesidad de WhatsApp real.
+9. Documentación clara de variables de entorno necesarias.
+10. No romper ninguna página ni flujo existente.
+
+--------------------------------------------------
+ARQUITECTURA DESEADA
+--------------------------------------------------
+
+Flujo ideal:
+
+Usuaria escribe por WhatsApp
+↓
+WhatsApp Cloud API envía webhook a nuestro backend
+↓
+Backend identifica a la usuaria por teléfono
+↓
+Backend busca o crea perfil de usuaria
+↓
+Backend guarda mensaje entrante
+↓
+Backend recupera historial relevante
+↓
+Clasificador determina nivel de riesgo
+↓
+IA genera respuesta segura según reglas
+↓
+Backend guarda respuesta
+↓
+Backend envía respuesta por WhatsApp
+
+También debe existir un endpoint de prueba:
+
+POST /api/skin-copilot/test-chat
+
+Para simular:
+{
+  "phone": "+56912345678",
+  "message": "¿Puedo usar retinol si tengo la piel sensible?"
+}
+
+Y recibir:
+{
+  "reply": "...",
+  "riskLevel": "yellow",
+  "action": "cautious_guidance"
+}
+
+--------------------------------------------------
+RUTAS/API A CREAR
+--------------------------------------------------
+
+Crear, si no existen:
+
+1. /api/whatsapp/webhook
+Debe soportar:
+- GET para verificación del webhook de Meta/WhatsApp.
+- POST para recibir mensajes entrantes.
+- Debe parsear mensajes de texto y, si es posible, imágenes/media.
+- Si faltan credenciales, debe fallar de forma clara sin romper build.
+
+2. /api/skin-copilot/test-chat
+Endpoint interno de prueba para simular conversación sin WhatsApp real.
+Debe:
+- recibir phone y message
+- buscar/crear usuario
+- guardar mensaje
+- recuperar historial
+- clasificar riesgo
+- generar respuesta
+- guardar respuesta
+- devolver JSON con reply, riskLevel y action
+
+3. Opcional:
+Crear /api/skin-copilot/profile
+Para consultar o actualizar un perfil básico de piel, si tiene sentido.
+
+--------------------------------------------------
+MODELO DE DATOS
+--------------------------------------------------
+
+Si el proyecto ya usa Supabase o Postgres, preparar SQL/migración.
+Si no usa Supabase todavía, crear un archivo de schema documentado en:
+
+/supabase/schema_skin_copilot.sql
+
+Tablas sugeridas:
+
+users
+- id uuid primary key
+- phone_number text unique
+- name text nullable
+- email text nullable
+- created_at timestamp
+- updated_at timestamp
+
+skin_profiles
+- id uuid primary key
+- user_id uuid references users(id)
+- skin_type text nullable
+- main_concern text nullable
+- sensitivity text nullable
+- allergies text nullable
+- current_products jsonb nullable
+- previous_treatments jsonb nullable
+- doctor_notes text nullable
+- risk_flags jsonb nullable
+- created_at timestamp
+- updated_at timestamp
+
+skin_photos
+- id uuid primary key
+- user_id uuid references users(id)
+- source text
+- file_url text
+- whatsapp_media_id text nullable
+- photo_type text nullable
+- ai_summary text nullable
+- doctor_review_status text default 'not_reviewed'
+- created_at timestamp
+
+whatsapp_messages
+- id uuid primary key
+- user_id uuid references users(id)
+- whatsapp_message_id text nullable
+- direction text check in ('inbound', 'outbound')
+- message_type text
+- message_text text nullable
+- media_url text nullable
+- risk_level text nullable
+- action text nullable
+- created_at timestamp
+
+ai_interactions
+- id uuid primary key
+- user_id uuid references users(id)
+- user_question text
+- retrieved_context jsonb nullable
+- ai_answer text
+- risk_level text
+- action text
+- safety_notes text nullable
+- created_at timestamp
+
+consents
+- id uuid primary key
+- user_id uuid references users(id)
+- consent_type text
+- accepted boolean default false
+- accepted_at timestamp nullable
+- version text
+- source text nullable
+
+doctor_escalations
+- id uuid primary key
+- user_id uuid references users(id)
+- reason text
+- message_snapshot text
+- risk_level text
+- status text default 'pending'
+- created_at timestamp
+
+Importante:
+No necesitas implementar todo el dashboard médico todavía, pero deja la estructura lista.
+
+--------------------------------------------------
+VARIABLES DE ENTORNO
+--------------------------------------------------
+
+Agregar documentación en .env.example o README si corresponde:
+
+WHATSAPP_VERIFY_TOKEN=
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+OPENAI_API_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_ANON_KEY=
+
+Si ya existe .env.example, actualizarlo.
+No escribir claves reales.
+
+--------------------------------------------------
+CLASIFICADOR DE RIESGO
+--------------------------------------------------
+
+Crear una función reusable, por ejemplo:
+
+classifySkinMessage(message, profile)
+
+Debe devolver:
+- riskLevel: green | yellow | red
+- action:
+  - answer_general
+  - cautious_guidance
+  - save_to_history
+  - escalate_to_dermatologist
+  - urgent_medical_redirect
+- reason
+
+Reglas:
+
+GREEN:
+Preguntas generales de skincare, educación, historial, rutina ya registrada, recordatorios, cómo usar la plataforma.
+
+Ejemplos:
+- "¿Qué productos tengo guardados?"
+- "¿Qué significa piel sensible?"
+- "¿Cada cuánto debería subir fotos?"
+- "Guarda que esta crema me irritó un poco"
+- "¿Qué es el ácido hialurónico?"
+
+YELLOW:
+Dudas que involucran historial, irritación leve, mezcla de activos, productos nuevos, cambios de rutina, brotes leves.
+
+Ejemplos:
+- "¿Puedo usar retinol si tengo piel sensible?"
+- "Me salió un granito, ¿qué hago?"
+- "¿Puedo mezclar vitamina C con ácido glicólico?"
+- "Esta crema me irritó un poco"
+
+La IA puede orientar con cautela, recomendar no agregar activos nuevos sin validación si corresponde y sugerir revisión dermatológica si persiste.
+
+RED:
+Todo lo que suene a diagnóstico, receta, medicamento con receta, cambio de dosis, reacción fuerte, infección, dolor importante, lesión sospechosa, embarazo/lactancia, síntomas severos o urgencia.
+
+Ejemplos:
+- "¿Qué medicamento tomo?"
+- "Dame receta"
+- "¿Cambio la dosis?"
+- "Tengo la cara hinchada"
+- "Me arde muchísimo"
+- "Tengo pus"
+- "Estoy embarazada, ¿puedo usar esto?"
+- "¿Esto es cáncer de piel?"
+- "¿Tengo rosácea?"
+- "¿Tengo dermatitis?"
+
+La IA NO debe intentar resolver. Debe derivar automáticamente.
+
+--------------------------------------------------
+PROMPT BASE DE LA IA
+--------------------------------------------------
+
+Crear un archivo o constante con el system prompt de Skin Copilot.
+
+Prompt base:
+
+Eres Skin Copilot de Nilo, un asistente de seguimiento de piel por WhatsApp.
+
+Tu rol:
+- Orientar de forma clara, prudente y útil.
+- Ayudar a la usuaria a entender su historial de piel.
+- Explicar conceptos generales de skincare.
+- Registrar información relevante en su historial.
+- Ayudar a ordenar dudas para la dermatóloga.
+- Derivar a revisión médica cuando corresponde.
+
+Límites obligatorios:
+- No diagnostiques enfermedades.
+- No prescribas medicamentos.
+- No indiques dosis.
+- No cambies tratamientos indicados por médicos.
+- No reemplaces una consulta dermatológica.
+- No afirmes certezas clínicas basadas solo en texto o fotos.
+- No digas "tienes X".
+- Usa lenguaje como "podría", "puede ser compatible con", "conviene revisar", "según tu historial registrado".
+- Si hay riesgo, deriva a dermatóloga o atención médica.
+
+Estilo:
+- Responde como ChatGPT pero más breve y apto para WhatsApp.
+- Tono cercano, premium, claro y responsable.
+- No uses párrafos enormes.
+- Usa bullets cuando ayuden.
+- Máximo 900 caracteres salvo que el usuario pida detalle.
+- Siempre que la respuesta tenga implicancias médicas, agrega una frase breve de seguridad.
+
+Ejemplo de buena respuesta:
+"Según tu historial de piel sensible, yo tendría cuidado con agregar retinol de golpe. Puede irritar si se mezcla con otros activos. Lo más seguro sería introducirlo solo si tu dermatóloga lo valida o empezar revisando tu rutina actual. Puedo guardar esta duda para tu próxima revisión."
+
+Ejemplo de mala respuesta:
+"Tienes dermatitis. Usa esta crema 2 veces al día."
+
+--------------------------------------------------
+RESPUESTAS POR NIVEL DE RIESGO
+--------------------------------------------------
+
+GREEN:
+Responder directo y útil.
+
+YELLOW:
+Responder con cautela:
+- reconocer la duda
+- conectar con historial si existe
+- dar orientación general segura
+- recomendar validación dermatológica si es relevante
+- ofrecer guardar la información en historial
+
+RED:
+No dar solución médica.
+Responder con algo como:
+"Esto requiere revisión médica. No puedo diagnosticar ni indicar tratamiento por WhatsApp. Te recomiendo agendar una revisión con una dermatóloga para evaluarlo de forma segura. Si los síntomas son intensos, progresan rápido o hay dolor importante, busca atención médica."
+
+Además:
+- crear registro en doctor_escalations
+- action = escalate_to_dermatologist o urgent_medical_redirect
+
+--------------------------------------------------
+MEMORIA / HISTORIAL
+--------------------------------------------------
+
+La IA debe recuperar contexto del usuario antes de responder.
+
+Contexto mínimo:
+- perfil de piel
+- preocupación principal
+- sensibilidad
+- alergias
+- productos actuales
+- tratamientos previos
+- notas de dermatóloga
+- últimos mensajes relevantes
+- últimas fotos/resúmenes si existen
+
+Si no hay historial suficiente, la IA debe decir:
+"Todavía no tengo suficiente información de tu piel registrada. Puedo orientarte de forma general, pero para personalizar mejor necesito que completes tu evaluación."
+
+--------------------------------------------------
+WHATSAPP
+--------------------------------------------------
+
+Implementar cliente WhatsApp en un archivo reusable, por ejemplo:
+
+src/lib/whatsapp.ts
+
+Funciones:
+- sendWhatsAppText(to, message)
+- parseIncomingWhatsAppMessage(payload)
+- downloadWhatsAppMedia(mediaId) opcional o TODO documentado si no se implementa
+
+El código debe estar preparado para Cloud API, pero no debe exigir credenciales reales para compilar.
+
+Si no hay WHATSAPP_ACCESS_TOKEN o WHATSAPP_PHONE_NUMBER_ID:
+- loggear advertencia
+- no romper build
+- en test endpoint no intentar enviar WhatsApp
+
+--------------------------------------------------
+OPENAI / IA
+--------------------------------------------------
+
+Crear cliente IA reusable, por ejemplo:
+
+src/lib/skinCopilot/ai.ts
+
+Funciones:
+- generateSkinCopilotReply({ userMessage, profile, context, riskClassification })
+
+Si OPENAI_API_KEY no está configurada:
+- devolver una respuesta mock segura para desarrollo
+- no romper build
+
+No usar fine-tuning ahora.
+Usar prompt + memoria + reglas.
+Dejar comentario explicando que fine-tuning podría usarse en el futuro para tono, pero no para memoria clínica.
+
+--------------------------------------------------
+FRONTEND DE PRUEBA OPCIONAL
+--------------------------------------------------
+
+Si es rápido y no rompe nada, crear una página interna simple:
+
+/skin-copilot-test
+
+Esta página debe permitir:
+- ingresar phone
+- ingresar message
+- enviar a /api/skin-copilot/test-chat
+- mostrar reply, riskLevel y action
+
+Debe ser simple, no necesariamente production-ready.
+Si toma demasiado, omitirla y dejar solo endpoint.
+
+--------------------------------------------------
+SEGURIDAD Y COMPLIANCE
+--------------------------------------------------
+
+Agregar comentarios y/o documentación en:
+
+docs/skin-copilot-architecture.md
+
+Debe explicar:
+- WhatsApp es canal, no ficha clínica.
+- Datos se guardan en servidor.
+- IA no diagnostica ni prescribe.
+- Hay clasificación automática de riesgo.
+- Casos rojos se derivan.
+- Fotos y datos de salud deben tratarse como datos sensibles.
+- Se requiere consentimiento explícito.
+- Se requiere política de privacidad.
+- No usar esto para urgencias médicas.
+
+--------------------------------------------------
+NO HACER
+--------------------------------------------------
+
+No crear una app móvil.
+No cambiar el diseño de homepage ahora.
+No tocar /score-capilar.
+No tocar /quiz.
+No romper /salud-capilar.
+No prometer diagnóstico.
+No prometer receta automática.
+No conectar pagos ahora.
+No implementar envío real de recetas.
+No crear respuestas médicas peligrosas.
+No hardcodear secrets.
+No dejar el build roto.
+
+--------------------------------------------------
+CRITERIOS DE ÉXITO
+--------------------------------------------------
+
+Consideraré exitoso si:
+
+1. Existe estructura backend clara para WhatsApp webhook.
+2. Existe endpoint de prueba /api/skin-copilot/test-chat.
+3. Existe clasificador de riesgo green/yellow/red.
+4. Existe prompt seguro de Skin Copilot.
+5. Existe schema SQL o estructura de base de datos para guardar historial.
+6. La IA puede responder automáticamente sin aprobación humana, pero con límites.
+7. Los casos rojos se derivan automáticamente.
+8. El código compila.
+9. No se rompe ninguna página existente.
+10. Hay documentación clara de cómo conectar WhatsApp, OpenAI y Supabase después.
+
+--------------------------------------------------
+ENTREGA
+--------------------------------------------------
+
+Haz lo siguiente:
+
+1. Inspecciona primero la estructura del proyecto.
+2. Implementa la arquitectura lean de Skin Copilot.
+3. Crea o modifica los archivos necesarios.
+4. Actualiza .env.example o documentación de variables.
+5. Corre build y/o lint si está disponible.
+6. Muéstrame los archivos modificados.
+7. Haz commit con este mensaje:
+"Add Skin Copilot WhatsApp AI scaffold"
+8. No hagas deploy a producción todavía, a menos que te lo pida explícitamente.
+
+Comienza ya.

@@ -148,7 +148,7 @@ function MembershipContent() {
               ))}
             </ul>
             <p className="text-xs text-muted-foreground mt-4 pt-3 border-t border-border leading-relaxed">
-              El tratamiento final depende exclusivamente de la revisión médica. Nilo no diagnostica
+              El tratamiento final depende exclusivamente de la revisión médica. Perfecto no diagnostica
               ni prescribe automáticamente.
             </p>
           </CardContent>

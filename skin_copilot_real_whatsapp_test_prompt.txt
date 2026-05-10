@@ -1,0 +1,244 @@
+Proyecto:
+C:\Users\user\capilar-mvp
+
+Contexto:
+Ya existe un scaffold de Skin Copilot:
+- /api/skin-copilot/test-chat funciona.
+- Existe clasificador green/yellow/red.
+- Existe prompt seguro.
+- Existe estructura para WhatsApp.
+- Existe una consola interna /skin-copilot-test.
+
+Ahora NO quiero seguir refinando el modelo todavía.
+Primero quiero conectar una conversación real con un número de WhatsApp para probar la experiencia end-to-end.
+
+Objetivo:
+Implementar y dejar lista la integración real de WhatsApp Cloud API para probar con mi número personal, sin usar pacientes reales todavía.
+
+Quiero poder hacer esto:
+
+1. Escribir desde mi WhatsApp real al número de WhatsApp configurado para Nilo.
+2. Que Meta/WhatsApp envíe el mensaje a nuestro webhook.
+3. Que nuestro backend reciba el mensaje.
+4. Que el backend identifique el teléfono.
+5. Que guarde el mensaje entrante.
+6. Que Skin Copilot genere respuesta.
+7. Que se guarde la respuesta.
+8. Que la respuesta vuelva a mi WhatsApp.
+
+IMPORTANTE:
+Esto es solo para testing privado.
+No usar pacientes reales.
+No pedir datos sensibles todavía.
+No enviar diagnósticos, recetas ni indicaciones médicas.
+No cambiar todavía el modelo salvo ajustes estrictamente necesarios para que funcione en WhatsApp.
+
+--------------------------------------------------
+RUTAS EXISTENTES
+--------------------------------------------------
+
+Revisar estas rutas/archivos si existen:
+
+- src/app/api/whatsapp/webhook/route.ts
+- src/lib/whatsapp.ts
+- src/lib/skinCopilot/ai.ts
+- src/lib/skinCopilot/classifier.ts
+- src/lib/skinCopilot/prompt.ts
+- src/app/api/skin-copilot/test-chat/route.ts
+
+No romper:
+- /score-capilar
+- /quiz
+- /salud-capilar
+- /dermatologia-mujer
+- /skin-copilot-test
+
+--------------------------------------------------
+OBJETIVO TÉCNICO
+--------------------------------------------------
+
+1. Completar /api/whatsapp/webhook para producción real.
+
+Debe soportar:
+
+GET:
+- Verificación de webhook de Meta.
+- Leer query params:
+  - hub.mode
+  - hub.verify_token
+  - hub.challenge
+- Comparar hub.verify_token con process.env.WHATSAPP_VERIFY_TOKEN
+- Si es correcto, responder hub.challenge
+- Si es incorrecto, responder 403
+
+POST:
+- Recibir payload real de WhatsApp Cloud API.
+- Parsear mensajes entrantes.
+- Soportar al menos text messages.
+- Extraer:
+  - from / phone
+  - message id
+  - message text
+  - timestamp
+  - type
+- Guardar inbound message si Supabase está configurado.
+- Ejecutar Skin Copilot.
+- Guardar outbound message si Supabase está configurado.
+- Enviar respuesta por WhatsApp usando Cloud API.
+- Responder 200 rápido a Meta para evitar retries.
+
+2. Completar src/lib/whatsapp.ts
+
+Debe incluir funciones:
+
+- parseIncomingWhatsAppMessage(payload)
+- sendWhatsAppText(to, message)
+- markMessageAsRead opcional
+- sendTypingIndicator opcional solo si es simple y compatible
+- validateWebhookToken o similar si tiene sentido
+
+sendWhatsAppText debe usar:
+- WHATSAPP_ACCESS_TOKEN
+- WHATSAPP_PHONE_NUMBER_ID
+
+Endpoint esperado:
+https://graph.facebook.com/vXX.X/{WHATSAPP_PHONE_NUMBER_ID}/messages
+
+No hardcodear versión si ya existe una convención. Si no existe, usar variable:
+WHATSAPP_API_VERSION=v23.0
+o una versión actual razonable.
+
+3. Variables de entorno
+
+Actualizar .env.example con:
+
+WHATSAPP_VERIFY_TOKEN=
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_API_VERSION=v23.0
+PUBLIC_BASE_URL=
+
+No poner valores reales.
+
+4. Crear documentación simple
+
+Crear o actualizar:
+docs/whatsapp-real-test-setup.md
+
+Debe explicar paso a paso:
+
+A. En Meta Developers:
+- Crear o usar una app existente.
+- Agregar WhatsApp product.
+- Obtener Phone Number ID.
+- Obtener Access Token.
+- Definir Verify Token propio.
+- Configurar Callback URL:
+  https://TU_DOMINIO/api/whatsapp/webhook
+- Configurar Verify Token igual al .env.
+- Suscribirse a messages.
+
+B. En Vercel:
+- Agregar environment variables:
+  WHATSAPP_VERIFY_TOKEN
+  WHATSAPP_ACCESS_TOKEN
+  WHATSAPP_PHONE_NUMBER_ID
+  WHATSAPP_API_VERSION
+  OPENAI_API_KEY
+  SUPABASE_URL
+  SUPABASE_SERVICE_ROLE_KEY
+- Redeploy.
+
+C. Test:
+- Enviar mensaje desde mi WhatsApp permitido/test.
+- Revisar logs de Vercel.
+- Confirmar respuesta.
+- Confirmar guardado en Supabase si está configurado.
+
+5. Crear modo seguro de testing
+
+Agregar una variable opcional:
+
+SKIN_COPILOT_ALLOWED_TEST_PHONES=
+
+Puede ser una lista separada por coma, ejemplo:
++56912345678,+56987654321
+
+Si esta variable existe:
+- El webhook solo debe responder automáticamente a esos números.
+- Si escribe otro número, no responder o responder mensaje genérico de no disponible.
+- Esto evita que el bot responda a usuarios reales antes de estar listo.
+
+6. Crear logs útiles
+
+Agregar logs claros pero sin exponer datos sensibles completos:
+
+- "WhatsApp webhook verified"
+- "Inbound WhatsApp message received"
+- "Skin Copilot reply generated"
+- "WhatsApp reply sent"
+- "Phone not in allowed test phones"
+- "Missing WhatsApp env vars"
+
+No loggear fotos, datos médicos sensibles ni secretos.
+
+7. Manejo de errores
+
+Si falla OpenAI:
+- responder fallback seguro:
+"Gracias por escribir. Estamos revisando tu mensaje y pronto podremos ayudarte. Si tienes síntomas intensos o que empeoran rápido, busca atención médica."
+
+Si falla WhatsApp send:
+- loggear error
+- no romper webhook
+
+Si falla Supabase:
+- seguir respondiendo si es posible
+- loggear advertencia
+
+8. No refinar modelo todavía
+
+No quiero que ahora dediques mucho tiempo a mejorar respuestas médicas.
+Solo hacer ajustes mínimos para que:
+- la respuesta sea apta para WhatsApp
+- no use markdown raro
+- no supere aproximadamente 900 caracteres
+- no diagnostique
+- no prescriba
+
+El refinamiento fino del modelo lo haremos después de tener el canal real funcionando.
+
+--------------------------------------------------
+CRITERIOS DE ÉXITO
+--------------------------------------------------
+
+Consideraré exitoso si:
+
+1. /api/whatsapp/webhook verifica correctamente con Meta.
+2. El POST webhook puede recibir mensajes reales.
+3. Skin Copilot responde por WhatsApp.
+4. Se puede limitar el bot a teléfonos de prueba.
+5. El sistema no responde a usuarios no autorizados si SKIN_COPILOT_ALLOWED_TEST_PHONES está configurado.
+6. Los mensajes se guardan si Supabase está disponible.
+7. El build pasa.
+8. Hay documentación clara para conectar Meta + Vercel.
+9. No se rompe ninguna ruta existente.
+10. No se hace deploy a producción salvo que yo lo pida explícitamente.
+
+--------------------------------------------------
+ENTREGA
+--------------------------------------------------
+
+Haz lo siguiente:
+
+1. Inspecciona la implementación actual.
+2. Completa integración real de WhatsApp Cloud API.
+3. Actualiza .env.example.
+4. Crea docs/whatsapp-real-test-setup.md.
+5. Corre build.
+6. Muéstrame archivos modificados.
+7. Haz commit con mensaje:
+"Add real WhatsApp test integration for Skin Copilot"
+8. NO hagas deploy a producción todavía.
+
+Comienza ahora.

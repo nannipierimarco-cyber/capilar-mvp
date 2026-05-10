@@ -1,0 +1,142 @@
+We need to fix the Score Capilar logic in /score-capilar.
+
+Current issue:
+The production flow works and the user-facing AI report appears to generate correctly, but the numeric score is conceptually inverted.
+
+Example from production:
+- Score Capilar: 100/100
+- Label: “Prioridad orientativa: Alta”
+- Route: “Revisión médica capilar online”
+
+This is wrong.
+
+New product definition:
+Score Capilar must be a positive score:
+- Higher score = better / more favorable preliminary capillary profile
+- Lower score = more concerning profile / stronger reason to review with a doctor
+
+Important:
+- Keep the user AI report and doctor AI report separate.
+- Do not modify the doctor AI report.
+- Do not modify payment flow.
+- Do not modify the full medical intake flow.
+- Only fix the score logic, labels, route mapping, and the user report inputs/copy if needed.
+- The user report AI should receive the corrected score, corrected score label, corrected route, and corrected interpretation.
+
+Find the current scoring utility/function used by /score-capilar.
+It may be in:
+- src/app/score-capilar/ScoreCapilarFunnel.tsx
+- src/lib/score
+- src/lib
+- any utility imported by the score page
+
+New scoring logic:
+Start at 100 and subtract concern points.
+
+Age:
+- 18–24: -3
+- 25–34: -6
+- 35–44: -10
+- 45–54: -14
+- 55+: -18
+
+Zone:
+- Entradas: -10
+- Coronilla: -14
+- Densidad general: -12
+- Caída difusa: -12
+- Post-trasplante: -8
+- Estoy evaluando trasplante: -22
+- No estoy seguro: -6
+
+Time:
+- Menos de 3 meses: -4
+- 3–6 meses: -7
+- 6–12 meses: -11
+- Más de 1 año: -16
+- Más de 3 años: -20
+
+Progress:
+- Estable: -4
+- Lento: -8
+- Rápido: -22
+- Por épocas: -10
+- No sé: -6
+
+Intent:
+- Entender qué me pasa: -5
+- Prevenir que avance: -8
+- Mejorar densidad: -12
+- Saber si necesito trasplante: -22
+- Seguimiento post-trasplante: -10
+- Comparar opciones: -8
+
+Clamp final score between 0 and 100.
+
+New score labels:
+- 85–100: “Muy buen punto de partida”
+- 70–84: “Buen punto de partida”
+- 50–69: “Conviene monitorear”
+- 30–49: “Conviene revisar con médico”
+- 0–29: “Revisión prioritaria recomendada”
+
+Remove or replace any UI copy that says:
+“Prioridad orientativa: Alta”
+for high scores.
+
+Instead, near the score show:
+“Mientras más alto el score, más favorable es tu perfil capilar preliminar.”
+
+New route logic:
+- If zone is “Estoy evaluando trasplante” OR intent is “Saber si necesito trasplante”, route = “Evaluación de procedimiento / trasplante”
+- If zone is “Post-trasplante” OR intent is “Seguimiento post-trasplante”, route = “Seguimiento post-trasplante”
+- If score >= 70, route = “Educación y monitoreo”
+- If score >= 50 and score < 70, route = “Monitoreo + posible revisión médica”
+- If score < 50, route = “Revisión médica capilar online”
+
+New capillary apparent age logic:
+Use declared age range baseline:
+- 18–24: 23
+- 25–34: 31
+- 35–44: 40
+- 45–54: 50
+- 55+: 58
+
+Adjust by score:
+- 85–100: baseline - 4
+- 70–84: baseline - 2
+- 50–69: baseline + 1
+- 30–49: baseline + 4
+- 0–29: baseline + 7
+
+Important:
+The AI user report should interpret the corrected score correctly.
+If score is high, the AI should say the preliminary profile looks more favorable.
+If score is low, the AI should say it may be useful to complete a medical review.
+Never say diagnosis.
+Never say prescription.
+Never recommend medication or dosage.
+
+Update the user report prompt if necessary so it understands:
+“Higher score is better. Lower score means more reason to review.”
+
+Acceptance criteria:
+1. A user with low concern answers should get a high score, e.g. 80–100.
+2. A user with stronger concern answers should get a lower score, e.g. 20–50.
+3. A score of 100 should never show “Prioridad alta”.
+4. A score of 100 should show “Muy buen punto de partida”.
+5. The AI report should not say a high score means high priority.
+6. /score-capilar still works end-to-end.
+7. Doctor AI report remains untouched.
+
+Phase 1:
+Read the current code.
+Do not edit files yet.
+Tell me:
+- where the scoring function is
+- where the score label is generated
+- where the route is generated
+- where the user AI report receives the score inputs
+- what files you will modify
+
+Wait for approval before coding.

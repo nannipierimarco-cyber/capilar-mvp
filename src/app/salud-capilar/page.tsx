@@ -14,7 +14,7 @@ import Footer from "@/components/layout/Footer";
 import { ValuePropMarquee } from "@/components/ValuePropMarquee";
 
 export const metadata: Metadata = {
-  title: "Salud Capilar Masculina — Nilo",
+  title: "Salud Capilar Masculina — Perfecto",
   description:
     "Evalúa tu caída, entiende tu score capilar y accede a una ruta médica personalizada con tratamiento mensual a domicilio.",
 };
@@ -51,7 +51,7 @@ function Hero() {
               href="/"
               className="shrink-0 font-semibold text-xl tracking-tight text-white"
             >
-              Nilo
+              Perfecto
             </Link>
             <Link
               href="/score-capilar"
@@ -71,7 +71,7 @@ function Hero() {
           </h1>
 
           <p className="mx-auto mt-5 max-w-md text-center text-[17px] leading-snug text-white/88 sm:text-lg">
-            Nilo te ayuda a identificar si hoy necesitas frenar la caída o evaluar un trasplante
+            Perfecto te ayuda a identificar si hoy necesitas frenar la caída o evaluar un trasplante
             capilar, con revisión médica y seguimiento.
           </p>
 
@@ -99,7 +99,7 @@ function Hero() {
                 Entiende tu caída <span className="text-primary">antes de decidir</span> qué hacer.
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-hero-muted">
-                Nilo te ayuda a identificar si hoy necesitas frenar la caída o evaluar un trasplante
+                Perfecto te ayuda a identificar si hoy necesitas frenar la caída o evaluar un trasplante
                 capilar, con revisión médica y seguimiento.
               </p>
               <div className="mt-8">
@@ -174,7 +174,7 @@ function HowItWorks() {
           </div>
           <div className="flex flex-col justify-center px-1 text-center md:px-6">
             <h3 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-              Método <span className="text-primary">Nilo</span>: ¿Cómo funciona?
+              Método <span className="text-primary">Perfecto</span>: ¿Cómo funciona?
             </h3>
           </div>
         </div>

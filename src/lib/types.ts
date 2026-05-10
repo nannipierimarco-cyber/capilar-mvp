@@ -310,6 +310,52 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "Cancelado",
 };
 
+// ── Skin Assessment ──────────────────────────────────────────
+
+export type SkinPriority = "urgent_review" | "high" | "normal";
+
+export interface SkinAssessment {
+  id: string;
+  created_at: string;
+  assessment_type: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  age: number | null;
+  weight_kg: number | null;
+  height_cm: number | null;
+  sex_at_birth: string | null;
+  country: string | null;
+  city: string | null;
+  main_concern: string | null;
+  skin_category: string | null;
+  affected_areas: string[] | null;
+  duration: string | null;
+  progression: string | null;
+  lesion_description: string[] | null;
+  concern_score: number | null;
+  symptoms: string[] | null;
+  current_routine: string[] | null;
+  active_ingredients_frequency: string | null;
+  irritation_from_routine: string | null;
+  previous_treatments: string[] | null;
+  previous_treatment_response: string | null;
+  pregnancy_status: string | null;
+  medical_conditions: string[] | null;
+  current_medications: string | null;
+  allergies: string | null;
+  red_flags: string[] | null;
+  main_goal: string | null;
+  preference: string | null;
+  additional_notes: string | null;
+  photo_urls: string[] | null;
+  product_photo_urls: string[] | null;
+  priority: SkinPriority | null;
+  status: string;
+  doctor_summary: string | null;
+  raw_answers: Record<string, unknown> | null;
+}
+
 export const STATUS_COLORS: Record<PatientStatus, string> = {
   lead: "bg-gray-100 text-gray-700",
   completed_quiz: "bg-blue-100 text-blue-700",

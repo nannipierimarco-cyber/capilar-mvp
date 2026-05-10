@@ -4,6 +4,7 @@ import {
   parseIncomingWhatsAppMessage,
   sendWhatsAppText,
   markMessageAsRead,
+  normalizePhone,
 } from "@/lib/whatsapp";
 import { classifySkinMessage } from "@/lib/skinCopilot/classifier";
 import { generateSkinCopilotReply } from "@/lib/skinCopilot/ai";
@@ -19,11 +20,11 @@ function getServiceClient() {
   return createClient(url, key);
 }
 
-/** Returns the list of allowed test phones, or null if the allowlist is not configured. */
+/** Returns the allowlist of normalized phone numbers (digits only), or null if not configured. */
 function getAllowedPhones(): string[] | null {
   const raw = process.env.SKIN_COPILOT_ALLOWED_TEST_PHONES;
   if (!raw?.trim()) return null;
-  return raw.split(",").map((p) => p.trim()).filter(Boolean);
+  return raw.split(",").map((p) => normalizePhone(p)).filter(Boolean);
 }
 
 /** GET — Meta webhook verification handshake */
@@ -33,40 +34,101 @@ export async function GET(req: NextRequest) {
   const token = params.get("hub.verify_token");
   const challenge = params.get("hub.challenge");
 
+  console.log("[Webhook:GET] method=GET", {
+    hasVerifyToken: !!process.env.WHATSAPP_VERIFY_TOKEN,
+    hasAccessToken: !!process.env.WHATSAPP_ACCESS_TOKEN,
+    hasPhoneNumberId: !!process.env.WHATSAPP_PHONE_NUMBER_ID,
+    mode,
+    hasChallenge: !!challenge,
+    tokenMatch: token === process.env.WHATSAPP_VERIFY_TOKEN,
+  });
+
   if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
-    console.log("[Webhook] WhatsApp webhook verified");
+    console.log("[Webhook:GET] Verification succeeded");
     return new NextResponse(challenge, { status: 200 });
   }
 
-  console.warn("[Webhook] Verification failed — token mismatch or wrong mode");
+  console.warn("[Webhook:GET] Verification failed — token mismatch or wrong mode");
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }
 
 /** POST — Receive and process incoming WhatsApp messages */
 export async function POST(req: NextRequest) {
+  console.log("[Webhook:POST] method=POST", {
+    hasAccessToken: !!process.env.WHATSAPP_ACCESS_TOKEN,
+    hasPhoneNumberId: !!process.env.WHATSAPP_PHONE_NUMBER_ID,
+    hasVerifyToken: !!process.env.WHATSAPP_VERIFY_TOKEN,
+    hasAllowedPhones: !!process.env.SKIN_COPILOT_ALLOWED_TEST_PHONES,
+  });
+
   let payload: Record<string, unknown>;
   try {
     payload = await req.json();
   } catch {
+    console.warn("[Webhook:POST] Failed to parse JSON body");
     // Always return 200 to prevent WhatsApp from retrying indefinitely
     return NextResponse.json({ ok: true });
+  }
+
+  const entries = Array.isArray((payload as any)?.entry) ? (payload as any).entry : [];
+  const firstChanges = entries[0]?.changes ?? [];
+  const firstValue = firstChanges[0]?.value ?? {};
+  const hasMessages = Array.isArray(firstValue.messages) && firstValue.messages.length > 0;
+  const hasStatuses = Array.isArray(firstValue.statuses) && firstValue.statuses.length > 0;
+
+  console.log("[Webhook:POST] payload structure", {
+    hasEntry: entries.length > 0,
+    entryCount: entries.length,
+    hasChanges: firstChanges.length > 0,
+    hasMessages,
+    hasStatuses,
+    messageCount: hasMessages ? firstValue.messages.length : 0,
+  });
+
+  // ── Status update logging ─────────────────────────────────────────────────
+  if (hasStatuses) {
+    const statuses: unknown[] = firstValue.statuses as unknown[];
+    for (const s of statuses) {
+      const st = s as Record<string, unknown>;
+      const recipientRaw = String(st.recipient_id ?? "");
+      const errors = Array.isArray(st.errors)
+        ? (st.errors as Record<string, unknown>[]).map((e) => ({
+            code: e.code,
+            title: e.title,
+          }))
+        : undefined;
+      console.log("[Webhook:STATUS]", {
+        messageId: st.id,
+        status: st.status,
+        timestamp: st.timestamp,
+        recipientPrefix: recipientRaw.slice(0, 5) + "***",
+        ...(errors?.length ? { errors } : {}),
+      });
+    }
   }
 
   const incoming = parseIncomingWhatsAppMessage(payload);
 
   // Ignore non-text messages or status updates
   if (!incoming || !incoming.text) {
+    console.log("[Webhook:POST] No actionable message — ignored (status update or non-text)");
     return NextResponse.json({ ok: true });
   }
 
   const { phone, messageId, text } = incoming;
 
-  console.log("[Webhook] Inbound WhatsApp message received from", phone.slice(0, 4) + "***");
+  console.log("[Webhook:POST] Inbound text message from", phone.slice(0, 5) + "***", "msgId:", messageId.slice(0, 8) + "...");
 
   // ── Phone allowlist guard ──────────────────────────────────────────────────
   const allowedPhones = getAllowedPhones();
-  if (allowedPhones && !allowedPhones.includes(phone)) {
-    console.log("[Webhook] Phone not in allowed test phones —", phone.slice(0, 4) + "*** ignored");
+  const normalizedPhone = normalizePhone(phone);
+  console.log("[Webhook:POST] Allowlist check", {
+    incomingPrefix: normalizedPhone.slice(0, 5) + "***",
+    allowlistSize: allowedPhones?.length ?? "disabled",
+    passed: !allowedPhones || allowedPhones.includes(normalizedPhone),
+  });
+  if (allowedPhones && !allowedPhones.includes(normalizedPhone)) {
+    console.log("[Webhook:POST] Phone not in allowlist — ignored");
     return NextResponse.json({ ok: true });
   }
 

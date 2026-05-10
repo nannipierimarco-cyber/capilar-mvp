@@ -120,3 +120,8 @@ export async function markMessageAsRead(messageId: string): Promise<void> {
 function maskPhone(phone: string): string {
   return phone.slice(0, 4) + "***" + phone.slice(-2);
 }
+
+/** Strips all non-digit characters for phone comparison (handles "+", spaces, dashes). */
+export function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, "");
+}

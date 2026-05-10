@@ -6,7 +6,7 @@ import Footer from "@/components/layout/Footer";
 import { ValuePropMarquee } from "@/components/ValuePropMarquee";
 
 export const metadata: Metadata = {
-  title: "Dermatología para mujeres — Nilo",
+  title: "Dermatología para mujeres — Perfecto",
   description:
     "Evalúa tu piel, crea tu historial inteligente y recibe orientación revisada por dermatólogas. Acné, manchas, rosácea, antiaging y más.",
 };

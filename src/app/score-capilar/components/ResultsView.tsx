@@ -36,8 +36,8 @@ export default function ResultsView({
     const url =
       typeof window !== "undefined"
         ? window.location.href
-        : "https://nilo.cl/score-capilar";
-    const text = `Me hice el Score Capilar de Nilo. Es una orientación preliminar para entender tu ruta capilar. Hazlo gratis aquí: ${url}`;
+        : "https://perfectolabs.cl/score-capilar";
+    const text = `Me hice el Score Capilar de Perfecto. Es una orientación preliminar para entender tu ruta capilar. Hazlo gratis aquí: ${url}`;
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -73,10 +73,10 @@ export default function ResultsView({
             href="/"
             className="text-sm text-primary-foreground/75 hover:text-primary-foreground transition-colors"
           >
-            ← Nilo
+            ← Perfecto
           </Link>
           <h1 className="mt-3 text-2xl font-bold text-primary-foreground leading-snug">
-            Tu Mapa Capilar Nilo
+            Tu Mapa Capilar Perfecto
           </h1>
           <p className="mt-1 text-xs text-primary-foreground/70">
             Una orientación preliminar para entender tu ruta capilar. No constituye diagnóstico médico.

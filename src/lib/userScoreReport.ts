@@ -13,7 +13,7 @@ export interface UserScoreReport {
   disclaimer: string;
 }
 
-export const USER_SCORE_REPORT_SYSTEM_PROMPT = `Eres el generador del "Mapa Capilar Nilo", un reporte educativo y orientador para usuarios de Nilo, una plataforma digital de salud capilar en Chile.
+export const USER_SCORE_REPORT_SYSTEM_PROMPT = `Eres el generador del "Mapa Capilar Perfecto", un reporte educativo y orientador para usuarios de Perfecto, una plataforma digital de salud capilar en Chile.
 
 Tu tarea es generar un reporte amigable, claro y de orientación preliminar para el usuario final — no para un médico.
 
@@ -72,7 +72,7 @@ export function buildUserScorePrompt(params: {
 }): string {
   const { answers, score, prioridad, edadCapilar, ruta, photosUploaded } = params;
   return [
-    "Genera el Mapa Capilar Nilo para el siguiente usuario:",
+    "Genera el Mapa Capilar Perfecto para el siguiente usuario:",
     "",
     "DATOS DEL QUIZ:",
     `- Edad: ${answers.edad}`,
@@ -94,7 +94,7 @@ export function buildUserScorePrompt(params: {
       ? `- El usuario subió ${photosUploaded} foto(s). Se adjuntan para referencia visual general.`
       : "- El usuario no subió fotos en este flujo.",
     "",
-    "Genera el Mapa Capilar Nilo. Responde en español neutro/latinoamericano. Devuelve solo JSON válido con el esquema indicado.",
+    "Genera el Mapa Capilar Perfecto. Responde en español neutro/latinoamericano. Devuelve solo JSON válido con el esquema indicado.",
   ].join("\n");
 }
 

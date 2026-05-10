@@ -306,7 +306,7 @@ export default function QuizPage() {
         <div className="mx-auto max-w-xl px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <Link href="/" className="text-sm font-semibold text-primary">
-              Nilo
+              Perfecto
             </Link>
             {stepLabel && (
               <span className="text-xs text-muted-foreground">{stepLabel}</span>
@@ -470,7 +470,7 @@ function IntroStep({ onNext }: { onNext: () => void }) {
         <div className="relative h-[280px] w-full overflow-hidden rounded-2xl bg-white shadow-sm">
           <Image
             src="/hero-hair-contrast.png"
-            alt="Evaluación capilar Nilo"
+            alt="Evaluación capilar Perfecto"
             fill
             className="object-contain"
             sizes="(max-width: 768px) 100vw, 480px"
@@ -488,7 +488,7 @@ function IntroStep({ onNext }: { onNext: () => void }) {
           Entiende tu caída antes de decidir qué hacer.
         </h1>
         <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-          Nilo te ayuda a identificar si hoy necesitas frenar la caída o evaluar una recuperación
+          Perfecto te ayuda a identificar si hoy necesitas frenar la caída o evaluar una recuperación
           capilar más avanzada.
         </p>
       </div>
@@ -512,7 +512,7 @@ function IntroStep({ onNext }: { onNext: () => void }) {
           Continuar
         </Button>
         <p className="text-xs text-center text-muted-foreground mt-3">
-          La evaluación de Nilo orienta tu siguiente paso, pero no reemplaza la revisión médica.
+          La evaluación de Perfecto orienta tu siguiente paso, pero no reemplaza la revisión médica.
         </p>
       </div>
     </div>

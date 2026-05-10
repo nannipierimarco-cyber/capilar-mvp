@@ -1,0 +1,445 @@
+Proyecto:
+C:\Users\user\capilar-mvp
+
+Contexto:
+Estamos construyendo la web de Nilo. Ya existe una landing funcional para cabello masculino y ya existe una nueva landing para skin care / dermatología mujer. También ya existe una barra dinámica en la landing de cabello masculino que quiero reutilizar.
+
+Necesito refinar la homepage principal para que quede muchísimo más definida y pulida.
+
+IMPORTANTE:
+Quiero que la homepage tenga una estructura, layout, jerarquía visual y lógica de navegación fuertemente inspirada en la homepage de Medvi que compartí en screenshots.
+NO quiero copiar branding, logos, textos ni assets de Medvi.
+SÍ quiero replicar muy de cerca:
+- la lógica visual,
+- la estructura,
+- la proporción de bloques,
+- la composición,
+- la jerarquía,
+- la forma de presentar categorías en cards,
+- y la lógica responsive distinta entre desktop y mobile.
+
+Objetivo general:
+Rediseñar la homepage de Nilo para que:
+1. Se vea como una plataforma madre / multi-vertical.
+2. Tenga una hero section tipo Medvi.
+3. Tenga dos cards principales:
+   - Hair Care
+   - Skin Care
+4. Al hacer click en cada card, el usuario NO debe ir inmediatamente a otra página.
+   Debe hacer smooth scroll hacia el bloque correspondiente más abajo en la misma homepage.
+5. Más abajo en la homepage deben existir dos bloques-resumen:
+   - un bloque resumen de Hair Care
+   - un bloque resumen de Skin Care
+   ambos fuertemente inspirados en los bloques de Medvi que mostré en screenshots.
+6. Desde esos bloques resumen, sí debe existir un CTA para ir a la landing específica:
+   - Hair Care -> /salud-capilar
+   - Skin Care -> /dermatologia-mujer
+7. La barra dinámica que ya existe en la página de cabello masculino debe reutilizarse tal cual en:
+   - homepage /
+   - landing de skin care /dermatologia-mujer
+
+Rutas que deben quedar:
+- / -> homepage principal nueva
+- /salud-capilar -> landing de cabello masculino (se mantiene)
+- /dermatologia-mujer -> landing skin care / dermatología mujer (se mantiene, pero con la barra dinámica)
+- /score-capilar -> NO tocar
+- /quiz -> NO tocar
+- /evaluacion-piel -> se mantiene como placeholder si ya existe
+
+NO romper ninguna funcionalidad existente.
+
+--------------------------------------------------
+PARTE 1 — INSTRUCCIONES CLAVE DE DISEÑO
+--------------------------------------------------
+
+Quiero una homepage muy inspirada en la lógica de Medvi.
+
+### A. HERO PRINCIPAL
+La hero debe tener esta lógica:
+
+1. Fondo con presencia visual fuerte, idealmente verde oscuro/profundo o el color más elegante de la identidad actual, inspirado en la sensación premium y moderna del hero de Medvi.
+2. La hero debe tener:
+   - logo / branding Nilo
+   - la misma barra dinámica que ya existe en /salud-capilar
+   - un pequeño badge o pill arriba del título
+   - un gran título central
+   - un subtítulo breve
+3. Debajo del texto principal, deben aparecer las 2 cards de categorías, en una composición muy parecida a la de Medvi.
+
+Quiero que la sensación general sea:
+- moderna
+- premium
+- health-tech
+- limpia
+- confiable
+- fácil de entender
+- no demasiado clínica
+- no demasiado cosmética
+
+### B. CARDS DE CATEGORÍAS EN HERO
+En Medvi hay 4 cards. Aquí quiero SOLO 2 cards.
+
+Cards:
+1. Hair Care
+2. Skin Care
+
+Cada card debe tener:
+- una imagen superior asociada al concepto
+- una franja inferior o área inferior con el título
+- una flecha o indicador visual a la derecha, como en Medvi
+- hover state en desktop
+- tap-friendly en mobile
+- smooth scroll al bloque correspondiente más abajo
+
+Estas cards NO deben verse como botones simples.
+Deben verse como categorías destacadas tipo Medvi.
+
+### C. COMPORTAMIENTO AL HACER CLICK EN LAS CARDS
+Cuando el usuario haga click:
+
+- Hair Care -> scroll suave al bloque resumen de Hair Care
+- Skin Care -> scroll suave al bloque resumen de Skin Care
+
+Usar anchors o refs.
+El scroll debe ser elegante y confiable.
+No usar navegación a otra ruta en este click inicial.
+
+### D. BARRA DINÁMICA
+La barra dinámica que ya existe en /salud-capilar me gusta y quiero reutilizarla tal cual.
+
+Necesito:
+- identificar el componente actual de esa barra
+- reutilizarlo en la homepage /
+- reutilizarlo en /dermatologia-mujer
+- mantener mismo comportamiento, mismos breakpoints y misma lógica
+
+No crear una barra nueva si no hace falta.
+Reutilizar la existente para consistencia.
+
+--------------------------------------------------
+PARTE 2 — ESTRUCTURA EXACTA DE LA HOMEPAGE
+--------------------------------------------------
+
+La homepage / debe quedar con esta estructura y orden:
+
+1. Barra dinámica reutilizada desde /salud-capilar
+2. Hero principal estilo Medvi
+3. Fila / banda de confianza con pequeños íconos y claims cortos
+4. Bloque resumen Hair Care
+5. Bloque resumen Skin Care
+6. CTA final o cierre suave (opcional si ya queda suficientemente sólido)
+
+--------------------------------------------------
+PARTE 3 — COPY PROPUESTO PARA LA HOMEPAGE
+--------------------------------------------------
+
+Puedes usar este copy base, adaptándolo levemente si necesitas mejorar la maquetación, pero sin cambiar la intención.
+
+### HERO
+Badge:
+"Atención especializada 100% online"
+
+Título:
+"Salud estética, redefinida para la vida real."
+
+Quiero que una parte del título tenga un color destacado, inspirado en Medvi.
+Ejemplo:
+- "redefinida" o
+- "vida real"
+
+Subtítulo:
+"Evaluaciones online, médicos especialistas y seguimiento inteligente para cuidar tu pelo y tu piel sin pasos innecesarios."
+
+Cards:
+Card 1:
+Título: "Hair Care"
+
+Card 2:
+Título: "Skin Care"
+
+### BANDA DE CONFIANZA / TRUST BAR
+Quiero una franja tipo Medvi con varios micro-beneficios.
+Puedes usar 5 o 6 items con ícono simple.
+
+Texto sugerido:
+- 100% online
+- Precios claros
+- Médicos especialistas
+- Seguimiento inteligente
+- Privacidad y seguridad
+- Atención guiada
+
+Esta banda debe verse visualmente parecida a la lógica de Medvi:
+pequeños íconos + texto corto + repetición horizontal / distribución elegante.
+
+--------------------------------------------------
+PARTE 4 — BLOQUE RESUMEN HAIR CARE
+--------------------------------------------------
+
+Quiero un bloque resumen para Hair Care muy inspirado en el screenshot de Medvi enfocado en hair regrowth.
+
+IMPORTANTE:
+Copiar la lógica compositiva del bloque:
+- mismo tipo de distribución visual
+- misma sensación de jerarquía
+- mismo número de imágenes
+- proporciones muy parecidas
+- una imagen visual a la izquierda + contenido / bullets
+- dos imágenes a la derecha / centro-derecha
+- título grande
+- un pequeño eyebrow label arriba
+- texto secundario
+- un CTA
+
+NO copiar los assets ni el texto de Medvi.
+SÍ replicar la estructura.
+
+### Composición esperada del bloque Hair Care
+1. Columna izquierda:
+   - una imagen principal cuadrada o ligeramente rectangular con bordes redondeados, asociada a cabello / tratamiento / cuidado capilar
+   - debajo o junto a ella, un pequeño bloque de beneficios con bullets/checkmarks
+
+2. Área central / derecha superior:
+   - título grande del bloque
+   - dos imágenes verticales o retratos similares en lógica a Medvi
+   - una de persona tocando o mostrando su pelo
+   - otra de persona sonriendo / imagen capilar masculina o femenina relacionada con resultados
+
+3. Parte inferior del bloque:
+   - subtítulo / texto descriptivo
+   - CTA botón hacia /salud-capilar
+
+### Copy sugerido Hair Care
+Eyebrow:
+"TARGETED HAIR RESTORATION"
+
+Título:
+"Cuidado probado para la caída y la regeneración capilar"
+
+Bloque de beneficios:
+Título corto:
+"Soporte personalizado para resultados capilares duraderos"
+
+Bullets:
+- Ingredientes respaldados clínicamente
+- Enfoque orientado al cuero cabelludo y folículo
+- Ruta pensada para prevenir caída o evaluar trasplante
+- Seguimiento simple y directo
+
+Texto de apoyo inferior:
+"Evalúa tu caída, entiende tu score capilar y descubre si hoy necesitas prevenir, tratar o evaluar una solución más avanzada."
+
+CTA:
+"Conocer Hair Care"
+
+El botón debe llevar a:
+ /salud-capilar
+
+Y este bloque debe tener un id o anchor claro:
+#hair-care
+
+--------------------------------------------------
+PARTE 5 — BLOQUE RESUMEN SKIN CARE
+--------------------------------------------------
+
+Quiero un bloque resumen para Skin Care inspirado en el screenshot de Medvi del bloque de weight loss, PERO adaptado a dermatología / skin care.
+
+IMPORTANTE:
+Replicar muy de cerca:
+- la lógica del layout
+- el número de fotos
+- el tamaño relativo de las fotos
+- la jerarquía visual
+- el mismo tipo de estructura:
+  imagen/beneficios a la izquierda + título grande + dos imágenes a la derecha + texto + CTA abajo
+
+No copiar textos ni imágenes de Medvi.
+Usar assets coherentes con dermatología / skincare femenino.
+
+### Composición esperada del bloque Skin Care
+1. Columna izquierda:
+   - una imagen principal cuadrada o ligeramente rectangular mostrando skincare / producto / crema / gotero / tratamiento de piel / dermatología estética
+   - debajo o junto a ella, lista de beneficios con checkmarks
+
+2. Área central / derecha:
+   - eyebrow pequeño
+   - título grande
+   - dos imágenes verticales:
+     a) una persona con piel cuidada / sonriendo
+     b) una imagen relacionada a aplicación de producto, rutina, cuidado facial o close-up dermatológico estético elegante
+
+3. Parte inferior:
+   - texto descriptivo
+   - botón CTA hacia /dermatologia-mujer
+
+### Copy sugerido Skin Care
+Eyebrow:
+"PERSONALIZED SKIN GUIDANCE"
+
+Título:
+"Skin care más simple, guiado por dermatología"
+
+Bloque de beneficios:
+Título corto:
+"Todo lo que necesitas para tomar mejores decisiones sobre tu piel"
+
+Bullets:
+- Evaluación inicial online
+- Revisión por dermatóloga
+- Historial inteligente de tu piel
+- Seguimiento y orientación por WhatsApp
+- Derivación cuando corresponde
+
+Texto de apoyo inferior:
+"Organiza tu historial, entiende mejor tu piel y recibe una ruta clara para dudas de skincare, acné, manchas, sensibilidad o seguimiento de tratamientos."
+
+CTA:
+"Conocer Skin Care"
+
+El botón debe llevar a:
+ /dermatologia-mujer
+
+Y este bloque debe tener un id o anchor claro:
+#skin-care
+
+--------------------------------------------------
+PARTE 6 — COMPORTAMIENTO RESPONSIVE
+--------------------------------------------------
+
+Esto es CRÍTICO.
+
+Quiero que tanto en desktop como en mobile, la homepage mantenga la lógica responsive inspirada en Medvi.
+
+### Desktop
+- Hero muy visual y limpia
+- Cards grandes y bien centradas
+- Banda de confianza horizontal
+- Bloques resumen amplios, aireados, con muy buena jerarquía
+- Imágenes con bordes redondeados y proporciones elegantes
+
+### Mobile
+Quiero que no sea una simple reducción de desktop.
+Quiero que se piense como Medvi:
+- espaciados adaptados
+- tipografía bien jerarquizada
+- cards cómodas para tocar
+- composición reordenada para que siga viéndose premium
+- el contenido debe apilarse sin verse desordenado
+- mantener la esencia del layout distinto entre mobile y desktop
+
+No quiero una homepage genérica.
+Quiero una homepage muy cuidada.
+
+--------------------------------------------------
+PARTE 7 — LANDING SKIN CARE
+--------------------------------------------------
+
+La landing /dermatologia-mujer ya existe, pero necesito estas mejoras:
+
+1. Poner la misma barra dinámica de /salud-capilar arriba.
+2. Confirmar que visualmente conversa bien con la nueva homepage.
+3. Mantener la identidad premium / health-tech.
+4. No cambiar la lógica funcional de la página si ya está bien.
+5. Solo ajustar si hace falta consistencia visual, navegación y barra superior.
+
+No destruir el contenido existente salvo que haga falta para integrar la barra y alinear diseño.
+
+--------------------------------------------------
+PARTE 8 — REGLAS TÉCNICAS
+--------------------------------------------------
+
+1. Reutiliza componentes existentes si tiene sentido.
+2. Si la barra dinámica ya existe como componente, úsala.
+3. Si hace falta crear componentes nuevos, hazlos limpios y reutilizables.
+4. Usa smooth scroll confiable.
+5. Mantén el proyecto compilando sin errores.
+6. No rompas:
+   - /salud-capilar
+   - /score-capilar
+   - /quiz
+7. No dejes placeholders feos.
+8. Si usas nuevas imágenes:
+   - usa imágenes acordes al concepto hair / skin care
+   - que se vean premium
+   - que no rompan el build
+   - si hace falta, agrega/configura correctamente soporte para imágenes externas o usa assets locales en /public
+
+--------------------------------------------------
+PARTE 9 — COSAS QUE NO QUIERO
+--------------------------------------------------
+
+1. No quiero una homepage genérica tipo startup SaaS.
+2. No quiero solo dos botones simples arriba.
+3. No quiero perder la lógica visual tipo Medvi.
+4. No quiero que al clickear las cards vaya directo a otra página.
+5. No quiero cambiar los funnels capilares existentes.
+6. No quiero romper la consistencia entre homepage, hair landing y skin care landing.
+7. No quiero una versión simplificada “porque es más fácil”.
+8. No quiero copiar branding de Medvi; solo quiero una implementación muy inspirada en su layout y UX.
+
+--------------------------------------------------
+PARTE 10 — CRITERIOS DE ÉXITO
+--------------------------------------------------
+
+Consideraré el trabajo exitoso si:
+
+1. / muestra claramente una hero tipo plataforma madre.
+2. Hay 2 cards premium:
+   - Hair Care
+   - Skin Care
+3. Clickear cada card hace scroll al bloque correspondiente.
+4. Existe una trust bar tipo Medvi.
+5. Existen dos bloques-resumen, uno de Hair Care y otro de Skin Care.
+6. Cada bloque tiene composición visual fuerte con múltiples imágenes.
+7. Cada bloque tiene CTA a su landing específica.
+8. La barra dinámica está en:
+   - /
+   - /dermatologia-mujer
+   y sigue igual que en /salud-capilar
+9. /salud-capilar, /score-capilar y /quiz siguen funcionando.
+10. La homepage se ve muy bien en desktop y mobile.
+
+--------------------------------------------------
+PARTE 11 — ENTREGA
+--------------------------------------------------
+
+Quiero que hagas lo siguiente:
+
+1. Implementa los cambios.
+2. Muéstrame qué archivos creaste o modificaste.
+3. Corre build y/o lint si está disponible.
+4. Si todo está bien, haz commit con un mensaje claro.
+5. Luego indícame exactamente qué cambió y qué debo revisar visualmente.
+
+--------------------------------------------------
+PARTE 12 — REFERENCIAS VISUALES A TENER EN CUENTA
+--------------------------------------------------
+
+Usa como referencia las screenshots adjuntas en esta conversación.
+
+Referencia 1:
+Homepage de Medvi con hero verde oscuro y cards de categorías.
+Lo importante aquí es:
+- hero premium
+- título central grande
+- cards flotantes de categorías
+- lógica de categorías como puerta de entrada
+
+Referencia 2:
+Bloque Medvi estilo “Weight loss made easy…”
+Lo importante aquí es:
+- imagen/bullets a la izquierda
+- gran título
+- dos imágenes a la derecha
+- texto + CTA abajo
+- composición limpia y editorial
+
+Referencia 3:
+Bloque Medvi estilo “Proven care for thinning hair…”
+Lo importante aquí es:
+- layout editorial similar
+- un bloque muy adecuado para el resumen de Hair Care
+
+Si necesitas, inspecciona el sitio o ajusta visualmente usando estas referencias como guía.
+
+Comienza ya.

@@ -139,7 +139,7 @@ function CheckoutContent() {
           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-3">
             Tu plan
           </p>
-          <p className="font-bold">Plan Inicio Nilo</p>
+          <p className="font-bold">Plan Inicio Perfecto</p>
           <p className="text-sm text-muted-foreground mt-0.5 mb-3">
             Dutasteride + Minoxidil, sujeto a revisión médica
           </p>

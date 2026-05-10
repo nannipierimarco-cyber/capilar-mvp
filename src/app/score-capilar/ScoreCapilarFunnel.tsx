@@ -118,6 +118,35 @@ export default function ScoreCapilarFunnel() {
       // Never block the user from seeing their result.
     }
 
+    // HubSpot sync — non-blocking, never breaks user flow
+    try {
+      trackEvent("hubspot_sync_started", { email: contactData.email });
+      const hsRes = await fetch("/api/hubspot/sync-lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: contactData.email,
+          nombre: contactData.nombre,
+          whatsapp: contactData.whatsapp,
+          score: computed.score,
+          scoreLabel: computed.prioridad,
+          capillaryAge: computed.edadCapilar,
+          preliminaryRoute: computed.ruta,
+          mainConcernArea: answers.zona,
+          leadStage: "lead",
+          transplantInterest: answers.disposicion,
+          userReportGenerated: true,
+        }),
+      });
+      if (hsRes.ok) {
+        trackEvent("hubspot_sync_success", { email: contactData.email });
+      } else {
+        trackEvent("hubspot_sync_failed", { status: hsRes.status });
+      }
+    } catch (err) {
+      trackEvent("hubspot_sync_failed", { error: String(err) });
+    }
+
     // Generate AI report — falls back gracefully on any error
     try {
       const photosUploaded = [photos.frontal, photos.top].filter(Boolean).length;
@@ -175,7 +204,7 @@ export default function ScoreCapilarFunnel() {
           <div className="mx-auto max-w-xl px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <Link href="/" className="text-sm font-semibold text-primary">
-                Nilo
+                Perfecto
               </Link>
               <span className="text-xs text-muted-foreground">Score Capilar</span>
             </div>
@@ -231,9 +260,16 @@ export default function ScoreCapilarFunnel() {
           zona={answers.zona}
           aiReport={aiReport}
           isFallback={isFallbackReport}
-          onMedicalCtaClick={() =>
-            trackEvent("user_score_report_medical_cta_clicked", { score: result.score })
-          }
+          onMedicalCtaClick={() => {
+            trackEvent("user_score_report_medical_cta_clicked", { score: result.score });
+            if (contactData?.email) {
+              fetch("/api/hubspot/sync-lead", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: contactData.email, medicalCtaClicked: true }),
+              }).catch(() => {});
+            }
+          }}
         />
       )}
     </div>
@@ -246,7 +282,7 @@ function HeroSection({ onStart }: { onStart: () => void }) {
       <section className="bg-hero-mobile-bg text-white">
         <div className="mx-auto max-w-lg px-4 pb-12 pt-8 sm:px-6">
           <Link href="/" className="block font-semibold text-xl tracking-tight text-white mb-8">
-            Nilo
+            Perfecto
           </Link>
           <p className="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80">
             Orientación preliminar y educativa

@@ -7,7 +7,7 @@ import Footer from "@/components/layout/Footer";
 import { ValuePropMarquee } from "@/components/ValuePropMarquee";
 
 export const metadata: Metadata = {
-  title: "Nilo — Salud estética personalizada, desde tu casa",
+  title: "Perfecto — Salud estética personalizada, desde tu casa",
   description:
     "Evaluaciones online, médicos especialistas y seguimiento inteligente para cuidar tu pelo y tu piel sin pasos innecesarios.",
 };
@@ -38,7 +38,7 @@ function HeroSection() {
             href="/"
             className="text-xl font-bold tracking-tight text-white"
           >
-            Nilo
+            Perfecto
           </Link>
           <div className="flex items-center gap-2.5">
             <Link
