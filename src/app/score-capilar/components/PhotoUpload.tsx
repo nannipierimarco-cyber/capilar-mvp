@@ -9,6 +9,15 @@ export interface PhotoData {
   top: File | null;
 }
 
+interface Zone {
+  key: "frontal" | "top";
+  label: string;
+  description: string;
+  file: File | null;
+  preview: string | null;
+  set: (f: File | null, preview: string | null) => void;
+}
+
 export default function PhotoUpload({
   onComplete,
   onBack,
@@ -17,38 +26,57 @@ export default function PhotoUpload({
   onBack: () => void;
 }) {
   const [frontal, setFrontal] = useState<File | null>(null);
+  const [frontalPreview, setFrontalPreview] = useState<string | null>(null);
   const [top, setTop] = useState<File | null>(null);
+  const [topPreview, setTopPreview] = useState<string | null>(null);
+  const [attempted, setAttempted] = useState(false);
 
   const bothReady = frontal !== null && top !== null;
 
-  const zones: {
-    key: "frontal" | "top";
-    label: string;
-    hint: string;
-    file: File | null;
-    set: (f: File | null) => void;
-  }[] = [
+  const zones: Zone[] = [
     {
       key: "frontal",
-      label: "Foto frontal",
-      hint: "Frente completa, mirando a la cámara",
+      label: "Foto frontal o lateral",
+      description:
+        "Sube una foto clara donde se vea la línea frontal, entradas y densidad del pelo desde el frente o costado.",
       file: frontal,
-      set: setFrontal,
+      preview: frontalPreview,
+      set: (f, p) => {
+        setFrontal(f);
+        setFrontalPreview(p);
+      },
     },
     {
       key: "top",
-      label: "Foto desde arriba",
-      hint: "Vista superior, pelo hacia adelante",
+      label: "Foto superior / coronilla",
+      description:
+        "Sube una foto tomada desde arriba donde se vea claramente la coronilla y la parte superior del cuero cabelludo.",
       file: top,
-      set: setTop,
+      preview: topPreview,
+      set: (f, p) => {
+        setTop(f);
+        setTopPreview(p);
+      },
     },
   ];
 
+  function handleFileChange(zone: Zone, file: File | undefined) {
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    zone.set(file, preview);
+  }
+
+  function handleSubmit() {
+    setAttempted(true);
+    if (bothReady) onComplete({ frontal, top });
+  }
+
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-1">Sube tus 2 fotos</h2>
-      <p className="text-sm text-muted-foreground mb-2">
-        Estas fotos nos ayudan a orientar mejor tu Score Capilar. No reemplazan una revisión médica.
+      <h2 className="text-2xl font-bold mb-1">Sube tus 2 fotos para crear tu Mapa Capilar</h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        Necesitamos una foto frontal/lateral y una foto desde arriba para analizar línea frontal,
+        entradas, densidad y coronilla.
       </p>
 
       <div className="bg-accent/60 rounded-xl p-3 mb-6 text-xs text-accent-foreground/80 space-y-0.5">
@@ -58,14 +86,17 @@ export default function PhotoUpload({
         <p>• Mostrar claramente la zona afectada</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        {zones.map(({ key, label, hint, file, set }) => (
+      {/* Mobile: stacked — Desktop: side by side */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {zones.map((zone) => (
           <label
-            key={key}
+            key={zone.key}
             className={cn(
-              "border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors min-h-[140px]",
-              file
-                ? "border-primary bg-accent/60"
+              "border-2 border-dashed rounded-2xl overflow-hidden cursor-pointer transition-colors flex flex-col",
+              zone.file
+                ? "border-primary"
+                : attempted && !zone.file
+                ? "border-destructive"
                 : "border-border hover:border-primary/50"
             )}
           >
@@ -74,33 +105,51 @@ export default function PhotoUpload({
               accept="image/*"
               capture="environment"
               className="hidden"
-              onChange={(e) => set(e.target.files?.[0] ?? null)}
+              onChange={(e) => handleFileChange(zone, e.target.files?.[0])}
             />
-            {file ? (
-              <>
-                <span className="text-3xl">✓</span>
-                <p className="text-xs font-semibold mt-1.5 text-primary">{label}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[110px]">
-                  {file.name}
-                </p>
-              </>
+
+            {/* Image preview */}
+            {zone.preview ? (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={zone.preview}
+                  alt={zone.label}
+                  className="w-full h-40 object-cover"
+                />
+                <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                  Cambiar
+                </div>
+              </div>
             ) : (
-              <>
+              <div className="flex flex-col items-center justify-center text-center p-5 min-h-[120px]">
                 <span className="text-3xl text-muted-foreground">📷</span>
-                <p className="text-xs font-semibold mt-1.5">{label}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{hint}</p>
-              </>
+                <p className="text-xs font-semibold mt-2">{zone.label}</p>
+              </div>
             )}
+
+            <div className="px-4 py-3 border-t border-border bg-background/60">
+              <p className="text-xs font-semibold text-foreground">{zone.label}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                {zone.description}
+              </p>
+            </div>
           </label>
         ))}
       </div>
 
+      {attempted && !bothReady && (
+        <p className="text-sm text-destructive mb-4">
+          Para generar tu Mapa Capilar necesitamos ambas fotos: frontal/lateral y superior/coronilla.
+        </p>
+      )}
+
       <Button
-        onClick={() => onComplete({ frontal, top })}
-        disabled={!bothReady}
+        onClick={handleSubmit}
+        disabled={attempted && !bothReady}
         className="w-full rounded-full h-12"
       >
-        Ver mi Score Capilar
+        Generar mi Mapa Capilar
       </Button>
 
       <button

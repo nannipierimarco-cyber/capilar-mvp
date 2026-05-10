@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { createClient } from "@/lib/supabase/client";
 import { computeResult, type ScoreCapilarAnswers, type ScoreCapilarResult } from "@/lib/scoreCapilar";
 import { generateFallbackReport, type UserScoreReport } from "@/lib/userScoreReport";
+import type { HairAnalysisResult } from "@/lib/hairMapAnalysis";
 import MiniQuiz from "./components/MiniQuiz";
 import ContactForm, { type ContactData } from "./components/ContactForm";
 import PhotoUpload, { type PhotoData } from "./components/PhotoUpload";
@@ -35,6 +36,9 @@ export default function ScoreCapilarFunnel() {
   const [result, setResult] = useState<ScoreCapilarResult | null>(null);
   const [aiReport, setAiReport] = useState<UserScoreReport | null>(null);
   const [isFallbackReport, setIsFallbackReport] = useState(false);
+  const [hairAnalysis, setHairAnalysis] = useState<HairAnalysisResult | null>(null);
+  const [frontalObjectUrl, setFrontalObjectUrl] = useState<string | null>(null);
+  const [topObjectUrl, setTopObjectUrl] = useState<string | null>(null);
 
   function goTo(next: Step) {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -43,6 +47,10 @@ export default function ScoreCapilarFunnel() {
 
   async function handlePhotosComplete(photos: PhotoData) {
     if (!answers || !contactData) return;
+
+    // Create blob URLs for display (same-origin, no CORS for html-to-image)
+    if (photos.frontal) setFrontalObjectUrl(URL.createObjectURL(photos.frontal));
+    if (photos.top) setTopObjectUrl(URL.createObjectURL(photos.top));
 
     const computed = computeResult(answers);
     setResult(computed);
@@ -147,49 +155,74 @@ export default function ScoreCapilarFunnel() {
       trackEvent("hubspot_sync_failed", { error: String(err) });
     }
 
-    // Generate AI report — falls back gracefully on any error
-    try {
-      const photosUploaded = [photos.frontal, photos.top].filter(Boolean).length;
-      const res = await fetch("/api/ai/user-score-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          answers,
-          score: computed.score,
-          prioridad: computed.prioridad,
-          edadCapilar: computed.edadCapilar,
-          ruta: computed.ruta,
-          photosUploaded,
-          photoFrontalUrl: frontalUrl,
-          photoTopUrl: topUrl,
-          leadId,
-        }),
-      });
+    // Run both AI analyses in parallel — both fail gracefully
+    const photosUploaded = [photos.frontal, photos.top].filter(Boolean).length;
 
-      if (res.ok) {
-        const data = await res.json() as { report: UserScoreReport; isFallback: boolean };
-        setAiReport(data.report);
-        setIsFallbackReport(data.isFallback);
-        trackEvent("user_score_report_generated", {
-          score: computed.score,
-          isFallback: data.isFallback,
-        });
-      } else {
-        throw new Error(`API responded ${res.status}`);
-      }
-    } catch (err) {
-      console.error("[score-capilar] AI report failed, using fallback:", err);
-      const fallback = generateFallbackReport({
-        answers,
-        score: computed.score,
-        prioridad: computed.prioridad,
-        edadCapilar: computed.edadCapilar,
-        ruta: computed.ruta,
-      });
-      setAiReport(fallback);
-      setIsFallbackReport(true);
-      trackEvent("user_score_report_failed", { score: computed.score });
-    }
+    await Promise.allSettled([
+      // Score report (text-based Mapa Capilar)
+      (async () => {
+        try {
+          const res = await fetch("/api/ai/user-score-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              answers,
+              score: computed.score,
+              prioridad: computed.prioridad,
+              edadCapilar: computed.edadCapilar,
+              ruta: computed.ruta,
+              photosUploaded,
+              photoFrontalUrl: frontalUrl,
+              photoTopUrl: topUrl,
+              leadId,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json() as { report: UserScoreReport; isFallback: boolean };
+            setAiReport(data.report);
+            setIsFallbackReport(data.isFallback);
+            trackEvent("user_score_report_generated", {
+              score: computed.score,
+              isFallback: data.isFallback,
+            });
+          } else {
+            throw new Error(`API responded ${res.status}`);
+          }
+        } catch (err) {
+          console.error("[score-capilar] AI report failed, using fallback:", err);
+          const fallback = generateFallbackReport({
+            answers,
+            score: computed.score,
+            prioridad: computed.prioridad,
+            edadCapilar: computed.edadCapilar,
+            ruta: computed.ruta,
+          });
+          setAiReport(fallback);
+          setIsFallbackReport(true);
+          trackEvent("user_score_report_failed", { score: computed.score });
+        }
+      })(),
+
+      // Hair map visual analysis (infographic)
+      (async () => {
+        try {
+          const hmRes = await fetch("/api/ai/hair-map", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              photoFrontalUrl: frontalUrl,
+              photoTopUrl: topUrl,
+            }),
+          });
+          if (hmRes.ok) {
+            const hmData = await hmRes.json() as { analysis: HairAnalysisResult };
+            setHairAnalysis(hmData.analysis);
+          }
+        } catch {
+          // Non-blocking — user still sees score report
+        }
+      })(),
+    ]);
 
     goTo("results");
     trackEvent("user_score_report_viewed", { score: computed.score });
@@ -248,8 +281,8 @@ export default function ScoreCapilarFunnel() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center py-20">
             <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-6" />
-            <h2 className="text-xl font-bold">Estamos preparando tu Mapa Capilar...</h2>
-            <p className="text-muted-foreground text-sm mt-2">Un momento, estamos analizando tus respuestas.</p>
+            <h2 className="text-xl font-bold">Estamos creando tu Mapa Capilar</h2>
+            <p className="text-muted-foreground text-sm mt-2">Analizando línea frontal, densidad, coronilla y cuero cabelludo.</p>
           </div>
         </div>
       )}
@@ -260,6 +293,9 @@ export default function ScoreCapilarFunnel() {
           zona={answers.zona}
           aiReport={aiReport}
           isFallback={isFallbackReport}
+          hairAnalysis={hairAnalysis}
+          frontalImageUrl={frontalObjectUrl}
+          crownImageUrl={topObjectUrl}
           onMedicalCtaClick={() => {
             trackEvent("user_score_report_medical_cta_clicked", { score: result.score });
             if (contactData?.email) {

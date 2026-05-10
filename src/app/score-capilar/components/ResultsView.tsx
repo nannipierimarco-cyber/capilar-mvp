@@ -7,6 +7,8 @@ import { LinkButton } from "@/components/ui/link-button";
 import { cn } from "@/lib/utils";
 import type { ScoreCapilarResult } from "@/lib/scoreCapilar";
 import type { UserScoreReport } from "@/lib/userScoreReport";
+import type { HairAnalysisResult } from "@/lib/hairMapAnalysis";
+import HairMapReport from "./HairMapReport";
 
 const PRIORITY_CONFIG: Record<string, { cls: string }> = {
   "Muy buen punto de partida":          { cls: "text-emerald-700 bg-emerald-50 border-emerald-200" },
@@ -21,12 +23,18 @@ export default function ResultsView({
   zona,
   aiReport,
   isFallback,
+  hairAnalysis,
+  frontalImageUrl,
+  crownImageUrl,
   onMedicalCtaClick,
 }: {
   result: ScoreCapilarResult;
   zona: string;
   aiReport: UserScoreReport | null;
   isFallback: boolean;
+  hairAnalysis?: HairAnalysisResult | null;
+  frontalImageUrl?: string | null;
+  crownImageUrl?: string | null;
   onMedicalCtaClick?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -85,6 +93,15 @@ export default function ResultsView({
       </div>
 
       <div className="mx-auto max-w-xl px-4 py-6 space-y-3">
+        {/* Infographic report — shown when hair map analysis is ready */}
+        {hairAnalysis && (
+          <HairMapReport
+            frontalImageUrl={frontalImageUrl ?? null}
+            crownImageUrl={crownImageUrl ?? null}
+            analysisResult={hairAnalysis}
+          />
+        )}
+
         {/* Score card */}
         <div className="rounded-2xl border border-border bg-white p-6 text-center shadow-sm">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">

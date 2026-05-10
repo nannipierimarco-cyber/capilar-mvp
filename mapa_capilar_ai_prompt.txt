@@ -1,0 +1,434 @@
+Necesito crear una nueva landing/flujo llamado “Mapa Capilar AI” dentro del proyecto Nilo, sin comprometer ninguna página o flujo existente.
+
+IMPORTANTE:
+- No tocar home existente.
+- No tocar /quiz existente.
+- No tocar /results existente.
+- No tocar /plans.
+- No tocar /membership.
+- No tocar /checkout.
+- No tocar Flow.
+- No tocar admin.
+- No tocar doctor portal.
+- No tocar AI doctor report existente.
+- No tocar Supabase schema salvo que sea estrictamente necesario.
+- No romper build.
+- Crear páginas nuevas y componentes nuevos si hace falta.
+- Mantener todo lo ya construido funcionando igual.
+
+Objetivo:
+Agregar un nuevo flujo reducido de captación llamado “Mapa Capilar AI”.
+
+Este flujo será usado desde una página externa:
+https://perfectolabs.cl/salud-capilar
+
+Ahí habrá un botón llamado “Mapa Capilar AI” que llevará a una nueva landing dentro de Nilo.
+
+Ruta nueva sugerida:
+`/mapa-capilar`
+
+También crear páginas auxiliares si hace falta:
+`/mapa-capilar/analizando`
+`/mapa-capilar/reporte`
+
+El flujo debe ser independiente del quiz principal de Nilo.
+
+====================================================
+CONCEPTO
+====================================================
+
+Nombre del botón / producto:
+“Mapa Capilar AI”
+
+Subtítulo:
+“Descubre visualmente tu situación capilar en menos de 2 minutos.”
+
+El usuario responde 5 preguntas relevantes, sube obligatoriamente una foto de su pelo y luego ve una pantalla de espera con countdown mientras se genera un reporte visual orientativo con OpenAI.
+
+Importante:
+El reporte NO debe ser diagnóstico médico.
+No debe recomendar productos.
+No debe decir qué medicamentos usar.
+No debe decir qué evitar.
+No debe incluir shampoos, ingredientes, tratamientos específicos, minoxidil, dutasteride, finasteride ni recomendaciones terapéuticas.
+Debe usar lenguaje prudente:
+- “visual”
+- “aparente”
+- “orientativo”
+- “según la imagen”
+- “posible”
+- “no reemplaza una evaluación médica”
+- “requiere revisión profesional si quieres avanzar”
+
+====================================================
+FLUJO DEL USUARIO
+====================================================
+
+1. Usuario entra a `/mapa-capilar`
+2. Ve una landing simple con el concepto “Mapa Capilar AI”
+3. Responde 5 preguntas
+4. Sube obligatoriamente una foto de su pelo
+5. Va a una página de espera con countdown
+6. El sistema genera un reporte visual orientativo
+7. Para descargar/ver el reporte completo, el usuario debe completar sus datos
+8. Al final debe indicar si está interesado en:
+   - “Evaluar trasplante capilar”
+   - “Soluciones para minimizar la caída”
+   - “Solo quiero conocer mi situación capilar”
+
+====================================================
+PÁGINA 1 — /mapa-capilar
+====================================================
+
+Crear una nueva página:
+src/app/mapa-capilar/page.tsx
+
+Diseño:
+- Fondo blanco
+- Branding Nilo
+- Mobile-first
+- Limpio, premium, moderno
+- CTA principal oscuro o verde Nilo
+- No parecer diagnóstico médico
+- No parecer clínica/farmacia
+- Debe sentirse como una herramienta visual rápida
+
+Header:
+Logo/texto:
+“Nilo”
+
+Hero:
+Eyebrow:
+“Mapa Capilar AI”
+
+Headline:
+“Visualiza tu situación capilar en menos de 2 minutos.”
+
+Subheadline:
+“Responde 5 preguntas, sube una foto de tu pelo y recibe un mapa visual orientativo de densidad, línea frontal y zonas a observar.”
+
+CTA:
+“Crear mi mapa capilar”
+
+Disclaimer visible:
+“Este análisis es orientativo y no constituye diagnóstico médico.”
+
+====================================================
+PREGUNTAS DEL MINI-FLUJO
+====================================================
+
+Crear un mini-flow dentro de `/mapa-capilar`, o componentes internos, sin reutilizar de forma riesgosa el quiz principal.
+
+Debe tener 5 preguntas:
+
+Pregunta 1:
+“¿Qué te preocupa más hoy?”
+Opciones:
+- “Entradas”
+- “Coronilla”
+- “Pérdida general de densidad”
+- “Caída excesiva”
+- “Estoy evaluando trasplante”
+- “No estoy seguro”
+
+Pregunta 2:
+“¿Hace cuánto notas cambios en tu pelo?”
+Opciones:
+- “Menos de 3 meses”
+- “3 a 6 meses”
+- “6 a 12 meses”
+- “Más de 1 año”
+- “Más de 3 años”
+
+Pregunta 3:
+“¿Has usado algún tratamiento capilar antes?”
+Opciones:
+- “No”
+- “Sí, shampoo o productos cosméticos”
+- “Sí, minoxidil”
+- “Sí, finasteride/dutasteride”
+- “Sí, otro tratamiento”
+- “No estoy seguro”
+
+Pregunta 4:
+“¿Alguien en tu familia tiene pérdida de pelo?”
+Opciones:
+- “Padre”
+- “Madre”
+- “Hermanos”
+- “Abuelos”
+- “No”
+- “No estoy seguro”
+
+Pregunta 5:
+“¿Qué estás buscando ahora?”
+Opciones:
+- “Entender mi situación capilar”
+- “Minimizar la caída”
+- “Evaluar tratamiento médico”
+- “Evaluar trasplante capilar”
+- “Comparar opciones”
+
+Después de las preguntas:
+Subida obligatoria de foto.
+
+Pregunta foto:
+“Sube una foto clara de tu pelo”
+
+Helper:
+“Idealmente con buena luz, mostrando la zona que más te preocupa: entradas, parte superior o coronilla.”
+
+Requisitos:
+- La foto es obligatoria.
+- No permitir avanzar sin foto.
+- Aceptar imagen JPG/PNG/WebP.
+- Mostrar preview de la foto antes de continuar.
+- No tocar el sistema actual de fotos del quiz principal salvo que se pueda reutilizar de forma segura.
+
+CTA:
+“Generar mi mapa”
+
+====================================================
+PÁGINA 2 — /mapa-capilar/analizando
+====================================================
+
+Crear página:
+src/app/mapa-capilar/analizando/page.tsx
+
+Esta página aparece después de completar preguntas y subir foto.
+
+Objetivo:
+Mostrar countdown mientras se genera el reporte.
+
+Copy:
+“Estamos generando tu Mapa Capilar AI”
+
+Estados visuales:
+- “Analizando foto...”
+- “Evaluando zonas de densidad...”
+- “Revisando línea frontal...”
+- “Construyendo reporte visual...”
+
+Countdown:
+Tiempo estimado: 30 segundos
+
+Mostrar:
+“Este análisis es orientativo y no reemplaza una evaluación médica.”
+
+Comportamiento:
+- Puede simular countdown si la llamada a OpenAI todavía no está implementada.
+- Si ya existe OpenAI API configurada, preparar integración server-side segura.
+- No exponer OPENAI_API_KEY en cliente.
+- Si la integración completa es compleja, dejar una estructura preparada y un mock visual funcional.
+- El usuario debe ser enviado a `/mapa-capilar/reporte` al finalizar.
+
+====================================================
+PÁGINA 3 — /mapa-capilar/reporte
+====================================================
+
+Crear página:
+src/app/mapa-capilar/reporte/page.tsx
+
+Antes de mostrar descarga/reporte completo, pedir datos.
+
+Título:
+“Tu Mapa Capilar AI está listo”
+
+Subtítulo:
+“Completa tus datos para ver y descargar tu reporte visual.”
+
+Campos obligatorios:
+- Nombre
+- Email
+- WhatsApp
+- Edad
+
+Campo final obligatorio:
+“¿Qué te interesa explorar después?”
+
+Opciones:
+- “Evaluar trasplante capilar”
+- “Soluciones para minimizar la caída”
+- “Solo quiero conocer mi situación capilar”
+
+CTA:
+“Ver mi reporte”
+
+Después de completar datos, mostrar reporte visual orientativo en la misma página o en una sección inferior.
+
+====================================================
+REPORTE VISUAL
+====================================================
+
+El reporte debe ser visual-first, con texto mínimo.
+
+Título:
+“Mapa Capilar AI”
+
+Subtítulo:
+“Análisis visual orientativo según la foto subida y tus respuestas.”
+
+Secciones del reporte:
+
+1. “Tipo de pelo aparente”
+Opciones visuales:
+- Liso
+- Ondulado
+- Rizado
+- Muy rizado
+
+2. “Densidad visual”
+Opciones:
+- Baja
+- Media
+- Alta
+
+3. “Línea capilar visual”
+Opciones:
+- Sin cambios visibles
+- Recesión leve aparente
+- Recesión moderada aparente
+- Recesión avanzada aparente
+
+4. “Visibilidad del cuero cabelludo”
+Opciones:
+- Baja
+- Media
+- Alta
+
+5. “Zonas a observar”
+- Entradas
+- Zona frontal
+- Zona media
+- Coronilla
+
+6. “Cobertura de coronilla”
+- Buena cobertura visual
+- Cobertura media
+- Cobertura reducida aparente
+
+7. “Mapa de densidad”
+Mostrar zonas:
+- Frontal
+- Entradas
+- Superior
+- Coronilla
+- Laterales
+
+8. “Próximo paso orientativo”
+Mostrar caminos posibles:
+- “Seguir monitoreando”
+- “Evaluar caída con revisión médica”
+- “Evaluar recuperación capilar / trasplante”
+
+Disclaimer visible:
+“Mapa visual generado por AI. No constituye diagnóstico médico ni reemplaza una evaluación profesional.”
+
+NO incluir:
+- recomendaciones de productos
+- medicamentos
+- dosis
+- rutinas terapéuticas
+- shampoos
+- ingredientes
+- cosas que debería evitar
+- tratamientos específicos
+- frases como “tienes alopecia”
+- frases como “debes usar”
+- frases como “necesitas tratamiento”
+
+====================================================
+OPENAI / AI
+====================================================
+
+Si se implementa llamada a OpenAI:
+- Hacerlo server-side.
+- No exponer OPENAI_API_KEY.
+- Crear API route nueva si hace falta:
+  `/api/mapa-capilar/generate`
+- Mantenerla independiente de `/api/ai/doctor-report`.
+- No romper el AI report médico existente.
+- La respuesta debe ser estructurada y prudente.
+- El prompt debe prohibir recomendaciones médicas/productos/tratamientos.
+
+Si no se implementa la llamada real en este sprint:
+- Crear mock bien diseñado.
+- Dejar TODO claro.
+- El flujo visual debe quedar funcionando.
+
+====================================================
+DATOS / SUPABASE
+====================================================
+
+Para este MVP, preferir no tocar schema si no es necesario.
+
+Si hace falta persistir leads, crear tabla nueva separada:
+`hair_map_leads`
+
+Campos sugeridos:
+- id uuid
+- name text
+- email text
+- phone text
+- age integer
+- main_concern text
+- duration text
+- previous_treatment text
+- family_history text
+- goal text
+- final_interest text
+- photo_url text
+- report_json jsonb
+- created_at timestamptz
+
+Si se crea tabla:
+- actualizar supabase/schema.sql
+- crear migración SQL
+- entregar SQL exacto para correr en Supabase
+
+No mezclar este flujo reducido con:
+- patients
+- intakes
+- ai_doctor_reports
+a menos que sea estrictamente necesario.
+
+====================================================
+CTA DESDE PERFECTOLABS
+====================================================
+
+No modificar perfectolabs.cl.
+Solo asegurar que la URL pública de Nilo quede lista para recibir tráfico desde:
+https://perfectolabs.cl/salud-capilar
+
+El link final del botón externo será:
+https://nilolabs.vercel.app/mapa-capilar
+
+====================================================
+DISEÑO
+====================================================
+
+- Fondo blanco
+- Estilo premium
+- Mobile-first
+- Cards redondeadas
+- Verde Nilo como acento
+- Tipografía moderna
+- Mucho whitespace
+- Visual-first
+- No sobrecargar de texto
+- No parecer diagnóstico médico
+- No usar claims exagerados
+
+====================================================
+BUILD
+====================================================
+
+Al terminar:
+1. correr npm.cmd run build
+2. resumir:
+   - páginas creadas
+   - archivos modificados
+   - si se creó API route
+   - si se creó tabla/migración SQL
+   - cómo probar el flujo
+   - si build pasó
