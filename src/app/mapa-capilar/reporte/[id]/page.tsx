@@ -73,52 +73,314 @@ function FullReport({
 }) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
-  const pdfError = false;
+  const [pdfError, setPdfError] = useState(false);
 
-  const handleDownloadPDF = useCallback(() => {
+  const handleDownloadPDF = useCallback(async () => {
+    if (!report) return;
     setDownloading(true);
-    // Small delay so the button state renders before print dialog opens
-    setTimeout(() => {
-      window.print();
+    setPdfError(false);
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      const W = 210;
+      const M = 14;
+      const CW = W - M * 2;
+      let y = 0;
+
+      type RGB = [number, number, number];
+      const PRIMARY: RGB    = [52, 116, 82];
+      const PLIGHT: RGB     = [237, 247, 241];
+      const DARK: RGB       = [20, 20, 20];
+      const MID: RGB        = [100, 100, 100];
+      const LGRAY: RGB      = [210, 210, 210];
+      const BGRAY: RGB      = [248, 248, 248];
+      const RED: RGB        = [200, 50, 50];
+      const AMBER: RGB      = [180, 120, 0];
+      const GREEN: RGB      = [40, 150, 70];
+
+      const scoreRGB = (n: number): RGB => n >= 70 ? GREEN : n >= 45 ? AMBER : RED;
+      const levelRGB = (l: string): RGB => l === "Alto" ? RED : l === "Medio" ? AMBER : GREEN;
+
+      const addPage = () => { doc.addPage(); y = M; };
+      const guard   = (h: number) => { if (y + h > 282) addPage(); };
+
+      // ── HEADER ──
+      doc.setFillColor(...PRIMARY);
+      doc.rect(0, 0, W, 26, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("MAPA CAPILAR AI", M, 12);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text("Análisis visual orientativo — Perfectolabs.cl", M, 20);
+      const dateStr = new Date().toLocaleDateString("es-CL", { year: "numeric", month: "long", day: "numeric" });
+      doc.text(dateStr, W - M, 20, { align: "right" });
+      y = 34;
+
+      // ── SCORE CARD ──
+      const s = report.summary;
+      doc.setFillColor(...PLIGHT);
+      doc.roundedRect(M, y, CW, 30, 3, 3, "F");
+      const sc = scoreRGB(s.overallScore);
+      doc.setFillColor(255, 255, 255);
+      doc.circle(M + 18, y + 15, 11, "F");
+      doc.setDrawColor(...sc);
+      doc.setLineWidth(1.8);
+      doc.circle(M + 18, y + 15, 11, "S");
+      doc.setTextColor(...sc);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(15);
+      doc.text(String(s.overallScore), M + 18, y + 17, { align: "center" });
+      doc.setFontSize(6.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...MID);
+      doc.text("/100", M + 18, y + 23, { align: "center" });
+      doc.setTextColor(...DARK);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      const findingLines = doc.splitTextToSize(s.mainFinding, CW - 40) as string[];
+      doc.text(findingLines, M + 34, y + 11);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...MID);
+      doc.text(`Confianza: ${s.confidence}   ·   ${s.priority}`, M + 34, y + 11 + findingLines.length * 5 + 2);
+      y += 36;
+
+      // helpers
+      const sectionTitle = (title: string) => {
+        guard(14);
+        doc.setFillColor(...BGRAY);
+        doc.rect(M, y, CW, 8, "F");
+        doc.setDrawColor(...LGRAY);
+        doc.setLineWidth(0.3);
+        doc.rect(M, y, CW, 8, "S");
+        doc.setTextColor(...MID);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.text(title.toUpperCase(), M + 4, y + 5.5);
+        y += 10;
+      };
+
+      const tableRow = (label: string, value: string, even: boolean) => {
+        guard(8);
+        if (even) { doc.setFillColor(252, 252, 252); doc.rect(M, y, CW, 7, "F"); }
+        doc.setDrawColor(...LGRAY);
+        doc.setLineWidth(0.2);
+        doc.line(M, y + 7, M + CW, y + 7);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...MID);
+        doc.text(label, M + 3, y + 5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...DARK);
+        doc.text(String(value), M + CW - 3, y + 5, { align: "right", maxWidth: CW * 0.55 });
+        y += 7;
+      };
+
+      const scoreBar = (name: string, zone: { score: number; status: string; label: string }) => {
+        guard(14);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(...DARK);
+        doc.text(name, M + 3, y + 4);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(...MID);
+        doc.text(zone.label, M + CW - 3, y + 4, { align: "right" });
+        const bx = M + 3; const by = y + 6.5; const bw = CW - 6; const bh = 4;
+        doc.setFillColor(...LGRAY);
+        doc.roundedRect(bx, by, bw, bh, 1, 1, "F");
+        const fw = Math.max((zone.score / 100) * bw, 3);
+        const zc = scoreRGB(zone.score);
+        doc.setFillColor(...zc);
+        doc.roundedRect(bx, by, fw, bh, 1, 1, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(...zc);
+        doc.text(`${zone.score}`, bx + fw + 2, by + 3.3);
+        y += 14;
+      };
+
+      // ── CONTEXTO ──
+      sectionTitle("Contexto del usuario");
+      const ctx = report.userContext;
+      tableRow("Preocupación principal", ctx.mainConcern, true);
+      tableRow("Tiempo con cambios",     ctx.hairLossDuration, false);
+      tableRow("Historial familiar",     ctx.familyHistory, true);
+      tableRow("Tratamientos previos",   ctx.previousTreatments, false);
+      y += 5;
+
+      // ── ANÁLISIS VISUAL ──
+      sectionTitle("Análisis visual");
+      const va = report.visualAnalysis;
+      tableRow("Tipo de pelo",                    va.hairType,         true);
+      tableRow("Densidad capilar",                va.density,          false);
+      tableRow("Línea capilar",                   va.hairline,         true);
+      tableRow("Visibilidad del cuero cabelludo", va.scalpVisibility,  false);
+      tableRow("Cobertura de coronilla",          va.crownCoverage,    true);
+      tableRow("Textura del pelo",                va.hairTexture,      false);
+      tableRow("Grosor aparente",                 va.hairThickness,    true);
+      tableRow("Estado general",                  va.overallCondition, false);
+      y += 5;
+
+      // ── SCORES POR ZONA ──
+      sectionTitle("Scores por zona");
+      scoreBar("Línea frontal",             report.zones.frontalLine);
+      scoreBar("Densidad frontal",          report.zones.frontalDensity);
+      scoreBar("Entradas",                  report.zones.temples);
+      scoreBar("Coronilla",                 report.zones.crown);
+      scoreBar("Salud del cuero cabelludo", report.zones.scalpHealth);
+      y += 3;
+
+      // ── ÁREAS DE RIESGO ──
+      if (report.riskAreas.length > 0) {
+        sectionTitle("Áreas de riesgo");
+        for (const risk of report.riskAreas) {
+          guard(14);
+          const lc = levelRGB(risk.level);
+          doc.setFillColor(...lc);
+          doc.circle(M + 5, y + 4, 2.5, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(...DARK);
+          doc.text(risk.area, M + 11, y + 4.5);
+          doc.setFillColor(...lc);
+          doc.roundedRect(M + CW - 20, y, 20, 7, 2, 2, "F");
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7);
+          doc.text(risk.level, M + CW - 10, y + 5, { align: "center" });
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.5);
+          doc.setTextColor(...MID);
+          doc.text(risk.reason, M + 11, y + 10, { maxWidth: CW - 36 });
+          y += 14;
+        }
+        y += 3;
+      }
+
+      // ── CALLOUTS ──
+      const allCallouts = [
+        ...report.photoCallouts.frontPhoto.map(c => ({ ...c, photo: "Foto frontal" })),
+        ...report.photoCallouts.crownPhoto.map(c => ({ ...c, photo: "Coronilla" })),
+      ];
+      if (allCallouts.length > 0) {
+        sectionTitle("Observaciones visuales");
+        for (const c of allCallouts) {
+          guard(10);
+          const lc = levelRGB(c.level);
+          doc.setFillColor(...lc);
+          doc.circle(M + 4.5, y + 3.5, 2, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(...DARK);
+          doc.text(c.label, M + 10, y + 4);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.setTextColor(...MID);
+          doc.text(`${c.area}  ·  ${c.photo}`, M + 10, y + 8.5);
+          y += 11;
+        }
+        y += 3;
+      }
+
+      // ── TAGS ──
+      if (report.visualTags.length > 0) {
+        guard(18);
+        sectionTitle("Etiquetas visuales");
+        let tx = M + 3; let ty = y;
+        for (const tag of report.visualTags) {
+          const tw = doc.getTextWidth(tag) + 9;
+          if (tx + tw > M + CW - 3) { tx = M + 3; ty += 9; y += 9; guard(10); }
+          doc.setFillColor(...PLIGHT);
+          doc.roundedRect(tx, ty, tw, 7, 2, 2, "F");
+          doc.setTextColor(...PRIMARY);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7.5);
+          doc.text(tag, tx + 4.5, ty + 5);
+          tx += tw + 3;
+        }
+        y = ty + 12;
+      }
+
+      // ── DISCLAIMER ──
+      guard(18);
+      doc.setFillColor(...BGRAY);
+      doc.roundedRect(M, y, CW, 16, 2, 2, "F");
+      doc.setDrawColor(...LGRAY);
+      doc.roundedRect(M, y, CW, 16, 2, 2, "S");
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...MID);
+      const dlLines = doc.splitTextToSize(report.disclaimer, CW - 8) as string[];
+      doc.text(dlLines, M + 4, y + 7);
+      y += 20;
+
+      // ── FOOTER on every page ──
+      const pages = doc.getNumberOfPages();
+      for (let i = 1; i <= pages; i++) {
+        doc.setPage(i);
+        doc.setFillColor(...PRIMARY);
+        doc.rect(0, 290, W, 7, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.text("perfectolabs.cl  ·  Mapa Capilar AI", M, 295);
+        doc.text(`${i} / ${pages}`, W - M, 295, { align: "right" });
+      }
+
+      // ── DOWNLOAD ──
+      const blob = doc.output("blob");
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = "mapa-capilar-ai.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 15_000);
+
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      setPdfError(true);
+    } finally {
       setDownloading(false);
-    }, 100);
-  }, []);
+    }
+  }, [report]);
 
   const s = report.summary;
   const scoreColor = s.overallScore >= 70 ? "text-green-600" : s.overallScore >= 45 ? "text-amber-500" : "text-red-500";
 
   return (
     <div>
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          body > *:not(#__next) { display: none !important; }
-          header, nav, .no-print { display: none !important; }
-          .print-report { display: block !important; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
-      `}</style>
-
       {/* Download button */}
-      <div className="flex flex-col items-end gap-2 mb-4 no-print">
+      <div className="flex flex-col items-end gap-2 mb-4">
         <button
           onClick={handleDownloadPDF}
           disabled={downloading}
           className="flex items-center gap-2 text-sm font-medium text-primary border border-primary/30 px-4 py-2 rounded-xl hover:bg-primary/5 transition-colors disabled:opacity-60"
         >
           {downloading ? (
-            "Abriendo..."
+            <>
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              Generando PDF...
+            </>
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               </svg>
-              Guardar como PDF
+              Descargar PDF
             </>
           )}
         </button>
         {pdfError && (
-          <p className="text-xs text-red-500">No se pudo abrir el diálogo de impresión.</p>
+          <p className="text-xs text-red-500">No se pudo generar el PDF. Recarga la página e intenta nuevamente.</p>
         )}
       </div>
 
