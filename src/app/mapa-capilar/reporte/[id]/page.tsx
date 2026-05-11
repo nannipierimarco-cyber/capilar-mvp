@@ -73,51 +73,15 @@ function FullReport({
 }) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
-  const [pdfError, setPdfError] = useState(false);
+  const pdfError = false;
 
-  const handleDownloadPDF = useCallback(async () => {
-    if (!reportRef.current) return;
+  const handleDownloadPDF = useCallback(() => {
     setDownloading(true);
-    setPdfError(false);
-    try {
-      const html2canvas = (await import("html2canvas")).default;
-      const jsPDF = (await import("jspdf")).default;
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: false,
-        allowTaint: false,
-        // Skip <img> tags to avoid cross-origin canvas taint from Supabase Storage URLs
-        ignoreElements: (el) => el.tagName === "IMG",
-        backgroundColor: "#ffffff",
-      });
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfW = pdf.internal.pageSize.getWidth();
-      const pdfH = (canvas.height * pdfW) / canvas.width;
-      let heightLeft = pdfH;
-      let position = 0;
-      pdf.addImage(imgData, "JPEG", 0, position, pdfW, pdfH);
-      heightLeft -= pdf.internal.pageSize.getHeight();
-      while (heightLeft > 0) {
-        position -= pdf.internal.pageSize.getHeight();
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, position, pdfW, pdfH);
-        heightLeft -= pdf.internal.pageSize.getHeight();
-      }
-      // Use blob URL for reliable download on mobile browsers
-      const blob = pdf.output("blob");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "mapa-capilar-ai.pdf";
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-      setPdfError(true);
-    } finally {
+    // Small delay so the button state renders before print dialog opens
+    setTimeout(() => {
+      window.print();
       setDownloading(false);
-    }
+    }, 100);
   }, []);
 
   const s = report.summary;
@@ -125,26 +89,36 @@ function FullReport({
 
   return (
     <div>
+      {/* Print styles */}
+      <style>{`
+        @media print {
+          body > *:not(#__next) { display: none !important; }
+          header, nav, .no-print { display: none !important; }
+          .print-report { display: block !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+      `}</style>
+
       {/* Download button */}
-      <div className="flex flex-col items-end gap-2 mb-4">
+      <div className="flex flex-col items-end gap-2 mb-4 no-print">
         <button
           onClick={handleDownloadPDF}
           disabled={downloading}
           className="flex items-center gap-2 text-sm font-medium text-primary border border-primary/30 px-4 py-2 rounded-xl hover:bg-primary/5 transition-colors disabled:opacity-60"
         >
           {downloading ? (
-            "Generando PDF..."
+            "Abriendo..."
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               </svg>
-              Descargar PDF
+              Guardar como PDF
             </>
           )}
         </button>
         {pdfError && (
-          <p className="text-xs text-red-500">No se pudo generar el PDF. Intenta desde un computador.</p>
+          <p className="text-xs text-red-500">No se pudo abrir el diálogo de impresión.</p>
         )}
       </div>
 
