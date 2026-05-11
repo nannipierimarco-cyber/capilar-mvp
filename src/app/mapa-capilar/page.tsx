@@ -71,11 +71,10 @@ type Step = "hero" | number | "photo";
 
 const STEP_ORDER: Step[] = ["hero", 0, 1, 2, 3, 4, "photo"];
 
-/** Orden rejilla 2×2 como en el quiz: fila 1 frontal|coronilla, fila 2 entradas|lateral */
 const PHOTO_SLOTS = [
   {
     id: "frontal",
-    label: "Frontal",
+    label: "Frontal / lateral",
     hint: "Frente completa, mirando a la cámara",
     required: true,
   },
@@ -83,19 +82,7 @@ const PHOTO_SLOTS = [
     id: "coronilla",
     label: "Coronilla",
     hint: "Vista superior, pelo hacia adelante",
-    required: false,
-  },
-  {
-    id: "entradas",
-    label: "Entradas",
-    hint: "Zona de las entradas laterales",
-    required: false,
-  },
-  {
-    id: "lateral",
-    label: "Lateral",
-    hint: "Perfil completo",
-    required: false,
+    required: true,
   },
 ] as const;
 
@@ -173,29 +160,22 @@ export default function MapaCapilarPage() {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    const frontal = slotPhotos.frontal;
-    if (!frontal) {
+    if (!slotPhotos.frontal || !slotPhotos.coronilla) {
       setPhotoError(true);
       return;
     }
     setSubmitting(true);
     sessionStorage.setItem("mapa_capilar_answers", JSON.stringify(answers));
     try {
-      const photosRecord: Partial<Record<PhotoSlotId, string>> = {};
-      for (const s of PHOTO_SLOTS) {
-        const file = slotPhotos[s.id];
-        if (file) photosRecord[s.id] = await compressImage(file);
-      }
-      const payload = JSON.stringify(photosRecord);
-      sessionStorage.setItem("mapa_capilar_photos", payload);
-      sessionStorage.setItem("mapa_capilar_photo", photosRecord.frontal!);
+      const frontalB64 = await compressImage(slotPhotos.frontal);
+      const crownB64 = await compressImage(slotPhotos.coronilla);
+      sessionStorage.setItem("mapa_capilar_photo_frontal", frontalB64);
+      sessionStorage.setItem("mapa_capilar_photo_crown", crownB64);
     } catch {
       try {
-        sessionStorage.removeItem("mapa_capilar_photos");
-        sessionStorage.removeItem("mapa_capilar_photo");
-      } catch {
-        /* ignore */
-      }
+        sessionStorage.removeItem("mapa_capilar_photo_frontal");
+        sessionStorage.removeItem("mapa_capilar_photo_crown");
+      } catch { /* ignore */ }
     }
     router.push("/mapa-capilar/analizando");
   }, [slotPhotos, answers, router]);
@@ -244,9 +224,8 @@ export default function MapaCapilarPage() {
             </h1>
 
             <p className="text-gray-500 text-base leading-relaxed">
-              Responde 5 preguntas, sube al menos una foto frontal (coronilla y otras vistas son
-              opcionales y mejoran el mapa) y recibe un mapa visual orientativo de densidad, línea
-              frontal y zonas a observar.
+              Responde 5 preguntas, sube 2 fotos de tu pelo (frontal y coronilla) y recibe un
+              reporte visual orientativo con densidad, línea frontal y zonas a observar.
             </p>
 
             <button
@@ -267,11 +246,8 @@ export default function MapaCapilarPage() {
               </p>
               {[
                 ["1", "Responde 5 preguntas sobre tu situación capilar"],
-                [
-                  "2",
-                  "Sube una foto frontal obligatoria; coronilla, entradas y lateral son opcionales y mejoran el resultado",
-                ],
-                ["3", "Recibe tu Mapa Capilar AI orientativo en segundos"],
+                ["2", "Sube 2 fotos: una frontal y una de coronilla"],
+                ["3", "Recibe tu reporte visual orientativo personalizado"],
               ].map(([num, text]) => (
                 <div key={num} className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
@@ -318,16 +294,16 @@ export default function MapaCapilarPage() {
           </div>
         )}
 
-        {/* PHOTO UPLOAD — patrón visual alineado con PhotoStep del quiz */}
+        {/* PHOTO UPLOAD */}
         {step === "photo" && (
           <div className="flex flex-col gap-6">
             <div className="space-y-1.5">
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
                 Último paso
               </p>
-              <h2 className="text-2xl font-bold text-gray-900">Sube tus fotos</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Sube 2 fotos de tu pelo</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Las fotos permiten que el análisis visual orientativo sea más útil.
+                Necesitamos una foto frontal y una de la coronilla para generar tu mapa. Ambas son obligatorias.
               </p>
             </div>
 
@@ -342,15 +318,15 @@ export default function MapaCapilarPage() {
             <div className="grid grid-cols-2 gap-3">
               {PHOTO_SLOTS.map((slot) => {
                 const file = slotPhotos[slot.id] ?? null;
-                const missingFrontal = photoError && slot.required && !file;
+                const missing = photoError && !file;
                 return (
                   <label
                     key={slot.id}
                     className={cn(
-                      "border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors min-h-[120px]",
+                      "border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors min-h-[130px]",
                       file
                         ? "border-primary bg-primary/5"
-                        : missingFrontal
+                        : missing
                           ? "border-red-300 bg-red-50"
                           : "border-gray-200 hover:border-primary/40 bg-white"
                     )}
@@ -358,6 +334,7 @@ export default function MapaCapilarPage() {
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
+                      capture="environment"
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0] ?? null;
@@ -369,17 +346,14 @@ export default function MapaCapilarPage() {
                       <>
                         <span className="text-2xl text-primary">✓</span>
                         <p className="text-xs font-semibold mt-1 text-primary">{slot.label}</p>
-                        <p className="text-xs text-gray-500 truncate max-w-[120px]">{file.name}</p>
+                        <p className="text-xs text-gray-500 truncate max-w-[110px]">{file.name}</p>
                       </>
                     ) : (
                       <>
                         <span className="text-2xl text-gray-400">📷</span>
-                        <p className="text-xs font-semibold mt-1 text-gray-900">{slot.label}</p>
-                        {!slot.required && (
-                          <span className="text-[10px] text-gray-500 bg-amber-50/80 border border-amber-100 px-1.5 py-0.5 rounded-full mt-0.5">
-                            opcional
-                          </span>
-                        )}
+                        <p className={cn("text-xs font-semibold mt-1", missing ? "text-red-600" : "text-gray-900")}>
+                          {slot.label}
+                        </p>
                         <p className="text-xs text-gray-500 mt-0.5 leading-snug">{slot.hint}</p>
                       </>
                     )}
@@ -390,39 +364,21 @@ export default function MapaCapilarPage() {
 
             {photoError && (
               <p className="text-sm text-red-600 text-center bg-red-50 rounded-xl py-3 px-3">
-                Sube la foto frontal para continuar.
+                Ambas fotos son obligatorias para generar el mapa.
               </p>
             )}
 
-            <p className="text-xs text-gray-500 text-center leading-relaxed">
-              Solo la foto frontal es obligatoria. Coronilla, entradas y lateral son opcionales y
-              ayudan a afinar el mapa. Son confidenciales y solo las verá el equipo médico asignado.
+            <p className="text-xs text-gray-400 text-center leading-relaxed">
+              Tus fotos son confidenciales y se usan exclusivamente para el análisis visual orientativo.
             </p>
 
             <button
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full bg-primary text-white font-semibold py-4 rounded-full text-base hover:bg-primary/90 active:scale-[.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-primary text-white font-semibold py-4 rounded-2xl text-base hover:bg-primary/90 active:scale-[.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {submitting ? "Preparando análisis..." : "Continuar"}
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full text-sm text-gray-500 hover:text-gray-800 transition-colors py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Completar fotos después →
-            </button>
-
-            <button
-              type="button"
-              onClick={goBack}
-              className="text-sm text-gray-500 hover:text-gray-800 flex items-center gap-1 self-start"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Volver
+              {submitting ? "Preparando análisis..." : "Generar mi mapa"}
             </button>
           </div>
         )}
