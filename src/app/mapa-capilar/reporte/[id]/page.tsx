@@ -73,16 +73,21 @@ function FullReport({
 }) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
 
   const handleDownloadPDF = useCallback(async () => {
     if (!reportRef.current) return;
     setDownloading(true);
+    setPdfError(false);
     try {
       const html2canvas = (await import("html2canvas")).default;
       const jsPDF = (await import("jspdf")).default;
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
-        useCORS: true,
+        useCORS: false,
+        allowTaint: false,
+        // Skip <img> tags to avoid cross-origin canvas taint from Supabase Storage URLs
+        ignoreElements: (el) => el.tagName === "IMG",
         backgroundColor: "#ffffff",
       });
       const imgData = canvas.toDataURL("image/jpeg", 0.92);
@@ -99,9 +104,17 @@ function FullReport({
         pdf.addImage(imgData, "JPEG", 0, position, pdfW, pdfH);
         heightLeft -= pdf.internal.pageSize.getHeight();
       }
-      pdf.save("mapa-capilar-ai.pdf");
+      // Use blob URL for reliable download on mobile browsers
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mapa-capilar-ai.pdf";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch (err) {
       console.error("PDF generation failed:", err);
+      setPdfError(true);
     } finally {
       setDownloading(false);
     }
@@ -113,7 +126,7 @@ function FullReport({
   return (
     <div>
       {/* Download button */}
-      <div className="flex justify-end mb-4">
+      <div className="flex flex-col items-end gap-2 mb-4">
         <button
           onClick={handleDownloadPDF}
           disabled={downloading}
@@ -130,6 +143,9 @@ function FullReport({
             </>
           )}
         </button>
+        {pdfError && (
+          <p className="text-xs text-red-500">No se pudo generar el PDF. Intenta desde un computador.</p>
+        )}
       </div>
 
       <div ref={reportRef} className="space-y-5 bg-white">
