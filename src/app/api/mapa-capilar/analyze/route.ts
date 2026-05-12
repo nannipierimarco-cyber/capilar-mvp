@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
   generateFallbackAnalysisReport,
+  normalizeHairMapReport,
   type HairMapAnalysisReport,
   type MapaCapilarAnswers,
 } from "@/lib/mapaCapilar";
@@ -225,7 +226,7 @@ export async function POST(req: NextRequest) {
         const raw = data.choices?.[0]?.message?.content;
         if (raw) {
           try {
-            report = JSON.parse(raw) as HairMapAnalysisReport;
+            report = normalizeHairMapReport(JSON.parse(raw) as unknown, answers);
           } catch {
             console.error("[mapa-capilar/analyze] Failed to parse AI JSON");
           }

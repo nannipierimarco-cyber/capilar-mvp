@@ -4,84 +4,60 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Field } from "@/lib/mapaCapilar";
+import type { MapaCapilarAnswers } from "@/lib/mapaCapilar";
 
-interface Question {
-  field: Field;
-  question: string;
-  options: string[];
+/** Una sola pregunta (alineada al quiz): el resto de campos del JSON van fijos para la API. */
+function answersFromRouteChoice(route: "treatment" | "transplant"): MapaCapilarAnswers {
+  if (route === "transplant") {
+    return {
+      concern: "Evaluación de trasplante",
+      duration: "No especificado",
+      previousTreatment: "No especificado",
+      familyHistory: "No especificado",
+      goal: "Evaluar trasplante",
+    };
+  }
+  return {
+    concern: "Frenar caída del pelo",
+    duration: "No especificado",
+    previousTreatment: "No especificado",
+    familyHistory: "No especificado",
+    goal: "Frenar la caída",
+  };
 }
 
-const QUESTIONS: Question[] = [
+const ROUTE_OPTIONS: {
+  value: "treatment" | "transplant";
+  title: string;
+  desc: string;
+}[] = [
   {
-    field: "concern",
-    question: "¿Qué te preocupa más hoy?",
-    options: [
-      "Entradas",
-      "Coronilla",
-      "Pérdida general de densidad",
-      "Caída excesiva",
-      "Estoy evaluando trasplante",
-      "No estoy seguro",
-    ],
+    value: "treatment",
+    title: "Frenar la caída",
+    desc: "Aún tengo pelo y quiero cuidarlo. Quiero entender si corresponde tratamiento médico.",
   },
   {
-    field: "duration",
-    question: "¿Hace cuánto notas cambios en tu pelo?",
-    options: [
-      "Menos de 3 meses",
-      "3 a 6 meses",
-      "6 a 12 meses",
-      "Más de 1 año",
-      "Más de 3 años",
-    ],
-  },
-  {
-    field: "previousTreatment",
-    question: "¿Has usado algún tratamiento capilar antes?",
-    options: [
-      "No",
-      "Sí, shampoo o productos cosméticos",
-      "Sí, minoxidil",
-      "Sí, finasteride/dutasteride",
-      "Sí, otro tratamiento",
-      "No estoy seguro",
-    ],
-  },
-  {
-    field: "familyHistory",
-    question: "¿Alguien en tu familia tiene pérdida de pelo?",
-    options: ["Padre", "Madre", "Hermanos", "Abuelos", "No", "No estoy seguro"],
-  },
-  {
-    field: "goal",
-    question: "¿Qué estás buscando ahora?",
-    options: [
-      "Entender mi situación capilar",
-      "Minimizar la caída",
-      "Evaluar tratamiento médico",
-      "Evaluar trasplante capilar",
-      "Comparar opciones",
-    ],
+    value: "transplant",
+    title: "Evaluar trasplante",
+    desc: "Ya perdí densidad o estoy considerando una recuperación capilar y quiero saber si tiene sentido avanzar.",
   },
 ];
 
-type Answers = Partial<Record<Field, string>>;
 type Step = "hero" | number | "photo";
 
-const STEP_ORDER: Step[] = ["hero", 0, 1, 2, 3, 4, "photo"];
+const STEP_ORDER: Step[] = ["hero", 0, "photo"];
 
 const PHOTO_SLOTS = [
   {
     id: "frontal",
     label: "Frontal / lateral",
-    hint: "Frente completa, mirando a la cámara",
+    hint: "Elegí una foto desde tu galería",
     required: true,
   },
   {
     id: "coronilla",
     label: "Coronilla",
-    hint: "Vista superior, pelo hacia adelante",
+    hint: "Elegí una foto desde tu galería",
     required: true,
   },
 ] as const;
@@ -116,7 +92,7 @@ async function compressImage(file: File): Promise<string> {
 export default function MapaCapilarPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("hero");
-  const [answers, setAnswers] = useState<Answers>({});
+  const [answers, setAnswers] = useState<MapaCapilarAnswers | null>(null);
   const [slotPhotos, setSlotPhotos] = useState<Partial<Record<PhotoSlotId, File>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [photoError, setPhotoError] = useState(false);
@@ -130,16 +106,12 @@ export default function MapaCapilarPage() {
     setStep(next);
   }, []);
 
-  const handleAnswer = useCallback(
-    (field: Field, value: string) => {
-      setAnswers((prev) => ({ ...prev, [field]: value }));
-      const idx = STEP_ORDER.indexOf(step);
-      const next = STEP_ORDER[idx + 1];
-      if (next !== undefined) {
-        setTimeout(() => goTo(next), 160);
-      }
+  const handleRouteChoice = useCallback(
+    (route: "treatment" | "transplant") => {
+      setAnswers(answersFromRouteChoice(route));
+      setTimeout(() => goTo("photo"), 160);
     },
-    [step, goTo]
+    [goTo]
   );
 
   const goBack = useCallback(() => {
@@ -165,7 +137,8 @@ export default function MapaCapilarPage() {
       return;
     }
     setSubmitting(true);
-    sessionStorage.setItem("mapa_capilar_answers", JSON.stringify(answers));
+    const payload = answers ?? answersFromRouteChoice("treatment");
+    sessionStorage.setItem("mapa_capilar_answers", JSON.stringify(payload));
     try {
       const frontalB64 = await compressImage(slotPhotos.frontal);
       const crownB64 = await compressImage(slotPhotos.coronilla);
@@ -175,17 +148,18 @@ export default function MapaCapilarPage() {
       try {
         sessionStorage.removeItem("mapa_capilar_photo_frontal");
         sessionStorage.removeItem("mapa_capilar_photo_crown");
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     router.push("/mapa-capilar/analizando");
   }, [slotPhotos, answers, router]);
 
   const questionIndex = typeof step === "number" ? step : -1;
-  const currentQuestion = questionIndex >= 0 ? QUESTIONS[questionIndex] : null;
+  const showRouteQuestion = questionIndex === 0;
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100">
         <div className="max-w-md mx-auto px-5 h-14 flex items-center justify-between">
           <span className="text-lg font-semibold tracking-tight text-gray-900">Perfecto</span>
@@ -201,7 +175,6 @@ export default function MapaCapilarPage() {
         </div>
       </header>
 
-      {/* Progress bar */}
       {step !== "hero" && (
         <div className="w-full h-1 bg-gray-100">
           <div
@@ -212,7 +185,6 @@ export default function MapaCapilarPage() {
       )}
 
       <main className="max-w-md mx-auto px-5 py-10">
-        {/* HERO */}
         {step === "hero" && (
           <div className="flex flex-col items-center text-center gap-6">
             <div className="inline-block bg-primary/10 text-primary text-sm font-medium px-4 py-1.5 rounded-full">
@@ -224,7 +196,7 @@ export default function MapaCapilarPage() {
             </h1>
 
             <p className="text-gray-500 text-base leading-relaxed">
-              Responde 5 preguntas, sube 2 fotos de tu pelo (frontal y coronilla) y recibe un
+              Responde una pregunta, sube 2 fotos desde tu galería (frontal y coronilla) y recibe un
               reporte visual orientativo con densidad, línea frontal y zonas a observar.
             </p>
 
@@ -239,14 +211,13 @@ export default function MapaCapilarPage() {
               Este análisis es orientativo y no constituye diagnóstico médico.
             </p>
 
-            {/* How it works */}
             <div className="w-full bg-gray-50 rounded-2xl p-6 text-left space-y-4 mt-2">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                 Cómo funciona
               </p>
               {[
-                ["1", "Responde 5 preguntas sobre tu situación capilar"],
-                ["2", "Sube 2 fotos: una frontal y una de coronilla"],
+                ["1", "Indica qué quieres resolver (frenar caída o evaluar trasplante)"],
+                ["2", "Sube 2 fotos desde tu galería: frontal y coronilla"],
                 ["3", "Recibe tu reporte visual orientativo personalizado"],
               ].map(([num, text]) => (
                 <div key={num} className="flex items-start gap-3">
@@ -260,33 +231,32 @@ export default function MapaCapilarPage() {
           </div>
         )}
 
-        {/* QUESTIONS */}
-        {currentQuestion && (
+        {showRouteQuestion && (
           <div className="flex flex-col gap-6">
             <div className="space-y-1.5">
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-                Pregunta {questionIndex + 1} de 5
+                Pregunta 1 de 1
               </p>
-              <h2 className="text-2xl font-bold text-gray-900 leading-snug">
-                {currentQuestion.question}
-              </h2>
+              <h1 className="text-2xl font-bold text-gray-900 leading-snug">¿Qué quieres resolver?</h1>
+              <p className="text-sm text-gray-500">
+                Elige la opción que mejor describe tu situación.
+              </p>
             </div>
 
-            <div className="flex flex-col gap-3">
-              {currentQuestion.options.map((option) => {
-                const selected = answers[currentQuestion.field] === option;
+            <div className="space-y-3">
+              {ROUTE_OPTIONS.map((route) => {
                 return (
                   <button
-                    key={option}
-                    onClick={() => handleAnswer(currentQuestion.field, option)}
+                    key={route.value}
+                    type="button"
+                    onClick={() => handleRouteChoice(route.value)}
                     className={cn(
-                      "w-full text-left px-5 py-4 rounded-2xl border-2 text-sm font-medium transition-all duration-150 active:scale-[.98]",
-                      selected
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                      "w-full text-left border-2 rounded-2xl p-5 transition-all active:scale-[.98]",
+                      "border-gray-200 bg-white hover:border-primary/40 hover:bg-gray-50/80"
                     )}
                   >
-                    {option}
+                    <p className="font-semibold text-base text-gray-900">{route.title}</p>
+                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{route.desc}</p>
                   </button>
                 );
               })}
@@ -294,16 +264,16 @@ export default function MapaCapilarPage() {
           </div>
         )}
 
-        {/* PHOTO UPLOAD */}
         {step === "photo" && (
           <div className="flex flex-col gap-6">
             <div className="space-y-1.5">
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-                Último paso
+                Siguiente paso
               </p>
               <h2 className="text-2xl font-bold text-gray-900">Sube 2 fotos de tu pelo</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Necesitamos una foto frontal y una de la coronilla para generar tu mapa. Ambas son obligatorias.
+                Elegí imágenes desde la galería de tu dispositivo (no uses la cámara en vivo). Necesitamos
+                una foto frontal y una de coronilla; ambas son obligatorias.
               </p>
             </div>
 
@@ -311,7 +281,7 @@ export default function MapaCapilarPage() {
               <p className="font-semibold text-primary mb-1">Instrucciones:</p>
               <p>• Buena luz natural o artificial</p>
               <p>• Pelo seco, sin gel ni gorro</p>
-              <p>• Cámara estable</p>
+              <p>• Foto estable y nítida</p>
               <p>• Mostrar claramente la zona afectada</p>
             </div>
 
@@ -334,7 +304,6 @@ export default function MapaCapilarPage() {
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
-                      capture="environment"
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0] ?? null;
@@ -350,8 +319,15 @@ export default function MapaCapilarPage() {
                       </>
                     ) : (
                       <>
-                        <span className="text-2xl text-gray-400">📷</span>
-                        <p className={cn("text-xs font-semibold mt-1", missing ? "text-red-600" : "text-gray-900")}>
+                        <span className="text-2xl text-gray-400" aria-hidden>
+                          🖼
+                        </span>
+                        <p
+                          className={cn(
+                            "text-xs font-semibold mt-1",
+                            missing ? "text-red-600" : "text-gray-900"
+                          )}
+                        >
                           {slot.label}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5 leading-snug">{slot.hint}</p>
@@ -375,11 +351,20 @@ export default function MapaCapilarPage() {
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full bg-primary text-white font-semibold py-4 rounded-2xl text-base hover:bg-primary/90 active:scale-[.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={submitting || !slotPhotos.frontal || !slotPhotos.coronilla}
+              className="w-full bg-primary text-white font-semibold py-4 rounded-2xl text-base hover:bg-primary/90 active:scale-[.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {submitting ? "Preparando análisis..." : "Generar mi mapa"}
             </button>
+            {(!slotPhotos.frontal || !slotPhotos.coronilla) && (
+              <p className="text-xs text-gray-400 text-center">
+                {!slotPhotos.frontal && !slotPhotos.coronilla
+                  ? "Sube la foto frontal y la foto de coronilla para continuar."
+                  : !slotPhotos.frontal
+                    ? "Falta la foto frontal o lateral."
+                    : "Falta la foto de coronilla."}
+              </p>
+            )}
           </div>
         )}
       </main>

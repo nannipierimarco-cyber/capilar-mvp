@@ -1,5 +1,31 @@
 # Marketplace Capilar MVP
 
+## Skills requeridas
+
+### nilo-guardrails — obligatoria en cada sesión de desarrollo
+
+Invoca la skill `nilo-guardrails` con el Skill tool antes de cualquier tarea de desarrollo.
+
+- **Rutas**: auditar todas las referencias antes de renombrar o eliminar cualquier ruta
+- **Secrets**: nunca mostrar ni repetir valores reales de variables de entorno
+- **Copy médico**: solo observaciones con lenguaje hedged + referral a dermatólogo; nunca diagnóstico ni prescripción específica
+- **Build**: ejecutar `npm run build` antes de dar por finalizados cambios grandes
+
+### nilo-security-review — obligatoria antes de cada deploy
+
+Invoca la skill `nilo-security-review` con el Skill tool antes de cualquier deploy o cuando se agreguen rutas API, se modifique el schema de Supabase, o se toque cualquier integración externa.
+
+Cubre 9 áreas con problemas conocidos en este proyecto:
+- **Supabase**: bucket público, políticas RLS con `using (true)`, signed URLs
+- **API routes**: 9+ rutas sin autenticación expuestas; IDOR en endpoints UUID
+- **Uploads**: tamaño de body, EXIF, URLs de cliente no validadas
+- **Env vars**: exposición en bundle, historial git, `.env.example` incompleto
+- **Admin**: cookie con secret en raw, sin rate limiting, sin middleware.ts
+- **OpenAI**: PII en prompts, key solo server-side, output sin diagnósticos
+- **HubSpot**: ruta sin auth, datos médicos enviados, scope del token
+- **Webhooks**: HMAC en WhatsApp/Calendly/Flow, send-test sin eliminar
+- **Ley 19.628**: consentimiento, borrado, RUT en plaintext, PII en logs
+
 ## 1. Concepto general
 
 Estamos construyendo una plataforma digital capilar en Chile, inspirada en la lógica de MEDVi, pero adaptada a alopecia, tratamiento médico recurrente y procedimientos capilares.

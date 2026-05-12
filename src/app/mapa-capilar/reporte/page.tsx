@@ -6,18 +6,34 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { MapaCapilarReport } from "@/lib/mapaCapilar";
 
-const FINAL_INTEREST_OPTIONS = [
-  "Evaluar trasplante capilar",
-  "Soluciones para minimizar la caída",
-  "Solo quiero conocer mi situación capilar",
-];
+const PHONE_PREFIX_OPTIONS = [
+  { value: "+56", label: "🇨🇱 +56" },
+  { value: "+54", label: "🇦🇷 +54" },
+  { value: "+51", label: "🇵🇪 +51" },
+] as const;
 
 interface ContactData {
-  name: string;
   email: string;
-  phone: string;
-  age: string;
-  finalInterest: string;
+  phonePrefix: string;
+  phoneNine: string;
+  phoneRest: string;
+}
+
+function buildWhatsAppNumber(c: ContactData): string {
+  const rest = c.phoneRest.replace(/\D/g, "");
+  const nine = c.phoneNine.replace(/\D/g, "") || "9";
+  return `${c.phonePrefix.trim()}${nine}${rest}`;
+}
+
+function validateChileMobile(c: ContactData): boolean {
+  if (c.phonePrefix !== "+56") {
+    const rest = c.phoneRest.replace(/\D/g, "");
+    return rest.length >= 6 && rest.length <= 12;
+  }
+  const rest = c.phoneRest.replace(/\D/g, "");
+  const nine = c.phoneNine.replace(/\D/g, "") || "9";
+  if (nine.length > 2) return false;
+  return rest.length === 8;
 }
 
 // ─── Report sub-components ────────────────────────────────────────────────────
@@ -208,13 +224,12 @@ export default function ReportePage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [view, setView] = useState<"form" | "report">("form");
   const [contact, setContact] = useState<ContactData>({
-    name: "",
     email: "",
-    phone: "",
-    age: "",
-    finalInterest: "",
+    phonePrefix: "+56",
+    phoneNine: "9",
+    phoneRest: "",
   });
-  const [errors, setErrors] = useState<Partial<ContactData>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof ContactData | "phone", string>>>({});
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -232,12 +247,14 @@ export default function ReportePage() {
   }, [router]);
 
   const validate = (): boolean => {
-    const errs: Partial<ContactData> = {};
-    if (!contact.name.trim()) errs.name = "Requerido";
-    if (!contact.email.includes("@")) errs.email = "Email inválido";
-    if (contact.phone.replace(/\D/g, "").length < 8) errs.phone = "Número inválido";
-    if (!contact.age || isNaN(Number(contact.age))) errs.age = "Ingresa tu edad";
-    if (!contact.finalInterest) errs.finalInterest = "Selecciona una opción";
+    const errs: Partial<Record<keyof ContactData | "phone", string>> = {};
+    if (!contact.email.trim() || !contact.email.includes("@")) errs.email = "Email inválido";
+    if (!validateChileMobile(contact)) {
+      errs.phone =
+        contact.phonePrefix === "+56"
+          ? "Ingresa el 9 y 8 dígitos del móvil (ej. 9 + 12345678)"
+          : "Ingresa un número válido";
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -251,7 +268,8 @@ export default function ReportePage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...contact,
+        email: contact.email.trim(),
+        phone: buildWhatsAppNumber(contact),
         concern: answers.concern ?? "",
         duration: answers.duration ?? "",
         previousTreatment: answers.previousTreatment ?? "",
@@ -266,29 +284,11 @@ export default function ReportePage() {
     setSubmitting(false);
   };
 
-  const field = (
-    id: keyof ContactData,
-    label: string,
-    type: string,
-    placeholder: string,
-    extra?: React.InputHTMLAttributes<HTMLInputElement>
-  ) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
-      <input
-        type={type}
-        value={contact[id]}
-        onChange={(e) => setContact((c) => ({ ...c, [id]: e.target.value }))}
-        placeholder={placeholder}
-        className={cn(
-          "w-full px-4 py-3.5 rounded-xl border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow",
-          errors[id] ? "border-red-400" : "border-gray-200"
-        )}
-        {...extra}
-      />
-      {errors[id] && <p className="text-xs text-red-500 mt-1">{errors[id]}</p>}
-    </div>
-  );
+  const inputClass = (err?: string) =>
+    cn(
+      "w-full px-4 py-3.5 rounded-xl border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow",
+      err ? "border-red-400" : "border-gray-200"
+    );
 
   // Report view
   if (view === "report") {
@@ -346,45 +346,78 @@ export default function ReportePage() {
             Tu Mapa Capilar AI está listo
           </div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Completa tus datos para ver tu reporte visual.
+            Deja tu email y WhatsApp para ver tu reporte visual.
           </h1>
           <p className="text-sm text-gray-500">
-            Tus datos son privados y solo se usan para enviarte tu reporte.
+            Solo te contactaremos respecto a tu mapa capilar. Tus datos son privados.
           </p>
         </div>
 
         {/* Form */}
         <div className="space-y-4">
-          {field("name", "Nombre", "text", "Tu nombre")}
-          {field("email", "Email", "email", "tu@email.com")}
-          {field("phone", "WhatsApp", "tel", "+56 9 1234 5678")}
-          {field("age", "Edad", "number", "30", { min: "16", max: "90" })}
-
-          {/* Final interest */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ¿Qué te interesa explorar después?
-            </label>
-            <div className="flex flex-col gap-2.5">
-              {FINAL_INTEREST_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setContact((c) => ({ ...c, finalInterest: option }))}
-                  className={cn(
-                    "w-full text-left px-4 py-3.5 rounded-xl border-2 text-sm font-medium transition-all active:scale-[.98]",
-                    contact.finalInterest === option
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+            <input
+              type="email"
+              value={contact.email}
+              placeholder="tu@email.com"
+              onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))}
+              className={inputClass(errors.email)}
+            />
+            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">WhatsApp</label>
+            <div className="flex gap-2 items-stretch">
+              <select
+                value={contact.phonePrefix}
+                onChange={(e) => setContact((c) => ({ ...c, phonePrefix: e.target.value }))}
+                className={cn(
+                  "shrink-0 w-[100px] px-2 py-3 rounded-xl border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30",
+                  errors.phone ? "border-red-400" : "border-gray-200"
+                )}
+                aria-label="Prefijo país"
+              >
+                {PHONE_PREFIX_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={2}
+                value={contact.phoneNine}
+                onChange={(e) =>
+                  setContact((c) => ({ ...c, phoneNine: e.target.value.replace(/\D/g, "").slice(0, 2) }))
+                }
+                className={cn(
+                  "w-11 shrink-0 text-center px-1 py-3.5 rounded-xl border text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-primary/30",
+                  errors.phone ? "border-red-400" : "border-gray-200"
+                )}
+                aria-label="Prefijo móvil (ej. 9)"
+              />
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={contact.phoneRest}
+                placeholder="12345678"
+                onChange={(e) =>
+                  setContact((c) => ({ ...c, phoneRest: e.target.value.replace(/\D/g, "").slice(0, 8) }))
+                }
+                className={cn(
+                  "min-w-0 flex-1 px-4 py-3.5 rounded-xl border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30",
+                  errors.phone ? "border-red-400" : "border-gray-200"
+                )}
+                aria-label="Número móvil"
+              />
             </div>
-            {errors.finalInterest && (
-              <p className="text-xs text-red-500 mt-1">{errors.finalInterest}</p>
-            )}
+            {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+            <p className="text-xs text-gray-400 mt-1.5">
+              Chile: deja el 9 y completa 8 dígitos después (formato típico 9 1234 5678).
+            </p>
           </div>
 
           <button

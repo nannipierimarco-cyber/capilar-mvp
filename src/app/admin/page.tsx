@@ -25,8 +25,10 @@ interface HairMapLead {
 
 const INTEREST_COLORS: Record<string, string> = {
   "Evaluar trasplante capilar": "bg-amber-100 text-amber-800",
+  "Evaluar trasplante": "bg-amber-100 text-amber-800",
   "Soluciones para minimizar la caída": "bg-blue-100 text-blue-800",
   "Solo quiero conocer mi situación capilar": "bg-gray-100 text-gray-600",
+  "Frenar la caída": "bg-emerald-100 text-emerald-800",
 };
 
 export default async function AdminPage({
@@ -227,7 +229,10 @@ export default async function AdminPage({
                       </td>
                     </tr>
                   )}
-                  {hairMapLeads.map((lead) => (
+                  {hairMapLeads.map((lead) => {
+                    const interestLabel =
+                      lead.final_interest?.trim() || lead.goal?.trim() || null;
+                    return (
                     <tr
                       key={lead.id}
                       className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
@@ -244,13 +249,13 @@ export default async function AdminPage({
                         {lead.goal ?? "—"}
                       </td>
                       <td className="px-4 py-3">
-                        {lead.final_interest ? (
+                        {interestLabel ? (
                           <span
                             className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
-                              INTEREST_COLORS[lead.final_interest] ?? "bg-gray-100 text-gray-600"
+                              INTEREST_COLORS[interestLabel] ?? "bg-gray-100 text-gray-600"
                             }`}
                           >
-                            {lead.final_interest}
+                            {interestLabel}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -267,7 +272,8 @@ export default async function AdminPage({
                         })}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

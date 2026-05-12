@@ -3,18 +3,18 @@ import { createClient } from "@supabase/supabase-js";
 import type { MapaCapilarReport } from "@/lib/mapaCapilar";
 
 interface LeadBody {
-  name: string;
+  name?: string;
   email: string;
   phone: string;
-  age: string;
-  finalInterest: string;
+  age?: string;
+  finalInterest?: string;
   concern: string;
   duration: string;
   previousTreatment: string;
   familyHistory: string;
   goal: string;
   photoUrl?: string;
-  report?: MapaCapilarReport;
+  report?: MapaCapilarReport | Record<string, unknown>;
 }
 
 export async function POST(req: NextRequest) {
@@ -36,19 +36,19 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const ageNum = parseInt(body.age, 10);
+    const ageNum = body.age != null && body.age !== "" ? parseInt(body.age, 10) : NaN;
 
     const { error } = await supabase.from("hair_map_leads").insert({
-      name: body.name,
+      name: body.name?.trim() || null,
       email: body.email,
       phone: body.phone,
-      age: isNaN(ageNum) ? null : ageNum,
+      age: !isNaN(ageNum) ? ageNum : null,
       main_concern: body.concern,
       duration: body.duration,
       previous_treatment: body.previousTreatment,
       family_history: body.familyHistory,
       goal: body.goal,
-      final_interest: body.finalInterest,
+      final_interest: body.finalInterest?.trim() || null,
       photo_url: body.photoUrl ?? null,
       report_json: body.report ?? null,
     });
