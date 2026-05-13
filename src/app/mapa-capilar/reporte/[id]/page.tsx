@@ -91,12 +91,18 @@ function FullReport({
         <HairMapLuxeInfographic forCapture report={report} frontalUrl={frontalUrl} crownUrl={crownUrl} />
       </div>
 
-      <div className="flex flex-col items-end gap-2 mb-4">
+      <div id="hair-report-image" className="bg-[#FDFBF7] p-1 sm:p-2 rounded-3xl">
+        <HairMapLuxeInfographic report={report} frontalUrl={frontalUrl} crownUrl={crownUrl} />
+      </div>
+
+      <MedicalDisclaimer />
+
+      <div className="mt-6 pb-10 space-y-3">
         <button
           type="button"
           onClick={handleDownloadImage}
           disabled={downloading}
-          className="flex items-center gap-2 text-sm font-medium text-primary border border-primary/30 px-4 py-2 rounded-xl hover:bg-primary/5 transition-colors disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 text-sm font-medium text-primary border border-primary/30 px-4 py-3.5 rounded-2xl hover:bg-primary/5 transition-colors disabled:opacity-60"
         >
           {downloading ? (
             <>
@@ -121,25 +127,16 @@ function FullReport({
           )}
         </button>
         {downloadError && (
-          <p className="text-xs text-red-500 text-right max-w-[280px]">
+          <p className="text-xs text-red-500 text-center">
             No se pudo generar la imagen. Recarga e intenta de nuevo. Si persiste, usa captura de
             pantalla.
           </p>
         )}
-      </div>
-
-      <div ref={reportCaptureRef} id="hair-report-image" className="bg-[#FDFBF7] p-1 sm:p-2 rounded-3xl">
-        <HairMapLuxeInfographic report={report} frontalUrl={frontalUrl} crownUrl={crownUrl} />
-      </div>
-
-      <MedicalDisclaimer />
-
-      <div className="mt-6 pb-10 space-y-3">
         <Link
           href="/quiz"
           className="block w-full bg-primary text-white font-semibold py-4 rounded-2xl text-base text-center hover:bg-primary/90 transition-colors"
         >
-          Continuar con evaluación médica
+          Evaluar Tratamiento online
         </Link>
         <p className="text-xs text-gray-400 text-center">
           Un médico revisará tu caso y determinará si corresponde tratamiento.
@@ -300,7 +297,7 @@ export default function ReporteIdPage() {
                 href="/quiz"
                 className="inline-block bg-primary text-white font-semibold px-8 py-4 rounded-2xl hover:bg-primary/90 transition-colors"
               >
-                Continuar con evaluación médica
+                Evaluar Tratamiento online
               </Link>
             </div>
           )}

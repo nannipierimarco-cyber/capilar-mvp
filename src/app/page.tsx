@@ -41,11 +41,14 @@ function HeroSection() {
             Perfecto
           </Link>
           <div className="flex items-center gap-2.5">
-            <Link
-              href="/score-capilar"
-              className="hidden text-xs font-semibold text-white/80 border border-white/25 rounded-full px-3 py-1.5 hover:bg-white/10 transition-colors sm:inline"
-            >
+            <Link href="/score-capilar" className="hidden">
               Score Capilar Gratis
+            </Link>
+            <Link
+              href="/mapa-capilar"
+              className="hidden text-xs font-semibold text-white/80 border border-white/25 rounded-full px-3 py-1.5 hover:bg-white/10 transition-colors sm:inline-flex sm:items-center"
+            >
+              Mapa Capilar AI
             </Link>
             <LinkButton
               href="/quiz"

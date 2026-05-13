@@ -1,9 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { LinkButton } from "@/components/ui/link-button";
+import { isSkinCarePath } from "@/lib/skinCareRoutes";
 import { cn } from "@/lib/utils";
 
 /** Homepage: hero verde móvil incluye su propia barra; ocultar header global solo por debajo de md. */
 export default function Header({ hideOnMobile }: { hideOnMobile?: boolean }) {
+  const pathname = usePathname();
+  const hideMapaCapilarCta = isSkinCarePath(pathname);
+
   return (
     <header
       className={cn(
@@ -25,10 +32,20 @@ export default function Header({ hideOnMobile }: { hideOnMobile?: boolean }) {
             href="/score-capilar"
             variant="outline"
             size="sm"
-            className="hidden sm:inline-flex rounded-full px-4 border-primary/40 text-primary hover:border-primary hover:bg-accent"
+            className="hidden rounded-full px-4 border-primary/40 text-primary hover:border-primary hover:bg-accent"
           >
             Score Capilar Gratis
           </LinkButton>
+          {!hideMapaCapilarCta && (
+            <LinkButton
+              href="/mapa-capilar"
+              variant="outline"
+              size="sm"
+              className="hidden sm:inline-flex rounded-full px-4 border-primary/40 text-primary hover:border-primary hover:bg-accent"
+            >
+              Mapa Capilar AI
+            </LinkButton>
+          )}
           <LinkButton href="/quiz" size="sm" className="rounded-full px-5">
             Comenzar evaluación
           </LinkButton>
