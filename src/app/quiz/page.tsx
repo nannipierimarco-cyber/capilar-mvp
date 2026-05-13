@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { type QuizData, type JourneyType, INITIAL_QUIZ_DATA } from "@/lib/types";
+import { triggerDoctorReport } from "@/app/actions/triggerDoctorReport";
 
 type QuizStep =
   | "intro"
@@ -274,11 +275,9 @@ export default function QuizPage() {
       localStorage.setItem("capilar_intake_id", intake.id);
 
       logOp("ai doctor-report trigger", "start", ["intake_id"]);
-      fetch("/api/ai/doctor-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intake_id: intake.id }),
-      }).catch((e) => logOp("ai doctor-report trigger", "fail", undefined, e));
+      triggerDoctorReport(intake.id).catch((e) =>
+        logOp("ai doctor-report trigger", "fail", undefined, e)
+      );
 
       const journeyQuery =
         data.journeyType === "transplant" ? "transplant" : "treatment";

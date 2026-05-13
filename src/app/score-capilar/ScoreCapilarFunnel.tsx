@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { createClient } from "@/lib/supabase/client";
 import { computeResult, type ScoreCapilarAnswers, type ScoreCapilarResult } from "@/lib/scoreCapilar";
+import { syncLead } from "@/app/actions/syncLead";
 import { generateFallbackReport, type UserScoreReport } from "@/lib/userScoreReport";
 import type { HairAnalysisResult } from "@/lib/hairMapAnalysis";
 import MiniQuiz from "./components/MiniQuiz";
@@ -127,33 +128,28 @@ export default function ScoreCapilarFunnel() {
     }
 
     // HubSpot sync — non-blocking, never breaks user flow
-    try {
-      trackEvent("hubspot_sync_started", { email: contactData.email });
-      const hsRes = await fetch("/api/hubspot/sync-lead", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: contactData.email,
-          nombre: contactData.nombre,
-          whatsapp: contactData.whatsapp,
-          score: computed.score,
-          scoreLabel: computed.prioridad,
-          capillaryAge: computed.edadCapilar,
-          preliminaryRoute: computed.ruta,
-          mainConcernArea: answers.zona,
-          leadStage: "lead",
-          transplantInterest: answers.disposicion,
-          userReportGenerated: true,
-        }),
-      });
-      if (hsRes.ok) {
-        trackEvent("hubspot_sync_success", { email: contactData.email });
-      } else {
-        trackEvent("hubspot_sync_failed", { status: hsRes.status });
-      }
-    } catch (err) {
-      trackEvent("hubspot_sync_failed", { error: String(err) });
-    }
+    trackEvent("hubspot_sync_started", { email: contactData.email });
+    syncLead({
+      email: contactData.email,
+      nombre: contactData.nombre,
+      whatsapp: contactData.whatsapp,
+      score: computed.score,
+      scoreLabel: computed.prioridad,
+      capillaryAge: computed.edadCapilar,
+      preliminaryRoute: computed.ruta,
+      mainConcernArea: answers.zona,
+      leadStage: "lead",
+      transplantInterest: answers.disposicion,
+      userReportGenerated: true,
+    })
+      .then(({ success }) => {
+        if (success) {
+          trackEvent("hubspot_sync_success", { email: contactData.email });
+        } else {
+          trackEvent("hubspot_sync_failed", { error: "sync returned false" });
+        }
+      })
+      .catch((err: unknown) => trackEvent("hubspot_sync_failed", { error: String(err) }));
 
     // Run both AI analyses in parallel — both fail gracefully
     const photosUploaded = [photos.frontal, photos.top].filter(Boolean).length;
@@ -299,11 +295,7 @@ export default function ScoreCapilarFunnel() {
           onMedicalCtaClick={() => {
             trackEvent("user_score_report_medical_cta_clicked", { score: result.score });
             if (contactData?.email) {
-              fetch("/api/hubspot/sync-lead", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: contactData.email, medicalCtaClicked: true }),
-              }).catch(() => {});
+              syncLead({ email: contactData.email, medicalCtaClicked: true }).catch(() => {});
             }
           }}
         />

@@ -6,6 +6,10 @@ import {
   type HairMapAnalysisReport,
   type MapaCapilarAnswers,
 } from "@/lib/mapaCapilar";
+import { checkRateLimit } from "@/lib/rateLimit";
+
+const ALLOWED_PHOTO_MIME = /^data:image\/(jpeg|png|webp|gif);base64,/;
+const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const SYSTEM_PROMPT = `Eres un asistente experto en análisis visual capilar y cuero cabelludo para una experiencia digital de orientación capilar.
 
@@ -117,6 +121,28 @@ interface RequestBody {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 requests per 10 minutes per IP
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    req.headers.get("x-real-ip") ??
+    "unknown";
+  const { allowed } = checkRateLimit(`analyze:${ip}`, {
+    limit: 5,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Intenta nuevamente en unos minutos." },
+      { status: 429 }
+    );
+  }
+
+  // Body size guard
+  const contentLength = parseInt(req.headers.get("content-length") ?? "0", 10);
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
+
   let body: RequestBody;
   try {
     body = (await req.json()) as RequestBody;
@@ -125,6 +151,14 @@ export async function POST(req: NextRequest) {
   }
 
   const { answers, photoFrontal, photoCrown } = body;
+
+  // Validate photo MIME types
+  if (photoFrontal && !ALLOWED_PHOTO_MIME.test(photoFrontal)) {
+    return NextResponse.json({ error: "Invalid photo format" }, { status: 400 });
+  }
+  if (photoCrown && !ALLOWED_PHOTO_MIME.test(photoCrown)) {
+    return NextResponse.json({ error: "Invalid photo format" }, { status: 400 });
+  }
   const hasPhotos = !!(photoFrontal || photoCrown);
   const fallback = generateFallbackAnalysisReport(answers);
   const hasDB = !!(process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL);
