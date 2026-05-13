@@ -1265,45 +1265,6 @@ function PersonalStep({ data, onChange, onNext }: StepProps) {
     data.age.trim() &&
     data.sex;
 
-  // #region agent log
-  useEffect(() => {
-    const nationalLen = normalizeNationalIdForDb(data.nationalId).length;
-    fetch("http://127.0.0.1:7425/ingest/a7c193fe-1872-4f8e-9286-96a420b16cab", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "0ca0c7" },
-      body: JSON.stringify({
-        sessionId: "0ca0c7",
-        location: "quiz/page.tsx:PersonalStep",
-        message: "personal validation snapshot",
-        data: {
-          isValid,
-          h1_nationalOk: isNationalIdInputValid(data.nationalId),
-          nationalLen,
-          h2_phoneOk: phoneDigits.length === 8,
-          phoneLen: phoneDigits.length,
-          h4_firstOk: !!data.firstName.trim(),
-          h4_lastOk: !!data.lastName.trim(),
-          h4_emailOk: !!data.email.trim(),
-          h4_ageOk: !!data.age.trim(),
-          h4_sexOk: !!data.sex,
-        },
-        timestamp: Date.now(),
-        hypothesisId: "H1-H4",
-      }),
-    }).catch(() => {});
-  }, [
-    data.firstName,
-    data.lastName,
-    data.nationalId,
-    data.email,
-    data.phone,
-    data.age,
-    data.sex,
-    isValid,
-    phoneDigits,
-  ]);
-  // #endregion
-
   return (
     <div>
       <h2 className="text-2xl font-bold mb-2">Casi listo — tus datos</h2>
