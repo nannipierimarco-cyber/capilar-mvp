@@ -212,7 +212,9 @@ export default function ReporteIdPage() {
     }
 
     if (id) {
-      fetch(`/api/mapa-capilar/get-analysis?id=${id}`)
+      const accessToken = sessionStorage.getItem("mapa_capilar_access_token") ?? "";
+      const url = `/api/mapa-capilar/get-analysis?id=${encodeURIComponent(id)}&token=${encodeURIComponent(accessToken)}`;
+      fetch(url)
         .then((r) => r.json())
         .then((data: { frontalUrl?: string; crownUrl?: string; report?: HairMapAnalysisReport }) => {
           if (data.frontalUrl) setFrontalUrl(data.frontalUrl);

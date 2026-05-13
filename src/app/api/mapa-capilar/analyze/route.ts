@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHmac } from "crypto";
 import {
   generateFallbackAnalysisReport,
   normalizeHairMapReport,
@@ -7,6 +8,12 @@ import {
   type MapaCapilarAnswers,
 } from "@/lib/mapaCapilar";
 import { checkRateLimit } from "@/lib/rateLimit";
+
+function generateAccessToken(id: string): string | null {
+  const secret = process.env.ANALYSIS_ACCESS_SECRET;
+  if (!secret) return null;
+  return createHmac("sha256", secret).update(id).digest("hex");
+}
 
 const ALLOWED_PHOTO_MIME = /^data:image\/(jpeg|png|webp|gif);base64,/;
 const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -292,5 +299,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ id: recordId, report, isFallback: !process.env.OPENAI_API_KEY });
+  const accessToken = recordId ? generateAccessToken(recordId) : null;
+  return NextResponse.json({
+    id: recordId,
+    accessToken,
+    report,
+    isFallback: !process.env.OPENAI_API_KEY,
+  });
 }

@@ -62,9 +62,14 @@ export default function AnalizandoPage() {
           }),
         })
           .then((r) => r.json())
-          .then((data: { id?: string | null; report?: HairMapAnalysisReport }) => {
+          .then((data: { id?: string | null; accessToken?: string | null; report?: HairMapAnalysisReport }) => {
             analysisId = data.id ?? null;
             report = data.report;
+            if (data.accessToken) {
+              try {
+                sessionStorage.setItem("mapa_capilar_access_token", data.accessToken);
+              } catch { /* ignore */ }
+            }
           })
           .catch(() => {
             // Network error — will use fallback via sessionStorage on reporte page
