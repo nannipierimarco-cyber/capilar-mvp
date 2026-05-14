@@ -38,11 +38,20 @@ export async function POST(req: NextRequest) {
   const ageNum = body.age != null && body.age !== "" ? parseInt(body.age, 10) : NaN;
 
   try {
-    // 1. Upsert patient (source = mapa_capilar) — deduplicate by email
-    const { data: patient, error: patientError } = await supabase
+    // 1. Check if a mapa_capilar patient with this email already exists
+    const { data: existing } = await supabase
       .from("patients")
-      .upsert(
-        {
+      .select("id")
+      .eq("email", body.email)
+      .eq("source", "mapa_capilar")
+      .maybeSingle();
+
+    let patientId: string | null = existing?.id ?? null;
+
+    if (!patientId) {
+      const { data: newPatient, error: insertError } = await supabase
+        .from("patients")
+        .insert({
           email: body.email,
           first_name: body.name?.trim().split(" ")[0] ?? "",
           last_name: body.name?.trim().split(" ").slice(1).join(" ") ?? "",
@@ -50,21 +59,20 @@ export async function POST(req: NextRequest) {
           age: !isNaN(ageNum) ? ageNum : null,
           source: "mapa_capilar",
           status: "lead",
-        },
-        { onConflict: "email", ignoreDuplicates: false }
-      )
-      .select("id")
-      .single();
-
-    if (patientError) {
-      console.warn("[save-lead] patient upsert warning:", patientError.message);
+        })
+        .select("id")
+        .single();
+      if (insertError) {
+        console.warn("[save-lead] patient insert warning:", insertError.message);
+      }
+      patientId = newPatient?.id ?? null;
     }
 
     // 2. Link hair_map_analyses to patient if analysisId provided
-    if (patient?.id && body.analysisId) {
+    if (patientId && body.analysisId) {
       const { error: linkError } = await supabase
         .from("hair_map_analyses")
-        .update({ patient_id: patient.id })
+        .update({ patient_id: patientId })
         .eq("id", body.analysisId);
       if (linkError) {
         console.warn("[save-lead] link analysis warning:", linkError.message);
