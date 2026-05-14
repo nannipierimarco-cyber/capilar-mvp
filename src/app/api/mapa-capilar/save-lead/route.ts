@@ -58,7 +58,6 @@ export async function POST(req: NextRequest) {
           phone: body.phone,
           age: !isNaN(ageNum) ? ageNum : null,
           source: "mapa_capilar",
-          status: "lead",
         })
         .select("id")
         .single();

@@ -253,6 +253,7 @@ export default function ReporteIdPage() {
       }
     })();
 
+    const analysisId = id ?? sessionStorage.getItem("mapa_capilar_analysis_id") ?? null;
     fetch("/api/mapa-capilar/save-lead", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -265,6 +266,7 @@ export default function ReporteIdPage() {
         familyHistory: parsed.familyHistory ?? "",
         goal: parsed.goal ?? "",
         report: report ?? undefined,
+        analysisId,
       }),
     }).catch(() => {});
 
