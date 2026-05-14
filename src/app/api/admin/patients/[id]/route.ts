@@ -38,11 +38,14 @@ export async function DELETE(
 
   const supabase = getAdminClient();
 
-  // 1. Collect photo URLs before deleting (needed to clean storage)
-  const { data: photoRows, error: photoFetchError } = await supabase
-    .from("photos")
-    .select("url")
-    .eq("patient_id", patientId);
+  // 1. Collect photo URLs and intake IDs before deleting
+  const [
+    { data: photoRows, error: photoFetchError },
+    { data: intakeRows, error: intakeFetchError },
+  ] = await Promise.all([
+    supabase.from("photos").select("url").eq("patient_id", patientId),
+    supabase.from("intakes").select("id").eq("patient_id", patientId),
+  ]);
 
   if (photoFetchError) {
     console.error("[delete-patient] fetch photos fail:", photoFetchError);
@@ -51,10 +54,32 @@ export async function DELETE(
       { status: 500 }
     );
   }
+  if (intakeFetchError) {
+    console.error("[delete-patient] fetch intakes fail:", intakeFetchError);
+    return NextResponse.json(
+      { error: `Error al obtener intakes: ${intakeFetchError.message}` },
+      { status: 500 }
+    );
+  }
 
-  // 2. Delete child rows in dependency order
+  // 2a. Delete ai_doctor_reports by intake_id (covers rows where patient_id is null)
+  const intakeIds = (intakeRows ?? []).map((r) => r.id as string);
+  if (intakeIds.length > 0) {
+    const { error: aiByIntakeError } = await supabase
+      .from("ai_doctor_reports")
+      .delete()
+      .in("intake_id", intakeIds);
+    if (aiByIntakeError) {
+      console.error("[delete-patient] ai_doctor_reports (by intake_id) delete fail:", aiByIntakeError);
+      return NextResponse.json(
+        { error: `Error al borrar ai_doctor_reports: ${aiByIntakeError.message}` },
+        { status: 500 }
+      );
+    }
+  }
+
+  // 2b. Delete remaining child rows in dependency order
   const steps: Array<{ table: string; filter: string; value: string }> = [
-    { table: "ai_doctor_reports", filter: "patient_id", value: patientId },
     { table: "medical_reviews",   filter: "patient_id", value: patientId },
     { table: "orders",            filter: "patient_id", value: patientId },
     { table: "photos",            filter: "patient_id", value: patientId },
