@@ -28,14 +28,6 @@ export default function Header({ hideOnMobile }: { hideOnMobile?: boolean }) {
           </Link>
         </nav>
         <div className="flex items-center gap-2">
-          <LinkButton
-            href="/score-capilar"
-            variant="outline"
-            size="sm"
-            className="hidden rounded-full px-4 border-primary/40 text-primary hover:border-primary hover:bg-accent"
-          >
-            Score Capilar Gratis
-          </LinkButton>
           {!hideMapaCapilarCta && (
             <LinkButton
               href="/mapa-capilar"

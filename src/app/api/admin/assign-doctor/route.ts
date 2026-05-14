@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
+import { verifyAdminToken } from "@/lib/admin/auth";
 
 function getAdminClient() {
   return createClient(
@@ -12,7 +13,7 @@ function getAdminClient() {
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
-  if (!token || token !== process.env.ADMIN_SECRET) {
+  if (!verifyAdminToken(token ?? "")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 

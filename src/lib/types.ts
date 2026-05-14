@@ -25,6 +25,7 @@ export interface Patient {
   age: number | null;
   sex: "male" | "female" | null;
   city: string | null;
+  consented_at: string | null;
   created_at: string;
 }
 
@@ -120,6 +121,7 @@ export interface QuizData {
   photoTemples: File | null;
   photoCrown: File | null;
   photoSide: File | null;
+  consented: boolean;
 }
 
 export const INITIAL_QUIZ_DATA: QuizData = {
@@ -164,6 +166,7 @@ export const INITIAL_QUIZ_DATA: QuizData = {
   photoTemples: null,
   photoCrown: null,
   photoSide: null,
+  consented: false,
 };
 
 export const STATUS_LABELS: Record<PatientStatus, string> = {

@@ -1,0 +1,78 @@
+﻿Ejecuta solo P1-A del plan de seguridad en docs/SECURITY_STABILIZATION_PLAN.md.
+
+Objetivo:
+Corregir exposición pública de fotos de pacientes/capilares reemplazando getPublicUrl por acceso controlado con signed URLs temporales o mecanismo equivalente seguro.
+
+Contexto:
+El plan detectó varias ocurrencias de getPublicUrl en flujos de:
+- mapa capilar
+- quiz
+- score-capilar
+- evaluacion-piel
+- reportes
+
+Las fotos de pacientes no deben quedar accesibles públicamente por URL permanente.
+
+Alcance permitido:
+- Revisar todas las ocurrencias de getPublicUrl en el repo.
+- Identificar buckets de Supabase Storage usados para fotos.
+- Cambiar lectura de fotos para usar signed URLs temporales cuando el frontend necesite mostrar una imagen.
+- Mantener funcionando el reporte de mapa capilar.
+- Mantener funcionando la carga/análisis de fotos.
+- Documentar si algún bucket debe pasar de público a privado.
+- Crear SQL/migración/documentación necesaria si no puedes cambiar el bucket automáticamente.
+- Actualizar docs/SECURITY_STABILIZATION_PLAN.md o crear docs/P1A_PRIVATE_PHOTOS_NOTES.md con lo implementado y pendientes.
+
+Reglas importantes:
+- No toques P1-B, P1-C, P1-D ni P1-E.
+- No toques Flow.
+- No toques Calendly.
+- No toques admin cookie.
+- No toques consentimiento/borrado todavía.
+- No hagas refactor grande.
+- No rompas rutas existentes.
+- No expongas SUPABASE_SERVICE_ROLE_KEY en frontend.
+- No uses NEXT_PUBLIC para secretos.
+- No hagas git add ni commit.
+- No modifiques archivos no relacionados.
+
+Implementación esperada:
+1. Buscar todas las ocurrencias de getPublicUrl.
+2. Clasificarlas por flujo:
+   - mapa-capilar/analyze
+   - mapa-capilar/reporte
+   - quiz
+   - score-capilar
+   - evaluacion-piel
+   - otros
+3. Para cada caso, decidir:
+   - si puede reemplazarse por createSignedUrl
+   - si requiere route server-side
+   - si requiere helper compartido
+   - si debe quedar pendiente por riesgo alto
+4. Implementar primero el cambio seguro y mínimo para mapa-capilar y reporte.
+5. Si cambias otros flujos, hacerlo solo si es bajo riesgo.
+6. Si algún cambio requiere configurar buckets privados en Supabase, documenta exactamente:
+   - bucket afectado
+   - cambio requerido
+   - SQL o pasos manuales
+   - riesgo de romper fotos existentes
+7. Asegurar que el reporte siga mostrando fotos correctamente con URLs temporales.
+8. Asegurar que el análisis no devuelva URLs públicas permanentes.
+9. Si hay fotos legacy ya guardadas con public URLs, documentar estrategia de migración pero no hacer migración destructiva.
+
+Validaciones obligatorias:
+- Buscar que no queden getPublicUrl usados para fotos de pacientes.
+- npm.cmd run build debe pasar.
+- Mostrar git diff --stat.
+- Mostrar archivos tocados.
+- Explicar cómo probar manualmente:
+  - crear análisis
+  - abrir reporte
+  - verificar fotos visibles
+  - verificar que URL firmada expire o no sea pública permanente
+
+Output:
+- Implementación P1-A si es segura.
+- docs/P1A_PRIVATE_PHOTOS_NOTES.md con resumen técnico, cambios, pendientes y pasos manuales en Supabase si aplica.
+- No hacer commit.

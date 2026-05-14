@@ -1,0 +1,67 @@
+# P1-D — Consentimiento explícito en quiz (H11 / P1.4)
+
+> Contexto: Ley 19.628 (Chile). El paciente entrega datos médicos sensibles
+> (RUT, fotos, historial clínico). Sin consentimiento explícito registrado,
+> la plataforma no puede demostrar base legal para el tratamiento de esos datos.
+
+---
+
+## ALCANCE
+
+Solo este ítem. No tocar:
+- Webhooks (P1-B)
+- Cookies admin (P1-C)
+- Signed URLs más allá de lo ya hecho (P1-A)
+- Flujo de borrado de paciente (P1-E — deferred)
+
+---
+
+## CAMBIOS REQUERIDOS
+
+### 1. `src/lib/types.ts`
+
+- Agregar `consented: boolean` a la interfaz `QuizData`.
+- Agregar `consented: false` a `INITIAL_QUIZ_DATA`.
+- Agregar `consented_at: string | null` a la interfaz `Patient`
+  (refleja la columna que se documentará para migración SQL).
+
+### 2. `src/app/quiz/page.tsx` — `PersonalStep`
+
+Antes del botón "Enviar evaluación":
+- Agregar checkbox que controle `data.consented` vía `onChange({ consented: ... })`.
+- Texto del label (aprobado por regla médica):
+  "Acepto que Nilo trate mis datos personales y de salud para coordinar mi
+  evaluación capilar. Entiendo que esta evaluación no es un diagnóstico médico
+  y que un médico revisará mi caso antes de cualquier indicación de tratamiento."
+- Incluir enlace a `/privacy` con texto "Política de privacidad" (puede ser 404
+  por ahora — se creará en el futuro).
+- Actualizar `isValid` para incluir `data.consented === true`.
+
+### 3. `src/app/quiz/page.tsx` — `handleSubmit`
+
+En `patientPayload` (objeto enviado a `supabase.from("patients").insert(...)`):
+- Agregar `consented_at: data.consented ? new Date().toISOString() : null`.
+
+### 4. Migración SQL (solo documentar — NO ejecutar desde código)
+
+```sql
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS consented_at TIMESTAMPTZ;
+```
+
+Incluir este SQL en el doc de notas P1-D.
+
+### 5. `docs/P1D_CONSENT_NOTES.md`
+
+Crear documento de notas siguiendo el mismo formato de P1A/P1B/P1C.
+
+---
+
+## RESTRICCIONES
+
+- No eliminar ningún paso del quiz.
+- No cambiar el flujo de envío — solo agregar el campo a `patientPayload`.
+- El checkbox no debe bloquear la lectura de los pasos anteriores; solo bloquea
+  el botón "Enviar evaluación".
+- No tocar P1-A, P1-B, P1-C ni P1-E.
+- `npm run build` debe pasar antes de dar el trabajo por terminado.
+- No hacer git add ni commit.

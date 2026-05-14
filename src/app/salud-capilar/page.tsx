@@ -53,9 +53,6 @@ function Hero() {
             >
               Perfecto
             </Link>
-            <Link href="/score-capilar" className="hidden">
-              Score Capilar Gratis
-            </Link>
             <Link
               href="/mapa-capilar"
               className="text-xs font-semibold text-white border border-white/30 rounded-full px-3 py-1.5 hover:bg-white/10 transition-colors"

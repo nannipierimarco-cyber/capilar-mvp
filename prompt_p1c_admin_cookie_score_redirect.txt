@@ -1,0 +1,114 @@
+Ejecuta solo P1-C del plan de seguridad en docs/SECURITY_STABILIZATION_PLAN.md.
+
+P1-C cubre dos ítems independientes:
+  1. H8  — Refactorizar cookie admin para que no almacene el secreto raw
+  2. P1.6 — Deprecar /score-capilar redirigiendo a /mapa-capilar
+
+=============================================================
+ÍTEM 1 — H8: Cookie admin no debe contener el secreto raw
+=============================================================
+
+Problema:
+  src/app/api/admin/auth/route.ts hace:
+    cookieStore.set("admin_token", process.env.ADMIN_SECRET, ...)
+  El valor del cookie ES el secreto. Si el cookie es interceptado,
+  el atacante obtiene el secreto completo y puede forjar cualquier
+  cookie admin futuro.
+
+Solución:
+  En el login (POST /api/admin/auth):
+    - Generar un token de sesión firmado:
+        token = HMAC-SHA256(ADMIN_SECRET, timestamp + ":" + nonce)
+        donde nonce = crypto.randomBytes(16).toString("hex")
+    - Almacenar el token firmado en la cookie (no el secreto)
+    - Guardar en la cookie también el timestamp y el nonce para verificación
+
+  En cada verificación de admin (todas las rutas que leen la cookie):
+    - Leer el token de la cookie
+    - Re-computar el HMAC con el mismo timestamp+nonce embebidos
+    - Comparar con timingSafeEqual
+    - Opcionalmente validar que el token no sea más antiguo de X horas
+
+  Formato del token en cookie (todo en un solo string, separado por "|"):
+    "<timestamp>|<nonce>|<hmac>"
+    donde hmac = HMAC-SHA256(ADMIN_SECRET, "<timestamp>:<nonce>").digest("hex")
+
+  Esto garantiza:
+    - La cookie no contiene el secreto
+    - El token no puede forjarse sin conocer ADMIN_SECRET
+    - El token puede invalidarse cambiando ADMIN_SECRET
+
+Alcance:
+  - Leer y modificar src/app/api/admin/auth/route.ts (POST handler: generar token)
+  - Buscar TODOS los lugares que verifican la cookie admin:
+      grep -r "admin_token\|ADMIN_SECRET" src/
+    y actualizar la verificación en cada uno para usar el nuevo formato.
+  - No tocar el login UI (src/app/admin/login/page.tsx) — solo el API route.
+  - No usar librerías externas (iron-session, next-auth) — solo crypto de Node.
+  - Crear un helper compartido verifyAdminToken(cookie: string): boolean
+    en src/lib/admin/auth.ts (o similar) para no duplicar lógica.
+
+Restricciones:
+  - No exponer ADMIN_SECRET en ningún bundle de cliente.
+  - Usar timingSafeEqual en todas las comparaciones de token.
+  - El helper debe ser importable desde API routes (server-only).
+  - Si la cookie tiene el formato antiguo (= ADMIN_SECRET raw), el token
+    fallará la verificación automáticamente (no hay compatibilidad hacia atrás
+    necesaria: el admin simplemente se loguea de nuevo).
+
+=============================================================
+ÍTEM 2 — P1.6: Deprecar /score-capilar → redirect a /mapa-capilar
+=============================================================
+
+Problema:
+  /score-capilar es un funnel capilar legacy paralelo al de /mapa-capilar.
+  Tiene una tabla score_capilar_leads que puede no existir en producción
+  (hay un TODO en el código). Genera confusión operativa y superficie de
+  ataque extra sin mantenimiento activo.
+
+Solución:
+  Redirigir permanentemente /score-capilar → /mapa-capilar.
+
+Proceso obligatorio antes de implementar (Rule 1 de nilo-guardrails):
+  1. grep -r "score-capilar" src/ -- listar TODOS los archivos que referencian la ruta
+  2. Verificar next.config.js y middleware.ts por rewrites/redirects existentes
+  3. Mostrar la lista completa de referencias encontradas
+
+Implementación:
+  - NO eliminar src/app/score-capilar/ — solo convertir page.tsx en redirect
+  - src/app/score-capilar/page.tsx → usar redirect() de Next.js hacia /mapa-capilar
+  - Mantener todos los demás archivos bajo score-capilar/ intactos (componentes,
+    ScoreCapilarFunnel.tsx, etc.) — solo el page.tsx hace el redirect
+  - NO crear la tabla score_capilar_leads en Supabase
+
+=============================================================
+REGLAS GENERALES
+=============================================================
+
+- No toques P1-A, P1-B, P1-D, P1-E.
+- No toques Flow ni Calendly ni WhatsApp.
+- No toques el quiz ni el consentimiento todavía.
+- No toques fotos ni storage.
+- No hagas refactor grande.
+- No rompas rutas existentes.
+- No expongas secrets en cliente.
+- No hagas git add ni commit.
+- No modifiques archivos no relacionados.
+
+Validaciones obligatorias:
+- grep -r "admin_token\|ADMIN_SECRET" src/ → verificar que ningún route
+  compara directamente con process.env.ADMIN_SECRET
+- grep -r "score-capilar" src/ → verificar que todas las referencias internas
+  siguen funcionando (el page.tsx redirige, los componentes siguen existiendo)
+- npm run build debe pasar.
+- Mostrar git diff --stat al final.
+- Mostrar archivos tocados.
+- Explicar cómo probar:
+  - H8: login admin → verificar que cookie no contiene ADMIN_SECRET raw
+  - H8: acceder a ruta admin protegida → debe funcionar con nuevo token
+  - P1.6: abrir /score-capilar → debe redirigir a /mapa-capilar
+
+Output esperado:
+- Implementación H8 + P1.6.
+- docs/P1C_ADMIN_COOKIE_SCORE_NOTES.md con resumen técnico y cómo probar.
+- No hacer commit.

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { verifyAdminToken } from "@/lib/admin/auth";
 import { createClient } from "@supabase/supabase-js";
 import { type DoctorProfile } from "@/lib/types";
 import CreateDoctorForm from "./CreateDoctorForm";
@@ -15,7 +16,7 @@ function getAdminClient() {
 export default async function AdminDoctorsPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
-  if (!token || token !== process.env.ADMIN_SECRET) {
+  if (!verifyAdminToken(token ?? "")) {
     redirect("/admin/login");
   }
 

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { verifyAdminToken } from "@/lib/admin/auth";
 import { createClient } from "@/lib/supabase/server";
 import { type Intake, type Patient, STATUS_LABELS, STATUS_COLORS } from "@/lib/types";
 
@@ -39,7 +40,7 @@ export default async function AdminPage({
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
 
-  if (!token || token !== process.env.ADMIN_SECRET) {
+  if (!verifyAdminToken(token ?? "")) {
     redirect("/admin/login");
   }
 

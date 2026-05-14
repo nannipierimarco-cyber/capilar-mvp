@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { generateDoctorReport } from "@/lib/ai/generateDoctorReport";
+import { verifyAdminToken } from "@/lib/admin/auth";
 
 export async function POST(req: NextRequest) {
   // Dual auth: admin cookie (admin portal) OR X-Internal-Secret header (Server Action)
@@ -8,7 +9,7 @@ export async function POST(req: NextRequest) {
   const adminToken = cookieStore.get("admin_token")?.value;
   const internalSecret = req.headers.get("x-internal-secret");
 
-  const isAdmin = adminToken && adminToken === process.env.ADMIN_SECRET;
+  const isAdmin = verifyAdminToken(adminToken ?? "");
   const isInternal =
     process.env.INTERNAL_API_SECRET &&
     internalSecret === process.env.INTERNAL_API_SECRET;

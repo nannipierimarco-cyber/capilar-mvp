@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { generateAdminToken } from "@/lib/admin/auth";
 
 export async function POST(req: NextRequest) {
   const { password } = await req.json();
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set("admin_token", secret, {
+  cookieStore.set("admin_token", generateAdminToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

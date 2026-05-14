@@ -115,7 +115,7 @@ async function uploadPhoto(
       .from("patient-photos")
       .upload(path, buffer, { contentType: "image/jpeg", upsert: true });
     if (error) return null;
-    return supabase.storage.from("patient-photos").getPublicUrl(path).data.publicUrl;
+    return path;
   } catch {
     return null;
   }

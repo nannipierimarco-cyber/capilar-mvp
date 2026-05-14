@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHmac, timingSafeEqual } from "crypto";
 import {
   parseIncomingWhatsAppMessage,
   sendWhatsAppText,
@@ -61,9 +62,34 @@ export async function POST(req: NextRequest) {
     hasAllowedPhones: !!process.env.SKIN_COPILOT_ALLOWED_TEST_PHONES,
   });
 
+  // Read raw body first — required for HMAC-SHA256 verification over raw bytes
+  const rawBody = await req.text();
+
+  // Verify Meta X-Hub-Signature-256 — always return 200 to Meta even on failure
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (appSecret) {
+    const sigHeader = req.headers.get("x-hub-signature-256") ?? "";
+    const receivedSig = sigHeader.startsWith("sha256=") ? sigHeader.slice(7) : "";
+    if (!receivedSig) {
+      console.warn("[Webhook:POST] X-Hub-Signature-256 missing or malformed — ignoring payload");
+      return NextResponse.json({ ok: true });
+    }
+    const expectedSig = createHmac("sha256", appSecret).update(rawBody).digest("hex");
+    let valid = false;
+    try {
+      valid = timingSafeEqual(Buffer.from(expectedSig, "hex"), Buffer.from(receivedSig, "hex"));
+    } catch { /* buffer length mismatch = invalid */ }
+    if (!valid) {
+      console.warn("[Webhook:POST] Invalid Meta signature — ignoring payload");
+      return NextResponse.json({ ok: true });
+    }
+  } else {
+    console.warn("[Webhook:POST] WHATSAPP_APP_SECRET not set — skipping signature check (degraded mode)");
+  }
+
   let payload: Record<string, unknown>;
   try {
-    payload = await req.json();
+    payload = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
     console.warn("[Webhook:POST] Failed to parse JSON body");
     // Always return 200 to prevent WhatsApp from retrying indefinitely

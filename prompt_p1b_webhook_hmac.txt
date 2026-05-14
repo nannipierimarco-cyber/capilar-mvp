@@ -1,0 +1,77 @@
+Ejecuta solo P1-B del plan de seguridad en docs/SECURITY_STABILIZATION_PLAN.md.
+
+Objetivo:
+Agregar verificación HMAC a los tres webhooks que hoy procesan payloads sin autenticar al emisor:
+- Calendly (H9 / P1.2)
+- WhatsApp/Meta (H10 / P1.3)
+- Flow confirm (H6 / commit 12)
+
+Contexto:
+Cualquier actor puede enviar un POST falso a estos webhooks y alterar el estado de
+consultas médicas (Calendly), consumir créditos de OpenAI/WhatsApp (Meta), o
+simular pagos confirmados (Flow). Los tres endpoints procesan payloads directamente
+sin verificar la firma del emisor legítimo.
+
+Archivos afectados:
+- src/app/api/webhooks/calendly/route.ts
+- src/app/api/whatsapp/webhook/route.ts
+- src/app/api/payments/flow/confirm/route.ts
+
+Alcance permitido:
+- Implementar verificación HMAC en los tres webhooks.
+- Calendly: usar HMAC-SHA256 con CALENDLY_WEBHOOK_SIGNING_KEY sobre el raw body,
+  comparar con el header "Calendly-Webhook-Signature" (formato "t=<timestamp>,v1=<hex>").
+- WhatsApp/Meta: usar HMAC-SHA256 con WHATSAPP_APP_SECRET sobre el raw body,
+  comparar con el header "X-Hub-Signature-256" (formato "sha256=<hex>").
+  Si la variable no está configurada, permitir el paso (degraded mode, log warning).
+  Responder 200 aunque la firma falle (Meta espera 200 siempre en el POST).
+- Flow confirm: verificar que el payload venga de Flow usando HMAC-SHA256 con
+  FLOW_SECRET_KEY. Flow firma concatenando todos los parámetros del POST (form-encoded)
+  en orden alfabético por clave, excluyendo el parámetro "s" (que es la firma).
+  Comparar con el parámetro "s" del body. Si FLOW_SECRET_KEY no está configurado,
+  permitir el paso (degraded mode, log warning) para no romper el flujo de pago.
+- Usar timingSafeEqual para todas las comparaciones de firma.
+- Leer el body como raw string/buffer antes de parsearlo (necesario para HMAC sobre raw body).
+- No tocar ninguna lógica de negocio dentro de los handlers — solo agregar la verificación al inicio.
+- No toques P1-A, P1-C, P1-D ni P1-E.
+- No toques Flow.ts ni la lógica de creación de pagos.
+- No toques la cookie de admin.
+- No toques el quiz ni el consentimiento.
+- No hagas refactor grande.
+- No rompas las rutas existentes.
+- No expongas variables de entorno en el frontend.
+- No hagas git add ni commit.
+
+Reglas de implementación:
+1. Leer cada archivo antes de modificarlo.
+2. Auditar todas las referencias al route antes de tocar la firma.
+3. En cada webhook, el guard HMAC va al inicio del handler POST, antes de cualquier
+   lectura de body o lógica de negocio.
+4. Si una variable de entorno de firma no existe en runtime, loguear un warning y
+   permitir el paso SOLO para webhooks que no sean de pago (Flow). Para Flow, si
+   FLOW_SECRET_KEY existe, rechazar firmamentos inválidos con 400.
+5. Para Calendly: el formato del header es "t=<timestamp>,v1=<signature>". Extraer
+   solo el campo v1 para comparar. Si no existe el header o CALENDLY_WEBHOOK_SIGNING_KEY,
+   permitir el paso con warning (no hay pagos involucrados).
+6. Documentar las variables de entorno nuevas requeridas.
+
+Variables de entorno nuevas requeridas (documentar, no agregar al .env):
+- CALENDLY_WEBHOOK_SIGNING_KEY: signing key del webhook de Calendly
+- WHATSAPP_APP_SECRET: app secret de Meta (distinto del verify token)
+- FLOW_SECRET_KEY: ya debe existir si se usa Flow en producción
+
+Validaciones obligatorias:
+- Buscar que no queden handlers POST de webhook que procesen el body sin verificar firma.
+- npm run build debe pasar.
+- Mostrar git diff --stat al final.
+- Mostrar archivos tocados.
+- Explicar cómo testear manualmente cada webhook:
+  - Enviar POST sin header de firma -> debe rechazarse (o pasar con warning si var no configurada)
+  - Enviar POST con firma inválida -> debe rechazarse
+  - Enviar POST con firma válida -> debe procesar normalmente
+
+Output esperado:
+- Implementación HMAC en los tres webhooks.
+- docs/P1B_WEBHOOK_HMAC_NOTES.md con resumen técnico, variables requeridas,
+  instrucciones de configuración en cada proveedor, y cómo testear.
+- No hacer commit.

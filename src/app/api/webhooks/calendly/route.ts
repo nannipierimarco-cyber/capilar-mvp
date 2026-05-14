@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createHmac, timingSafeEqual } from "crypto";
 
-// TODO Phase 2 — Signature verification
-// Calendly signs webhook payloads with CALENDLY_WEBHOOK_SIGNING_KEY.
-// When ready, verify the "Calendly-Webhook-Signature" header before processing.
-// Reference: https://developer.calendly.com/api-docs/ZG9jOjM2MzI3MDM4-webhook-signatures
-
-// TODO Phase 2 — Webhook subscription setup
-// Create the webhook subscription in Calendly pointing to:
-//   https://nilolabs.vercel.app/api/webhooks/calendly
-// Subscribe to events: invitee.created, invitee.canceled
-// Use UTM params in calendly_url links (utm_content=<intake_id>) to improve patient matching.
-// Calendly dashboard: https://calendly.com/integrations/webhooks
+// Webhook subscription setup:
+// Create the webhook in Calendly → https://calendly.com/integrations/webhooks
+// URL: https://nilolabs.vercel.app/api/webhooks/calendly
+// Events: invitee.created, invitee.canceled
+// Set CALENDLY_WEBHOOK_SIGNING_KEY from the signing key shown after creating the webhook.
 
 function getAdminDb() {
   return createClient(
@@ -20,10 +15,43 @@ function getAdminDb() {
   );
 }
 
+function verifyCalendlySignature(rawBody: string, sigHeader: string): boolean {
+  const sigKey = process.env.CALENDLY_WEBHOOK_SIGNING_KEY;
+  if (!sigKey) {
+    console.warn("[calendly-webhook] CALENDLY_WEBHOOK_SIGNING_KEY not set — skipping signature check");
+    return true;
+  }
+  // Header format: "t=<timestamp>,v1=<hex_signature>"
+  const parts: Record<string, string> = {};
+  for (const seg of sigHeader.split(",")) {
+    const eq = seg.indexOf("=");
+    if (eq !== -1) parts[seg.slice(0, eq)] = seg.slice(eq + 1);
+  }
+  const t = parts["t"];
+  const v1 = parts["v1"];
+  if (!t || !v1) {
+    console.warn("[calendly-webhook] Missing t or v1 in signature header");
+    return false;
+  }
+  const expected = createHmac("sha256", sigKey).update(`${t}.${rawBody}`).digest("hex");
+  try {
+    return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(v1, "hex"));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
+  const rawBody = await req.text();
+
+  if (!verifyCalendlySignature(rawBody, req.headers.get("Calendly-Webhook-Signature") ?? "")) {
+    console.warn("[calendly-webhook] Signature verification failed — rejecting");
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
   let payload: Record<string, unknown>;
   try {
-    payload = (await req.json()) as Record<string, unknown>;
+    payload = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }

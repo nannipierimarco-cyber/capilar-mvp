@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { cookies } from "next/headers";
+import { verifyAdminToken } from "@/lib/admin/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -49,7 +50,7 @@ export default async function PatientDetailPage({
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
 
-  if (!token || token !== process.env.ADMIN_SECRET) {
+  if (!verifyAdminToken(token ?? "")) {
     redirect("/admin/login");
   }
 

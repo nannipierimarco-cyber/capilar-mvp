@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "crypto";
 import type { HairMapAnalysisReport } from "@/lib/mapaCapilar";
+
+const SIGNED_URL_EXPIRY = 3600; // 1 hour — covers in-page display and PNG download
+
+async function resolvePhotoUrl(
+  supabase: SupabaseClient,
+  stored: string | null
+): Promise<string | undefined> {
+  if (!stored) return undefined;
+  // Legacy records stored full public URLs — return unchanged until migrated
+  if (stored.startsWith("https://") || stored.startsWith("http://")) return stored;
+  const { data } = await supabase.storage
+    .from("patient-photos")
+    .createSignedUrl(stored, SIGNED_URL_EXPIRY);
+  return data?.signedUrl ?? undefined;
+}
 
 function verifyAccessToken(id: string, token: string): boolean {
   const secret = process.env.ANALYSIS_ACCESS_SECRET;
@@ -47,10 +62,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false });
     }
 
+    const [frontalUrl, crownUrl] = await Promise.all([
+      resolvePhotoUrl(supabase, data.photo_frontal_url ?? null),
+      resolvePhotoUrl(supabase, data.photo_crown_url ?? null),
+    ]);
+
     return NextResponse.json({
       ok: true,
-      frontalUrl: data.photo_frontal_url ?? undefined,
-      crownUrl: data.photo_crown_url ?? undefined,
+      frontalUrl,
+      crownUrl,
       report: (data.analysis_json as HairMapAnalysisReport) ?? undefined,
       status: data.status,
     });

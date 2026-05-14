@@ -19,7 +19,6 @@ type QuizStep =
   | "route"
   | "hairpattern"
   | "hairloss"
-  | "trust"
   | "history"
   | "transition"
   | "conditions"
@@ -65,9 +64,9 @@ function isNationalIdInputValid(raw: string): boolean {
 
 // "both" kept as legacy fallback — not exposed in UI
 const STEPS_BY_ROUTE: Record<JourneyType, QuizStep[]> = {
-  treatment:  ["hairpattern", "hairloss", "trust", "history", "transition", "conditions", "medications", "medical",    "photos", "personal"],
-  transplant: ["hairpattern", "hairloss", "trust", "history", "transition", "conditions", "medications", "transplant", "photos", "personal"],
-  both:       ["hairpattern", "hairloss", "trust", "history", "transition", "conditions", "medications", "medical",    "photos", "personal"],
+  treatment:  ["hairpattern", "hairloss", "history", "transition", "conditions", "medications", "medical",    "photos", "personal"],
+  transplant: ["hairpattern", "hairloss", "history", "transition", "conditions", "medications", "transplant", "photos", "personal"],
+  both:       ["hairpattern", "hairloss", "history", "transition", "conditions", "medications", "medical",    "photos", "personal"],
 };
 
 function getProgress(step: QuizStep, journeyType: JourneyType | null): number {
@@ -170,7 +169,11 @@ export default function QuizPage() {
         city: null,
       };
 
-      const patientPayload = { ...basePatientInsert, rut: nid || null };
+      const patientPayload = {
+        ...basePatientInsert,
+        rut: nid || null,
+        consented_at: data.consented ? new Date().toISOString() : null,
+      };
       logOp("patient insert", "start", Object.keys(patientPayload));
       const { data: patient, error: patientError } = await supabase
         .from("patients")
@@ -336,9 +339,6 @@ export default function QuizPage() {
         )}
         {currentStep === "hairloss" && (
           <HairLossStep data={data} onChange={onChange} onNext={handleNext} onBack={handleBack} />
-        )}
-        {currentStep === "trust" && (
-          <TrustStep onNext={handleNext} />
         )}
         {currentStep === "history" && (
           <HistoryStep data={data} onChange={onChange} onNext={handleNext} onBack={handleBack} />
@@ -655,63 +655,6 @@ function HairLossStep({ data, onChange, onNext }: StepProps) {
         disabled={!isValid}
         className="w-full mt-6 rounded-full h-12"
       >
-        Continuar
-      </Button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Step: Social proof interstitial (no data collected)
-// ---------------------------------------------------------------------------
-
-function TrustStep({ onNext }: { onNext: () => void }) {
-  const cards = [
-    {
-      icon: "📋",
-      title: "Evaluación guiada",
-      desc: "El cuestionario orienta tu caso antes de la consulta médica.",
-    },
-    {
-      icon: "🩺",
-      title: "Médico revisa tu caso",
-      desc: "Un especialista analiza tu situación y decide si corresponde tratamiento.",
-    },
-    {
-      icon: "📦",
-      title: "Producto Farmacia Autorizada y seguimiento",
-      desc: "Si el médico lo indica, coordinamos receta, preparación y despacho mensual.",
-    },
-  ];
-
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">
-        Perfecto
-      </p>
-      <h2 className="text-2xl font-bold mb-2">
-        Con esta información podemos orientar mejor tu evaluación.
-      </h2>
-      <p className="text-muted-foreground text-sm mb-8">
-        No estás solo: la mayoría posterga el tratamiento por no saber por dónde empezar.
-      </p>
-
-      <div className="space-y-3 mb-8">
-        {cards.map((card) => (
-          <div
-            key={card.title}
-            className="flex items-start gap-4 border border-border rounded-2xl p-4 bg-white"
-          >
-            <span className="text-2xl shrink-0">{card.icon}</span>
-            <div>
-              <p className="font-semibold text-sm">{card.title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{card.desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <Button onClick={onNext} className="w-full rounded-full h-12">
         Continuar
       </Button>
     </div>
@@ -1162,7 +1105,8 @@ function PhotoStep({ data, onChange, onNext, error }: PhotoStepProps) {
     <div>
       <h2 className="text-2xl font-bold mb-2">Sube tus fotos</h2>
       <p className="text-muted-foreground text-sm mb-2">
-        Las fotos permiten que la consulta médica sea más eficiente.
+        Elige imágenes desde la galería de tu dispositivo (no uses la cámara en vivo). Las fotos permiten
+        que la consulta médica sea más eficiente.
       </p>
       <div className="bg-accent/60 rounded-xl p-3 mb-6 text-xs text-accent-foreground/80 space-y-0.5">
         <p className="font-medium mb-1">Instrucciones:</p>
@@ -1187,11 +1131,11 @@ function PhotoStep({ data, onChange, onNext, error }: PhotoStepProps) {
             >
               <input
                 type="file"
-                accept="image/*"
-                capture="environment"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0] ?? null;
+                  e.target.value = "";
                   onChange({ [key]: f });
                 }}
               />
@@ -1238,13 +1182,6 @@ function PhotoStep({ data, onChange, onNext, error }: PhotoStepProps) {
       >
         Continuar
       </Button>
-      <button
-        type="button"
-        onClick={onNext}
-        className="w-full mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-      >
-        Completar fotos después →
-      </button>
     </div>
   );
 }
@@ -1262,7 +1199,8 @@ function PersonalStep({ data, onChange, onNext }: StepProps) {
     data.email.trim() &&
     phoneDigits.length === 8 &&
     data.age.trim() &&
-    data.sex;
+    data.sex &&
+    data.consented === true;
 
   return (
     <div>
@@ -1384,10 +1322,28 @@ function PersonalStep({ data, onChange, onNext }: StepProps) {
           </div>
         </div>
       </div>
+      <div className="mt-6 flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-4">
+        <input
+          id="consent"
+          type="checkbox"
+          checked={data.consented}
+          onChange={(e) => onChange({ consented: e.target.checked })}
+          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border accent-primary"
+        />
+        <label htmlFor="consent" className="cursor-pointer text-sm leading-snug text-muted-foreground">
+          Acepto que Nilo trate mis datos personales y de salud para coordinar mi evaluación capilar.
+          Entiendo que esta evaluación no es un diagnóstico médico y que un médico revisará mi caso
+          antes de cualquier indicación de tratamiento.{" "}
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+            Política de privacidad
+          </Link>
+          .
+        </label>
+      </div>
       <Button
         onClick={onNext}
         disabled={!isValid}
-        className="w-full mt-6 rounded-full h-12"
+        className="w-full mt-4 rounded-full h-12"
       >
         Enviar evaluación
       </Button>
