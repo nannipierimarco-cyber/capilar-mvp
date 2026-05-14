@@ -1,0 +1,122 @@
+# P2-A — Tracking de conversión con PostHog (P2.1)
+
+> Objetivo: medir CAC, conversión por ruta y tasa de quiz completado.
+> Sin datos de funnel no se pueden tomar decisiones de producto.
+
+---
+
+## ALCANCE
+
+Solo P2.1. No tocar P2.2 (post-pago) ni P2.3 (rutas legacy).
+No tocar ningún ítem de seguridad (P0/P1).
+
+---
+
+## EVENTOS A TRACKEAR
+
+| Evento | Dónde | Cuándo |
+|---|---|---|
+| `quiz_started` | `quiz/page.tsx` | Al montar el componente (useEffect mount) |
+| `route_selected` | `quiz/page.tsx` | Al avanzar desde el paso "route" con journeyType elegido |
+| `photos_uploaded` | `quiz/page.tsx` | Al avanzar desde el paso "photos" |
+| `quiz_completed` | `quiz/page.tsx` | En handleSubmit, justo antes de router.push (éxito) |
+| `mapa_capilar_started` | `mapa-capilar/page.tsx` | Al montar el componente (useEffect mount) |
+| `checkout_reached` | `checkout/page.tsx` | Al montar el componente (useEffect mount) |
+| `payment_started` | `checkout/page.tsx` | Al inicio de handlePay() |
+
+---
+
+## PROPIEDADES POR EVENTO
+
+- `route_selected`: `{ journey_type: "treatment" | "transplant" | "both" }`
+- `quiz_completed`: `{ journey_type: "treatment" | "transplant" | "both" }`
+- El resto: sin propiedades adicionales
+
+---
+
+## ARCHIVOS A CREAR / MODIFICAR
+
+### 1. Instalar dependencia
+
+```bash
+npm install posthog-js
+```
+
+### 2. NUEVO — `src/app/providers.tsx`
+
+Client component ("use client") que inicializa PostHog y envuelve la app.
+
+```tsx
+"use client";
+import posthog from "posthog-js";
+import { PostHogProvider as PHProvider } from "posthog-js/react";
+import { useEffect } from "react";
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    if (key) {
+      posthog.init(key, {
+        api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
+        capture_pageview: false,
+        capture_pageleave: true,
+      });
+    }
+  }, []);
+  return <PHProvider client={posthog}>{children}</PHProvider>;
+}
+```
+
+### 3. MODIFICAR — `src/app/layout.tsx`
+
+Importar `Providers` y envolver `{children}` dentro del `<body>`.
+
+### 4. MODIFICAR — `src/app/quiz/page.tsx`
+
+- Importar `usePostHog` desde `posthog-js/react` en QuizPage.
+- `quiz_started`: `useEffect(() => { ph?.capture("quiz_started"); }, [])` en QuizPage.
+- `route_selected`: en el callback `onNext` del RouteStep (en el render de QuizPage),
+  después de que journeyType ya está en `data`:
+  `ph?.capture("route_selected", { journey_type: data.journeyType })`.
+- `photos_uploaded`: en `handleNext()`, añadir:
+  `if (currentStep === "photos") ph?.capture("photos_uploaded");`
+  antes de llamar a `setCurrentStep(next)`.
+- `quiz_completed`: en `handleSubmit()`, justo antes de `router.push(...)`:
+  `ph?.capture("quiz_completed", { journey_type: data.journeyType });`
+
+### 5. MODIFICAR — `src/app/mapa-capilar/page.tsx`
+
+- Importar `usePostHog` desde `posthog-js/react`.
+- En el componente principal (el que tiene `"use client"`), agregar:
+  `useEffect(() => { ph?.capture("mapa_capilar_started"); }, []);`
+
+### 6. MODIFICAR — `src/app/checkout/page.tsx`
+
+- Importar `usePostHog` desde `posthog-js/react` en `CheckoutContent`.
+- `checkout_reached`: en el useEffect existente (el que hace `localStorage.getItem`),
+  agregar `ph?.capture("checkout_reached");`.
+- `payment_started`: al inicio de `handlePay()`, antes del try:
+  `ph?.capture("payment_started");`
+
+---
+
+## VARIABLES DE ENTORNO
+
+Agregar a `.env.local` (solo documenta — no crear el archivo):
+
+```
+NEXT_PUBLIC_POSTHOG_KEY=phc_xxxxxxxxxxxxxx
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+```
+
+Estas variables son intencionalmente `NEXT_PUBLIC_` — el SDK de PostHog
+requiere acceso desde el browser.
+
+---
+
+## RESTRICCIONES
+
+- Siempre verificar `ph?.capture(...)` — `ph` puede ser null si no está configurada la key.
+- No capturar PII: no incluir email, RUT, teléfono ni nombre en los eventos.
+- `npm run build` debe pasar antes de dar el trabajo por terminado.
+- No hacer git add ni commit.

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { type QuizData, type JourneyType, INITIAL_QUIZ_DATA } from "@/lib/types";
 import { triggerDoctorReport } from "@/app/actions/triggerDoctorReport";
+import { usePostHog } from "posthog-js/react";
 
 type QuizStep =
   | "intro"
@@ -89,9 +90,15 @@ function getStepLabel(step: QuizStep, journeyType: JourneyType | null): string {
 
 export default function QuizPage() {
   const router = useRouter();
+  const ph = usePostHog();
   const [currentStep, setCurrentStep] = useState<QuizStep>("intro");
   const [data, setData] = useState<QuizData>(INITIAL_QUIZ_DATA);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    ph?.capture("quiz_started");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onChange = useCallback((updates: Partial<QuizData>) => {
     setData((prev) => ({ ...prev, ...updates }));
@@ -120,6 +127,7 @@ export default function QuizPage() {
 
   function handleNext() {
     const next = getNextStep(currentStep);
+    if (currentStep === "photos") ph?.capture("photos_uploaded");
     if (next) {
       setCurrentStep(next);
       window.scrollTo(0, 0);
@@ -284,6 +292,7 @@ export default function QuizPage() {
 
       const journeyQuery =
         data.journeyType === "transplant" ? "transplant" : "treatment";
+      ph?.capture("quiz_completed", { journey_type: data.journeyType });
       router.push(`/membership?plan=inicio&journey=${journeyQuery}`);
     } catch (err) {
       const e = err as { message?: string; details?: string; hint?: string; code?: string };
@@ -328,6 +337,7 @@ export default function QuizPage() {
             onChange={onChange}
             onNext={() => {
               if (data.journeyType) {
+                ph?.capture("route_selected", { journey_type: data.journeyType });
                 setCurrentStep("hairpattern");
                 window.scrollTo(0, 0);
               }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
+import { usePostHog } from "posthog-js/react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
@@ -42,6 +43,7 @@ function CheckoutContent() {
   const isTransplant = planParam === "trasplante";
 
   const membership = getMembershipPlan(membershipParam);
+  const ph = usePostHog();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,9 +52,12 @@ function CheckoutContent() {
 
   useEffect(() => {
     setIntakeId(localStorage.getItem("capilar_intake_id"));
+    ph?.capture("checkout_reached");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handlePay() {
+    ph?.capture("payment_started");
     setLoading(true);
     setError(null);
     try {

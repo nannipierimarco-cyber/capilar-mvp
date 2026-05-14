@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { usePostHog } from "posthog-js/react";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MapaCapilarAnswers } from "@/lib/mapaCapilar";
@@ -91,7 +92,13 @@ async function compressImage(file: File): Promise<string> {
 
 export default function MapaCapilarPage() {
   const router = useRouter();
+  const ph = usePostHog();
   const [step, setStep] = useState<Step>("hero");
+
+  useEffect(() => {
+    ph?.capture("mapa_capilar_started");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [answers, setAnswers] = useState<MapaCapilarAnswers | null>(null);
   const [slotPhotos, setSlotPhotos] = useState<Partial<Record<PhotoSlotId, File>>>({});
   const [submitting, setSubmitting] = useState(false);
