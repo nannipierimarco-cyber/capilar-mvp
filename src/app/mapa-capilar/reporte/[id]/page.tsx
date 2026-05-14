@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -29,68 +29,47 @@ function MedicalDisclaimer() {
 // ─── Full Report ─────────────────────────────────────────────────────────────
 
 function FullReport({
+  id,
   report,
   frontalUrl,
   crownUrl,
 }: {
+  id: string;
   report: HairMapAnalysisReport;
   frontalUrl?: string;
   crownUrl?: string;
 }) {
-  const reportCaptureRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(false);
 
   const handleDownloadImage = useCallback(async () => {
-    const el = reportCaptureRef.current;
-    if (!el || !report) return;
+    if (!id) return;
     setDownloading(true);
     setDownloadError(false);
     try {
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-      const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(el, {
-        pixelRatio: 2,
-        cacheBust: true,
-        backgroundColor: "#FDFBF7",
-      });
-
+      const accessToken = sessionStorage.getItem("mapa_capilar_access_token") ?? "";
+      const url = `/api/mapa-capilar/report-image/${encodeURIComponent(id)}?token=${encodeURIComponent(accessToken)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = "mapa-capilar-perfecto.png";
+      a.href = objectUrl;
+      a.download = `mapa-capilar-perfecto.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
     } catch (err) {
-      console.error("Image export failed:", err);
+      console.error("Image download failed:", err);
       setDownloadError(true);
     } finally {
       setDownloading(false);
     }
-  }, [report]);
+  }, [id]);
 
   return (
     <div>
-      {/* Off-screen capture target — always 794px, forCapture layout (no responsive breakpoints) */}
-      <div
-        aria-hidden="true"
-        ref={reportCaptureRef}
-        style={{
-          position: "fixed",
-          left: -10000,
-          top: 0,
-          width: 794,
-          overflow: "hidden",
-          pointerEvents: "none",
-          zIndex: -1,
-          background: "#FDFBF7",
-          padding: 4,
-        }}
-      >
-        <HairMapLuxeInfographic forCapture report={report} frontalUrl={frontalUrl} crownUrl={crownUrl} />
-      </div>
-
       <div id="hair-report-image" className="bg-[#FDFBF7] p-1 sm:p-2 rounded-3xl">
         <HairMapLuxeInfographic report={report} frontalUrl={frontalUrl} crownUrl={crownUrl} />
       </div>
@@ -291,7 +270,7 @@ export default function ReporteIdPage() {
         </header>
         <main className="max-w-lg mx-auto px-4 sm:px-5 py-8">
           {report ? (
-            <FullReport report={report} frontalUrl={frontalUrl} crownUrl={crownUrl} />
+            <FullReport id={id ?? ""} report={report} frontalUrl={frontalUrl} crownUrl={crownUrl} />
           ) : (
             <div className="text-center py-16 space-y-4">
               <p className="text-gray-600">
