@@ -10,106 +10,82 @@ import {
   type HairMapAnalysisReport,
   type MapaCapilarAnswers,
 } from "@/lib/mapaCapilar";
-import { HairMapLuxeInfographic } from "@/components/hair-report/HairMapLuxeInfographic";
 
-// ─── Mandatory disclaimer — on screen (download is JPEG of the infographic) ───
+// ─── Report view: loads the server-generated PNG ──────────────────────────────
 
-const DISCLAIMER =
-  "Este análisis es solo con fines informativos y no constituye un diagnóstico médico. Para una atención personalizada, consulta a un dermatólogo certificado.";
-
-function MedicalDisclaimer() {
-  return (
-    <div className="mt-6 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 leading-relaxed">
-      <span className="font-semibold">Aviso importante: </span>
-      {DISCLAIMER}
-    </div>
-  );
-}
-
-// ─── Full Report ─────────────────────────────────────────────────────────────
-
-function FullReport({
-  id,
-  report,
-  frontalUrl,
-  crownUrl,
-}: {
-  id: string;
-  report: HairMapAnalysisReport;
-  frontalUrl?: string;
-  crownUrl?: string;
-}) {
-  const [downloading, setDownloading] = useState(false);
+function ReportImageView({ id }: { id: string }) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [downloadError, setDownloadError] = useState(false);
 
-  const handleDownloadImage = useCallback(async () => {
-    if (!id) return;
-    setDownloading(true);
-    setDownloadError(false);
-    try {
-      const accessToken = sessionStorage.getItem("mapa_capilar_access_token") ?? "";
-      const url = `/api/mapa-capilar/report-image/${encodeURIComponent(id)}?token=${encodeURIComponent(accessToken)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = `mapa-capilar-perfecto.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(objectUrl);
-    } catch (err) {
-      console.error("Image download failed:", err);
-      setDownloadError(true);
-    } finally {
-      setDownloading(false);
-    }
+  useEffect(() => {
+    const accessToken = sessionStorage.getItem("mapa_capilar_access_token") ?? "";
+    const apiUrl = `/api/mapa-capilar/report-image/${encodeURIComponent(id)}?token=${encodeURIComponent(accessToken)}`;
+    fetch(apiUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        setBlobUrl(URL.createObjectURL(blob));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [id]);
+
+  const handleDownload = useCallback(() => {
+    if (!blobUrl) return;
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = "mapa-capilar-perfecto.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [blobUrl]);
 
   return (
     <div>
-      <div id="hair-report-image" className="bg-[#FDFBF7] p-1 sm:p-2 rounded-3xl">
-        <HairMapLuxeInfographic report={report} frontalUrl={frontalUrl} crownUrl={crownUrl} />
+      {/* Image */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-20 text-gray-500">
+          <svg className="w-8 h-8 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+          <span className="text-sm">Generando tu reporte visual...</span>
+        </div>
+      ) : blobUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={blobUrl} alt="Mapa Capilar AI" className="w-full rounded-2xl shadow-sm" />
+      ) : (
+        <div className="text-center py-12 text-sm text-gray-500">
+          No se pudo cargar el reporte. Intenta recargar la página.
+        </div>
+      )}
+
+      {/* Disclaimer */}
+      <div className="mt-6 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+        <span className="font-semibold">Aviso importante: </span>
+        Este análisis es solo con fines informativos y no constituye un diagnóstico médico. Para una
+        atención personalizada, consulta a un dermatólogo certificado.
       </div>
 
-      <MedicalDisclaimer />
-
+      {/* Actions */}
       <div className="mt-6 pb-10 space-y-3">
-        <button
-          type="button"
-          onClick={handleDownloadImage}
-          disabled={downloading}
-          className="flex w-full items-center justify-center gap-2 text-sm font-medium text-primary border border-primary/30 px-4 py-3.5 rounded-2xl hover:bg-primary/5 transition-colors disabled:opacity-60"
-        >
-          {downloading ? (
-            <>
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
-              Generando imagen...
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              Descargar imagen
-            </>
-          )}
-        </button>
+        {blobUrl && (
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="flex w-full items-center justify-center gap-2 text-sm font-medium text-primary border border-primary/30 px-4 py-3.5 rounded-2xl hover:bg-primary/5 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Descargar imagen
+          </button>
+        )}
         {downloadError && (
-          <p className="text-xs text-red-500 text-center">
-            No se pudo generar la imagen. Recarga e intenta de nuevo. Si persiste, usa captura de
-            pantalla.
-          </p>
+          <p className="text-xs text-red-500 text-center">No se pudo descargar. Intenta de nuevo.</p>
         )}
         <Link
           href="/quiz"
@@ -164,8 +140,6 @@ export default function ReporteIdPage() {
   const id = params?.id;
 
   const [report, setReport] = useState<HairMapAnalysisReport | null>(null);
-  const [frontalUrl, setFrontalUrl] = useState<string | undefined>();
-  const [crownUrl, setCrownUrl] = useState<string | undefined>();
   const [view, setView] = useState<"form" | "report">("form");
   const [contact, setContact] = useState<ContactForm>({
     email: "",
@@ -190,20 +164,6 @@ export default function ReporteIdPage() {
       setReport(generateFallbackAnalysisReport(answersParsed));
     }
 
-    if (id) {
-      const accessToken = sessionStorage.getItem("mapa_capilar_access_token") ?? "";
-      const url = `/api/mapa-capilar/get-analysis?id=${encodeURIComponent(id)}&token=${encodeURIComponent(accessToken)}`;
-      fetch(url)
-        .then((r) => r.json())
-        .then((data: { frontalUrl?: string; crownUrl?: string; report?: HairMapAnalysisReport }) => {
-          if (data.frontalUrl) setFrontalUrl(data.frontalUrl);
-          if (data.crownUrl) setCrownUrl(data.crownUrl);
-          if (data.report && !rawReport) {
-            setReport(normalizeHairMapReport(data.report as unknown, answersParsed));
-          }
-        })
-        .catch(() => {});
-    }
   }, [id]);
 
   const validate = (): boolean => {
@@ -269,8 +229,8 @@ export default function ReporteIdPage() {
           </div>
         </header>
         <main className="max-w-lg mx-auto px-4 sm:px-5 py-8">
-          {report ? (
-            <FullReport id={id ?? ""} report={report} frontalUrl={frontalUrl} crownUrl={crownUrl} />
+          {id ? (
+            <ReportImageView id={id} />
           ) : (
             <div className="text-center py-16 space-y-4">
               <p className="text-gray-600">

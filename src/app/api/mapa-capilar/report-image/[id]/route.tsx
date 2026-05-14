@@ -5,18 +5,21 @@ import type { NextRequest } from "next/server";
 import type { HairMapAnalysisReport } from "@/lib/mapaCapilar";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const G = "#C4A55A";   // gold
-const D = "#1E180A";   // dark ink
-const C = "#F5F0E8";   // cream bg
-const CD = "#EDE8DF";  // section header bg
-const M = "#7A6F5F";   // muted
-const GR = "#4A8A5A";  // green
-const OR = "#D97C4A";  // orange
-const RE = "#C45C5C";  // red
+const G  = "#C4A55A";
+const D  = "#1E180A";
+const C  = "#F5F0E8";
+const CD = "#EDE8DF";
+const M  = "#7A6F5F";
+const GR = "#4A8A5A";
+const OR = "#D97C4A";
+const RE = "#C45C5C";
 
-const W = 794;
-const H = 1180;
-const PH = 16; // horizontal padding
+const W  = 794;
+const H  = 1180;
+const PH = 16;
+
+// Photo section fixed heights (satori doesn't support aspect-ratio)
+const PHOTO_H = 230;
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function verifyToken(id: string, token: string): boolean {
@@ -30,7 +33,7 @@ function verifyToken(id: string, token: string): boolean {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Photo → base64 ────────────────────────────────────────────────────────────
 async function toBase64(url: string): Promise<string | undefined> {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -44,16 +47,31 @@ async function toBase64(url: string): Promise<string | undefined> {
   }
 }
 
-async function fetchFont(url: string): Promise<ArrayBuffer> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
-  return res.arrayBuffer();
+// ── Font fetching via Google Fonts CSS API (reliable URLs) ────────────────────
+async function fetchGoogleFont(family: string, weight: number): Promise<ArrayBuffer | null> {
+  try {
+    const cssUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}&display=swap`;
+    const cssRes = await fetch(cssUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; NextJS/1.0)" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!cssRes.ok) return null;
+    const css = await cssRes.text();
+    // Extract last woff2 URL (latin subset is last)
+    const matches = [...css.matchAll(/url\(([^)]+\.woff2)\)/g)];
+    const fontUrl = matches[matches.length - 1]?.[1];
+    if (!fontUrl) return null;
+    const fontRes = await fetch(fontUrl, { signal: AbortSignal.timeout(8000) });
+    if (!fontRes.ok) return null;
+    return fontRes.arrayBuffer();
+  } catch {
+    return null;
+  }
 }
 
+// ── Supabase photo URL resolver ───────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolvePhotoUrl(
-  supabase: any,
-  stored: string | null
-): Promise<string | undefined> {
+async function resolvePhotoUrl(supabase: any, stored: string | null): Promise<string | undefined> {
   if (!stored) return undefined;
   if (stored.startsWith("http")) return stored;
   const { data } = await supabase.storage
@@ -62,79 +80,7 @@ async function resolvePhotoUrl(
   return data?.signedUrl ?? undefined;
 }
 
-// ── SVG Icons (inline paths, no external deps) ────────────────────────────────
-
-function IconHairWave() {
-  return (
-    <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-      <path d="M1 8 C4 3, 7 3, 10 8 S16 13, 19 8" stroke={D} strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-      <path d="M3 12 C6 7, 9 7, 12 12 S18 17, 21 12" stroke={D} strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.4"/>
-    </svg>
-  );
-}
-
-function IconFollicleDense() {
-  return (
-    <svg width="24" height="18" viewBox="0 0 24 18" fill="none">
-      {[4,8,12,16,20].map((x) => (
-        <line key={x} x1={x} y1="18" x2={x - 1} y2="4" stroke={D} strokeWidth="1.5" strokeLinecap="round"/>
-      ))}
-    </svg>
-  );
-}
-
-function IconFollicleSparse() {
-  return (
-    <svg width="24" height="18" viewBox="0 0 24 18" fill="none">
-      {[6,14].map((x) => (
-        <line key={x} x1={x} y1="18" x2={x - 1} y2="4" stroke={D} strokeWidth="1.5" strokeLinecap="round"/>
-      ))}
-    </svg>
-  );
-}
-
-function IconBottle() {
-  return (
-    <svg width="20" height="26" viewBox="0 0 20 26" fill="none">
-      <rect x="6" y="0" width="8" height="4" rx="1" fill={G} opacity="0.6"/>
-      <path d="M4 7 C2 9, 1 12, 1 15 L1 22 C1 24, 2 25, 4 25 L16 25 C18 25, 19 24, 19 22 L19 15 C19 12, 18 9, 16 7 Z" fill={G} opacity="0.25" stroke={G} strokeWidth="0.8"/>
-      <line x1="6" y1="14" x2="14" y2="14" stroke={G} strokeWidth="0.8"/>
-      <line x1="6" y1="17" x2="14" y2="17" stroke={G} strokeWidth="0.8"/>
-    </svg>
-  );
-}
-
-function IconDropper() {
-  return (
-    <svg width="18" height="26" viewBox="0 0 18 26" fill="none">
-      <rect x="6" y="0" width="6" height="3" rx="1" fill={G} opacity="0.6"/>
-      <rect x="5" y="3" width="8" height="16" rx="2" fill={G} opacity="0.22" stroke={G} strokeWidth="0.8"/>
-      <path d="M9 19 L9 25" stroke={G} strokeWidth="1.2" strokeLinecap="round"/>
-      <circle cx="9" cy="26" r="2" fill={G} opacity="0.5"/>
-    </svg>
-  );
-}
-
-function IconShield() {
-  return (
-    <svg width="22" height="24" viewBox="0 0 22 24" fill="none">
-      <path d="M11 1 L19 5 L19 12 C19 17 15 21 11 23 C7 21 3 17 3 12 L3 5 Z" fill={G} opacity="0.2" stroke={G} strokeWidth="0.9"/>
-      <path d="M7 12 L10 15 L15 9" stroke={G} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function IconScissors() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-      <circle cx="5" cy="5" r="3" stroke={G} strokeWidth="0.9" fill={G} opacity="0.15"/>
-      <circle cx="5" cy="17" r="3" stroke={G} strokeWidth="0.9" fill={G} opacity="0.15"/>
-      <line x1="8" y1="7" x2="19" y2="18" stroke={G} strokeWidth="1.2" strokeLinecap="round"/>
-      <line x1="8" y1="15" x2="19" y2="4" stroke={G} strokeWidth="1.2" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
+// ── Inline SVG icons ──────────────────────────────────────────────────────────
 function CheckBadge() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: 8, background: GR }}>
@@ -149,14 +95,12 @@ function WarnBadge() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: 8, background: OR }}>
       <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-        <path d="M4 2V4.5" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/>
-        <circle cx="4" cy="6" r="0.8" fill="#fff"/>
+        <path d="M4 2V4.5M4 6h.01" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/>
       </svg>
     </div>
   );
 }
 
-// ── Section header (gold top-border + cream bg) ───────────────────────────────
 function SectionHeader({ label }: { label: string }) {
   return (
     <div style={{
@@ -171,29 +115,27 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
-// ── Metric pill (used in assessment summary strip) ────────────────────────────
-function MetricPill({ label, value }: { label: string; value: string }) {
+function MetricPill({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center",
-      flex: 1, paddingTop: 8, paddingBottom: 8, gap: 3,
-      borderRight: `0.5px solid ${G}`,
+      flex: 1, paddingTop: 7, paddingBottom: 7, paddingLeft: 3, paddingRight: 3, gap: 3,
+      borderRight: last ? "none" : `0.5px solid ${G}`,
     }}>
-      <span style={{ fontFamily: "Inter", fontSize: 7, color: M, textTransform: "uppercase", letterSpacing: 1 }}>{label}</span>
-      <span style={{ fontFamily: "Inter", fontSize: 9, fontWeight: 700, color: D, textAlign: "center", lineHeight: 1.2 }}>{value}</span>
+      <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>{label}</span>
+      <span style={{ fontFamily: "Inter", fontSize: 8.5, fontWeight: 700, color: D, textAlign: "center", lineHeight: 1.2 }}>{value}</span>
     </div>
   );
 }
 
-// ── Option chip (used in the 5 detail sections) ───────────────────────────────
-function OptionChip({ label, active }: { label: string; active: boolean }) {
+function Chip({ label, active }: { label: string; active: boolean }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center",
       paddingTop: 3, paddingBottom: 3, paddingLeft: 5, paddingRight: 5,
       borderRadius: 3,
       background: active ? G : "rgba(196,165,90,0.08)",
-      border: `0.5px solid ${active ? G : "rgba(196,165,90,0.25)"}`,
+      border: `0.5px solid ${active ? G : "rgba(196,165,90,0.3)"}`,
       marginBottom: 2,
     }}>
       <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: active ? 700 : 400, color: active ? "#fff" : M }}>
@@ -203,92 +145,54 @@ function OptionChip({ label, active }: { label: string; active: boolean }) {
   );
 }
 
-// ── Callout overlay on photo ──────────────────────────────────────────────────
-function PhotoCalloutSvg({ callouts }: { callouts: Array<{ label: string }> }) {
-  const anchors = [
-    { ax: 20, ay: 30, lx: 68, ly: 12 },
-    { ax: 55, ay: 20, lx: 68, ly: 40 },
-    { ax: 75, ay: 45, lx: 68, ly: 68 },
-  ];
-  const list = callouts.slice(0, 3);
-  while (list.length < 3) list.push({ label: "" });
-
-  return (
-    <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} viewBox="0 0 100 100" preserveAspectRatio="none">
-      {list.map((c, i) => {
-        if (!c.label) return null;
-        const a = anchors[i];
-        return (
-          <g key={i}>
-            <line x1={a.ax} y1={a.ay} x2={a.lx} y2={a.ly} stroke={G} strokeWidth={0.6} strokeDasharray="2 1.5" vectorEffect="non-scaling-stroke"/>
-            <circle cx={a.ax} cy={a.ay} r={1.2} fill={G} vectorEffect="non-scaling-stroke"/>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// ── Heatmap approximation (CSS radial gradient) ───────────────────────────────
-function HeatmapDisk({ intensity }: { intensity: number }) {
-  const pct = Math.max(0, Math.min(100, intensity));
-  const mid = pct > 60 ? OR : pct > 30 ? "#D4A84B" : GR;
-  const inner = pct > 70 ? RE : pct > 50 ? OR : GR;
-  return (
-    <div style={{
-      width: 80, height: 80, borderRadius: 40,
-      background: `radial-gradient(circle at 55% 45%, ${inner} 0%, ${mid} 40%, ${GR} 75%, ${C} 100%)`,
-      border: `1px solid ${G}`,
-      opacity: 0.85,
-    }} />
-  );
-}
-
-// ── Density disk (frontal / crown comparison) ─────────────────────────────────
-function DensityCircle({ label, dense }: { label: string; dense: boolean }) {
-  const lines = dense ? [4, 8, 12, 16, 20, 24] : [7, 15, 23];
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-      <div style={{
-        width: 40, height: 40, borderRadius: 20,
-        background: "#F0EBE0", border: `0.8px solid ${G}`,
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
-        overflow: "hidden", paddingBottom: 2,
-      }}>
-        <svg width="28" height="24" viewBox="0 0 28 24" fill="none">
-          {lines.map((x) => (
-            <line key={x} x1={x} y1="24" x2={x - 1} y2="4" stroke={D} strokeWidth={dense ? 1.4 : 1.2} strokeLinecap="round"/>
-          ))}
-        </svg>
-      </div>
-      <span style={{ fontFamily: "Inter", fontSize: 7, color: M, textAlign: "center", lineHeight: 1.2 }}>{label}</span>
-    </div>
-  );
-}
-
-// ── Risk dot ──────────────────────────────────────────────────────────────────
 function RiskDot({ level }: { level: string }) {
   const color = level === "Alto" ? RE : level === "Medio" ? OR : GR;
   return <div style={{ width: 8, height: 8, borderRadius: 4, background: color }} />;
 }
 
-// ── Routine column ────────────────────────────────────────────────────────────
-function RoutineCol({ icon, label, items }: { icon: React.ReactNode; label: string; items: string[] }) {
+function HeatCircle({ intensity }: { intensity: number }) {
+  const pct = Math.max(0, Math.min(100, intensity));
+  const inner = pct > 65 ? RE : pct > 45 ? OR : GR;
+  const mid   = pct > 55 ? OR : "#D4A84B";
+  return (
+    <div style={{
+      width: 72, height: 72, borderRadius: 36,
+      background: `radial-gradient(circle at 55% 42%, ${inner} 0%, ${mid} 38%, ${GR} 72%, ${C} 100%)`,
+      border: `1px solid ${G}`, opacity: 0.88,
+    }} />
+  );
+}
+
+function DensityCircle({ label, dense }: { label: string; dense: boolean }) {
+  const xs = dense ? [3,7,11,15,19,23] : [7,15];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+      <div style={{ width: 38, height: 38, borderRadius: 19, background: "#F0EBE0", border: `0.8px solid ${G}`, display: "flex", alignItems: "flex-end", justifyContent: "center", overflow: "hidden", paddingBottom: 2 }}>
+        <svg width="26" height="22" viewBox="0 0 26 22" fill="none">
+          {xs.map((x) => <line key={x} x1={x} y1="22" x2={x - 1} y2="3" stroke={D} strokeWidth={dense ? 1.4 : 1.2} strokeLinecap="round"/>)}
+        </svg>
+      </div>
+      <span style={{ fontFamily: "Inter", fontSize: 6, color: M, textAlign: "center", lineHeight: 1.2, maxWidth: 52 }}>{label}</span>
+    </div>
+  );
+}
+
+function RoutineCol({ icon, label, items, last }: { icon: React.ReactNode; label: string; items: string[]; last?: boolean }) {
   return (
     <div style={{
       display: "flex", flexDirection: "column", flex: 1,
-      borderRight: `0.5px solid ${G}`, paddingLeft: 8, paddingRight: 8,
-      paddingTop: 10, paddingBottom: 8, gap: 5,
+      borderRight: last ? "none" : `0.5px solid ${G}`,
+      paddingLeft: 8, paddingRight: 8, paddingTop: 10, paddingBottom: 8, gap: 5,
     }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
         {icon}
-        <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D, textTransform: "uppercase", letterSpacing: 1.5 }}>{label}</span>
+        <span style={{ fontFamily: "Inter", fontSize: 7, fontWeight: 700, color: D, textTransform: "uppercase", letterSpacing: 1.5 }}>{label}</span>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {items.slice(0, 4).map((item, i) => (
           <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
-            <span style={{ fontSize: 7, color: G, marginTop: 1 }}>•</span>
-            <span style={{ fontFamily: "Inter", fontSize: 8, color: D, lineHeight: 1.3 }}>{item}</span>
+            <span style={{ fontSize: 7, color: G, lineHeight: 1.4 }}>•</span>
+            <span style={{ fontFamily: "Inter", fontSize: 7.5, color: D, lineHeight: 1.3 }}>{item}</span>
           </div>
         ))}
       </div>
@@ -296,321 +200,239 @@ function RoutineCol({ icon, label, items }: { icon: React.ReactNode; label: stri
   );
 }
 
-// ── Main infographic component ────────────────────────────────────────────────
-function Infographic({
-  report,
-  frontalB64,
-  crownB64,
-}: {
+// ── Main infographic ───────────────────────────────────────────────────────────
+function Infographic({ report, frontalB64, crownB64 }: {
   report: HairMapAnalysisReport;
   frontalB64?: string;
   crownB64?: string;
 }) {
-  const va = report.visualAnalysis;
-  const zones = report.zones;
-  const risks = report.riskAreas ?? [];
+  const va      = report.visualAnalysis;
+  const zones   = report.zones;
+  const risks   = report.riskAreas ?? [];
   const routine = report.recommendedRoutine;
-  const ingredients = report.ingredientHints;
-  const callouts = report.photoCallouts;
-  const scalpZones = report.scalpZoneStrip ?? [];
-  const densityComp = report.densityComparison;
-  const crownMap = report.crownDensityMap;
+  const ing     = report.ingredientHints;
+  const callF   = (report.photoCallouts?.frontPhoto ?? []).slice(0, 3);
+  const callC   = (report.photoCallouts?.crownPhoto  ?? []).slice(0, 3);
+  const zoneStr = report.scalpZoneStrip ?? [];
+  const denComp = report.densityComparison;
+  const crown   = report.crownDensityMap;
+  const brand   = report.brandLine ?? "PERFECTO";
 
-  // Derive metric strip values
   const metrics = report.metricStrip ?? [
-    { key: "hairType",        label: "Hair Type",        value: va.hairType },
-    { key: "density",         label: "Density",          value: va.density },
-    { key: "hairline",        label: "Hairline",         value: va.hairline },
-    { key: "scalp",           label: "Scalp",            value: va.scalpState ?? "—" },
-    { key: "texture",         label: "Texture",          value: va.hairTexture },
-    { key: "crownCoverage",   label: "Crown Coverage",   value: va.crownCoverage },
-    { key: "scalpVisibility", label: "Scalp Visibility", value: va.scalpVisibility },
-    { key: "overall",         label: "Overall Condition",value: va.overallCondition },
+    { key: "ht",  label: "Hair Type",         value: va.hairType },
+    { key: "den", label: "Density",            value: va.density },
+    { key: "hl",  label: "Hairline",           value: va.hairline },
+    { key: "sc",  label: "Scalp",              value: va.scalpState ?? "—" },
+    { key: "tx",  label: "Texture",            value: va.hairTexture },
+    { key: "cc",  label: "Crown Coverage",     value: va.crownCoverage },
+    { key: "sv",  label: "Scalp Visibility",   value: va.scalpVisibility },
+    { key: "oc",  label: "Overall Condition",  value: va.overallCondition },
   ];
 
-  // Selected states for 5 sections
-  const htOpts = ["Straight", "Wavy", "Curly", "Coily"];
-  const denOpts = ["Low", "Medium", "High"];
-  const hlOpts  = ["Stable", "Mild recession", "Moderate recession", "Advanced recession"];
-  const scOpts  = ["Healthy", "Oily", "Dry", "Flaky", "Sensitive"];
-
-  function activeHt(o: string)  { return va.hairType.toLowerCase().includes(o.toLowerCase()); }
-  function activeDen(o: string) { return va.density.toLowerCase().includes(o.toLowerCase()); }
-  function activeHl(o: string)  { return va.hairline.toLowerCase().includes(o.toLowerCase()); }
-  function activeSc(o: string)  {
-    const s = (va.scalpState ?? va.scalpVisibility).toLowerCase();
-    return s.includes(o.toLowerCase());
+  function active(field: string, opt: string) {
+    return field.toLowerCase().includes(opt.toLowerCase());
   }
 
-  const riskZoneNames = ["Temples", "Frontal zone", "Mid-scalp", "Crown", "Overall"];
+  const htOpts  = ["Straight","Wavy","Curly","Coily"];
+  const denOpts = ["Low","Medium","High"];
+  const hlOpts  = ["Stable","Mild recession","Moderate recession","Advanced recession"];
+  const scOpts  = ["Healthy","Oily","Dry","Flaky","Sensitive"];
 
-  // Zone annotation fallback
+  const riskZones = ["Temples","Frontal zone","Mid-scalp","Crown","Overall"];
+
   const defaultZones = [
-    { zone: "Hairline", icon: "check" as const,   micro: zones.frontalLine.label },
-    { zone: "Temples",  icon: "neutral" as const, micro: zones.temples.label },
-    { zone: "Frontal",  icon: "check" as const,   micro: zones.frontalDensity.label },
-    { zone: "Mid-scalp",icon: "check" as const,   micro: "Maintained" },
-    { zone: "Crown",    icon: "warn" as const,    micro: zones.crown.label },
-    { zone: "Scalp",    icon: "check" as const,   micro: zones.scalpHealth.label },
+    { zone:"Hairline",  icon:"check"   as const, micro: zones.frontalLine.label   },
+    { zone:"Temples",   icon:"neutral" as const, micro: zones.temples.label       },
+    { zone:"Frontal",   icon:"check"   as const, micro: zones.frontalDensity.label},
+    { zone:"Mid-scalp", icon:"check"   as const, micro: "Maintained"              },
+    { zone:"Crown",     icon:"warn"    as const, micro: zones.crown.label         },
+    { zone:"Scalp",     icon:"check"   as const, micro: zones.scalpHealth.label   },
   ];
-  const zoneItems = scalpZones.length >= 4 ? scalpZones : defaultZones;
+  const zoneItems = zoneStr.length >= 4 ? zoneStr : defaultZones;
 
-  const routineDefaults = {
-    cleanse: ["Gentle volumising shampoo", "Ketoconazole wash 1–2×/week"],
-    treat:   ["Scalp serum", "Caffeine + peptides", "Consider growth support"],
-    protect: ["Low heat", "UV & scalp care", "Avoid heavy buildup"],
-    style:   ["Lightweight volumising products", "Avoid greasy finish", "Crown-friendly styling"],
+  const defRoutine = {
+    cleanse: ["Gentle volumising shampoo","Ketoconazole wash 1–2×/week"],
+    treat:   ["Scalp serum","Caffeine + peptides","Consider growth support"],
+    protect: ["Low heat","UV & scalp care","Avoid heavy buildup"],
+    style:   ["Lightweight volumising products","Avoid greasy finish","Crown-friendly styling"],
   };
-  const r = routine ?? routineDefaults;
+  const r   = routine ?? defRoutine;
+  const ing2 = ing ?? { helpful:["Caffeine","Peptides","Niacinamide","Ketoconazole","Panthenol"], avoid:["Heavy oils","Waxy products"] };
 
-  const ingDefaults = {
-    helpful: ["Caffeine", "Peptides", "Niacinamide", "Ketoconazole", "Panthenol"],
-    avoid:   ["Heavy oils", "Waxy products"],
-  };
-  const ing = ingredients ?? ingDefaults;
+  // Callout label positions (% from top, right side)
+  const calloutPositions = [
+    { top: "8%",  right: "2%" },
+    { top: "38%", right: "2%" },
+    { top: "65%", right: "2%" },
+  ];
 
-  const brandLine = report.brandLine ?? "PERFECTO";
+  // SVG for callout lines (percentage-based viewBox)
+  const fAnchors = [{ ax:20,ay:28,lx:72,ly:10 },{ ax:52,ay:20,lx:72,ly:40 },{ ax:75,ay:44,lx:72,ly:68 }];
+  const cAnchors = [{ ax:50,ay:24,lx:72,ly:10 },{ ax:30,ay:50,lx:72,ly:40 },{ ax:64,ay:56,lx:72,ly:68 }];
 
   return (
     <div style={{ width: W, height: H, background: C, display: "flex", flexDirection: "column", fontFamily: "Inter" }}>
 
-      {/* ── HEADER ── */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        paddingLeft: PH, paddingRight: PH, paddingTop: 12, paddingBottom: 10,
-        borderBottom: `1px solid ${G}`,
-      }}>
-        {/* Small label top-left */}
-        <div style={{
-          display: "flex", flexDirection: "column",
-          border: `0.8px solid ${G}`, paddingLeft: 6, paddingRight: 6, paddingTop: 3, paddingBottom: 3,
-          borderRadius: 3,
-        }}>
+      {/* HEADER */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: PH, paddingRight: PH, paddingTop: 12, paddingBottom: 10, borderBottom: `1px solid ${G}` }}>
+        <div style={{ display: "flex", flexDirection: "column", border: `0.8px solid ${G}`, paddingLeft: 6, paddingRight: 6, paddingTop: 3, paddingBottom: 3, borderRadius: 3 }}>
           <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M, letterSpacing: 0.8 }}>Likely visual</span>
           <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M, letterSpacing: 0.8 }}>assessment</span>
         </div>
-
-        {/* Title center */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-          <span style={{ fontFamily: "Playfair", fontSize: 28, fontWeight: 700, color: D, letterSpacing: -0.5, lineHeight: 1 }}>
-            AI Hair &amp; Scalp Analysis
-          </span>
-          <span style={{ fontFamily: "Inter", fontSize: 9.5, color: M, fontStyle: "italic", letterSpacing: 0.5 }}>
-            Visual trichology assessment
-          </span>
+          <span style={{ fontFamily: "Playfair", fontSize: 26, fontWeight: 700, color: D, lineHeight: 1 }}>AI Hair & Scalp Analysis</span>
+          <span style={{ fontFamily: "Inter", fontSize: 9, color: M, fontStyle: "italic", letterSpacing: 0.5 }}>Visual trichology assessment</span>
         </div>
-
-        {/* Brand box top-right */}
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center",
-          border: `1px solid ${G}`, padding: 6, borderRadius: 4, gap: 2,
-          minWidth: 64,
-        }}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <polygon points="10,1 19,7 19,13 10,19 1,13 1,7" stroke={G} strokeWidth="1" fill="none"/>
-            <polygon points="10,5 15,8 15,12 10,15 5,12 5,8" stroke={G} strokeWidth="0.6" fill="none"/>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", border: `1px solid ${G}`, padding: 6, borderRadius: 4, gap: 2, minWidth: 62 }}>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <polygon points="9,1 17,6 17,12 9,17 1,12 1,6" stroke={G} strokeWidth="1" fill="none"/>
+            <polygon points="9,5 13,7.5 13,10.5 9,13 5,10.5 5,7.5" stroke={G} strokeWidth="0.6" fill="none"/>
           </svg>
-          <span style={{ fontFamily: "Inter", fontSize: 6, fontWeight: 700, color: D, letterSpacing: 1.5, textTransform: "uppercase" }}>{brandLine}</span>
+          <span style={{ fontFamily: "Inter", fontSize: 6, fontWeight: 700, color: D, letterSpacing: 1.5, textTransform: "uppercase" }}>{brand}</span>
           <span style={{ fontFamily: "Inter", fontSize: 5, color: M, letterSpacing: 0.5, textTransform: "uppercase" }}>Trichology Clinic</span>
         </div>
       </div>
 
-      {/* ── PHOTOS + HEATMAP ROW ── */}
-      <div style={{ display: "flex", gap: 0, paddingLeft: PH, paddingRight: PH, paddingTop: 10, paddingBottom: 8, flex: "0 0 auto" }}>
-        {/* Frontal photo */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", marginRight: 6 }}>
-          <div style={{
-            position: "relative", width: "100%", borderRadius: 5,
-            overflow: "hidden", border: `0.8px solid ${G}`,
-            aspectRatio: "3/4", background: "#D4CCC2",
-          }}>
-            {frontalB64 ? (
+      {/* PHOTOS + HEATMAP */}
+      <div style={{ display: "flex", gap: 0, paddingLeft: PH, paddingRight: PH, paddingTop: 8, paddingBottom: 6 }}>
+
+        {/* Frontal */}
+        <div style={{ flex: 1, marginRight: 6, display: "flex", flexDirection: "column" }}>
+          <div style={{ position: "relative", width: "100%", height: PHOTO_H, borderRadius: 5, overflow: "hidden", border: `0.8px solid ${G}`, background: "#C8C0B8" }}>
+            {frontalB64 && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={frontalB64} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} alt="" />
-            ) : (
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: 9, color: M }}>No photo</span>
-              </div>
+              <img src={frontalB64} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%", objectFit: "cover" }} alt="" />
             )}
-            {/* Pill label */}
-            <div style={{ position: "absolute", top: 5, left: 5 }}>
-              <div style={{ background: "rgba(255,255,255,0.9)", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2, borderRadius: 2 }}>
-                <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, letterSpacing: 1.2, color: D, textTransform: "uppercase" }}>Frontal View</span>
-              </div>
+            <div style={{ position: "absolute", top: 5, left: 5, background: "rgba(255,255,255,0.9)", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2, borderRadius: 2 }}>
+              <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, letterSpacing: 1, color: D, textTransform: "uppercase" }}>Frontal View</span>
             </div>
-            {/* Callout lines */}
-            <PhotoCalloutSvg callouts={callouts.frontPhoto ?? []} />
-            {/* Callout labels */}
-            {(callouts.frontPhoto ?? []).slice(0, 3).map((c, i) => {
-              const positions = [{ top: "8%", right: "2%" }, { top: "36%", right: "2%" }, { top: "62%", right: "2%" }];
-              const pos = positions[i] ?? positions[0];
-              return (
-                <div key={i} style={{ position: "absolute", ...pos, maxWidth: "38%" }}>
-                  <div style={{
-                    background: "rgba(255,255,255,0.88)", paddingLeft: 3, paddingRight: 3, paddingTop: 1.5, paddingBottom: 1.5, borderRadius: 2,
-                    border: `0.4px solid ${G}`,
-                  }}>
-                    <span style={{ fontFamily: "Inter", fontSize: 6, color: D, lineHeight: 1.2 }}>{c.label}</span>
-                  </div>
-                </div>
-              );
-            })}
+            <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }} viewBox="0 0 100 100" preserveAspectRatio="none">
+              {fAnchors.map((a, i) => callF[i] && (
+                <g key={i}>
+                  <line x1={a.ax} y1={a.ay} x2={a.lx} y2={a.ly} stroke={G} strokeWidth={0.7} strokeDasharray="2 1.5" vectorEffect="non-scaling-stroke"/>
+                  <circle cx={a.ax} cy={a.ay} r={1.4} fill={G} vectorEffect="non-scaling-stroke"/>
+                </g>
+              ))}
+            </svg>
+            {callF.map((c, i) => (
+              <div key={i} style={{ position: "absolute", top: calloutPositions[i].top, right: calloutPositions[i].right, background: "rgba(255,255,255,0.88)", paddingLeft: 3, paddingRight: 3, paddingTop: 1.5, paddingBottom: 1.5, borderRadius: 2, border: `0.4px solid ${G}`, maxWidth: "38%" }}>
+                <span style={{ fontFamily: "Inter", fontSize: 5.5, color: D, lineHeight: 1.2 }}>{c.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Crown photo */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", marginRight: 6 }}>
-          <div style={{
-            position: "relative", width: "100%", borderRadius: 5,
-            overflow: "hidden", border: `0.8px solid ${G}`,
-            aspectRatio: "3/4", background: "#D4CCC2",
-          }}>
-            {crownB64 ? (
+        {/* Crown */}
+        <div style={{ flex: 1, marginRight: 6, display: "flex", flexDirection: "column" }}>
+          <div style={{ position: "relative", width: "100%", height: PHOTO_H, borderRadius: 5, overflow: "hidden", border: `0.8px solid ${G}`, background: "#C8C0B8" }}>
+            {crownB64 && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={crownB64} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} alt="" />
-            ) : (
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: 9, color: M }}>No photo</span>
-              </div>
+              <img src={crownB64} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%", objectFit: "cover" }} alt="" />
             )}
-            <div style={{ position: "absolute", top: 5, left: 5 }}>
-              <div style={{ background: "rgba(255,255,255,0.9)", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2, borderRadius: 2 }}>
-                <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, letterSpacing: 1.2, color: D, textTransform: "uppercase" }}>Crown View</span>
-              </div>
+            <div style={{ position: "absolute", top: 5, left: 5, background: "rgba(255,255,255,0.9)", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2, borderRadius: 2 }}>
+              <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, letterSpacing: 1, color: D, textTransform: "uppercase" }}>Crown View</span>
             </div>
-            <PhotoCalloutSvg callouts={callouts.crownPhoto ?? []} />
-            {(callouts.crownPhoto ?? []).slice(0, 3).map((c, i) => {
-              const positions = [{ top: "8%", right: "2%" }, { top: "36%", right: "2%" }, { top: "62%", right: "2%" }];
-              const pos = positions[i] ?? positions[0];
-              return (
-                <div key={i} style={{ position: "absolute", ...pos, maxWidth: "38%" }}>
-                  <div style={{
-                    background: "rgba(255,255,255,0.88)", paddingLeft: 3, paddingRight: 3, paddingTop: 1.5, paddingBottom: 1.5, borderRadius: 2,
-                    border: `0.4px solid ${G}`,
-                  }}>
-                    <span style={{ fontFamily: "Inter", fontSize: 6, color: D, lineHeight: 1.2 }}>{c.label}</span>
-                  </div>
-                </div>
-              );
-            })}
+            <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }} viewBox="0 0 100 100" preserveAspectRatio="none">
+              {cAnchors.map((a, i) => callC[i] && (
+                <g key={i}>
+                  <line x1={a.ax} y1={a.ay} x2={a.lx} y2={a.ly} stroke={G} strokeWidth={0.7} strokeDasharray="2 1.5" vectorEffect="non-scaling-stroke"/>
+                  <circle cx={a.ax} cy={a.ay} r={1.4} fill={G} vectorEffect="non-scaling-stroke"/>
+                </g>
+              ))}
+            </svg>
+            {callC.map((c, i) => (
+              <div key={i} style={{ position: "absolute", top: calloutPositions[i].top, right: calloutPositions[i].right, background: "rgba(255,255,255,0.88)", paddingLeft: 3, paddingRight: 3, paddingTop: 1.5, paddingBottom: 1.5, borderRadius: 2, border: `0.4px solid ${G}`, maxWidth: "38%" }}>
+                <span style={{ fontFamily: "Inter", fontSize: 5.5, color: D, lineHeight: 1.2 }}>{c.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Scalp density map */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-          {/* Heatmap */}
-          <div style={{
-            border: `0.8px solid ${G}`, borderRadius: 5, background: "#FAF7F2",
-            display: "flex", flexDirection: "column", alignItems: "center", padding: 8, gap: 4,
-          }}>
+        {/* Density map */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, height: PHOTO_H }}>
+          <div style={{ flex: 1, border: `0.8px solid ${G}`, borderRadius: 5, background: "#FAF7F2", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 8, gap: 4 }}>
             <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, letterSpacing: 1.5, color: M, textTransform: "uppercase" }}>Scalp Density Map</span>
-            <span style={{ fontFamily: "Inter", fontSize: 5.5, color: M, letterSpacing: 0.5 }}>Top view overlay</span>
-            <HeatmapDisk intensity={crownMap?.heatmapIntensity ?? 55} />
-            {/* Legend */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontFamily: "Inter", fontSize: 6, color: GR }}>High Density</span>
-              <div style={{ width: 50, height: 6, borderRadius: 3, background: `linear-gradient(to right, ${GR}, #D4A84B, ${OR}, ${RE})` }} />
-              <span style={{ fontFamily: "Inter", fontSize: 6, color: RE }}>Low Density</span>
+            <span style={{ fontFamily: "Inter", fontSize: 5.5, color: M }}>Top view overlay</span>
+            <HeatCircle intensity={crown?.heatmapIntensity ?? 55} />
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+              <span style={{ fontFamily: "Inter", fontSize: 5.5, color: GR }}>High</span>
+              <div style={{ width: 40, height: 5, borderRadius: 3, background: `linear-gradient(to right, ${GR}, #D4A84B, ${OR}, ${RE})` }} />
+              <span style={{ fontFamily: "Inter", fontSize: 5.5, color: RE }}>Low</span>
             </div>
-            <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M, textAlign: "center", lineHeight: 1.3, paddingTop: 2 }}>{crownMap?.legend ?? "Crown: visible thinning"}</span>
+            <span style={{ fontFamily: "Inter", fontSize: 6, color: M, textAlign: "center", lineHeight: 1.3 }}>{crown?.legend ?? "Crown: visible thinning"}</span>
           </div>
-
-          {/* Density comparison */}
-          <div style={{
-            border: `0.8px solid ${G}`, borderRadius: 5, background: "#FAF7F2",
-            padding: 8, display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-          }}>
-            <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, letterSpacing: 1.5, color: M, textTransform: "uppercase" }}>Density Comparison</span>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <DensityCircle label={densityComp?.frontal.caption ?? "Frontal Zone\nStronger Density"} dense={true} />
-              <DensityCircle label={densityComp?.crown.caption ?? "Crown Zone\nLower Density"} dense={false} />
+          <div style={{ border: `0.8px solid ${G}`, borderRadius: 5, background: "#FAF7F2", padding: 8, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+            <span style={{ fontFamily: "Inter", fontSize: 6, fontWeight: 700, letterSpacing: 1, color: M, textTransform: "uppercase" }}>Density Comparison</span>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <DensityCircle label={denComp?.frontal.caption ?? "Frontal Zone\nStronger"} dense={true} />
+              <DensityCircle label={denComp?.crown.caption  ?? "Crown Zone\nLower"} dense={false} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── ASSESSMENT SUMMARY ── */}
-      <div style={{ display: "flex", flexDirection: "column", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
+      {/* ASSESSMENT SUMMARY */}
+      <div style={{ display: "flex", flexDirection: "column", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 5 }}>
         <SectionHeader label="Assessment Summary" />
         <div style={{ display: "flex" }}>
-          {metrics.map((m, i) => (
-            <MetricPill key={i} label={m.label} value={m.value} />
-          ))}
+          {metrics.map((m, i) => <MetricPill key={i} label={m.label} value={m.value} last={i === metrics.length - 1} />)}
         </div>
       </div>
 
-      {/* ── 5 ANALYSIS SECTIONS ── */}
-      <div style={{ display: "flex", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
-        {/* 1. Hair Type */}
+      {/* 5 ANALYSIS SECTIONS */}
+      <div style={{ display: "flex", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 5 }}>
+        {/* 1 Hair Type */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 6px" }}>
+          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
             <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>1. Hair Type</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "6px 6px", gap: 2, flex: 1 }}>
-            <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 4 }}>
-              {htOpts.map((o) => <OptionChip key={o} label={o} active={activeHt(o)} />)}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
-              <svg width="14" height="8" viewBox="0 0 14 8" fill="none">
-                <path d="M1 4 C3 1, 5 1, 7 4 S11 7, 13 4" stroke={G} strokeWidth="1.4" strokeLinecap="round" fill="none"/>
-              </svg>
-              <span style={{ fontFamily: "Inter", fontSize: 7, color: M }}>Wavy pattern</span>
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", padding: "5px 5px", gap: 2, flex: 1 }}>
+            {htOpts.map((o) => <Chip key={o} label={o} active={active(va.hairType, o)} />)}
           </div>
         </div>
-
-        {/* 2. Density */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 6px" }}>
+        {/* 2 Density */}
+        <div style={{ flex: 0.8, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
+          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
             <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>2. Density</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "6px 6px", gap: 2, flex: 1 }}>
-            <div style={{ display: "flex", gap: 3, marginBottom: 4 }}>
-              {denOpts.map((o) => <OptionChip key={o} label={o} active={activeDen(o)} />)}
-            </div>
-            <div style={{ background: "rgba(196,165,90,0.1)", borderRadius: 2, paddingLeft: 4, paddingRight: 4, paddingTop: 2, paddingBottom: 2 }}>
-              <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>↓ Lower density at crown</span>
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", padding: "5px 5px", gap: 2, flex: 1 }}>
+            {denOpts.map((o) => <Chip key={o} label={o} active={active(va.density, o)} />)}
           </div>
         </div>
-
-        {/* 3. Hairline */}
-        <div style={{ flex: 1.2, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 6px" }}>
+        {/* 3 Hairline */}
+        <div style={{ flex: 1.3, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
+          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
             <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>3. Hairline</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "6px 6px", gap: 2, flex: 1 }}>
-            {hlOpts.map((o) => <OptionChip key={o} label={o} active={activeHl(o)} />)}
+          <div style={{ display: "flex", flexDirection: "column", padding: "5px 5px", gap: 2, flex: 1 }}>
+            {hlOpts.map((o) => <Chip key={o} label={o} active={active(va.hairline, o)} />)}
           </div>
         </div>
-
-        {/* 4. Scalp */}
+        {/* 4 Scalp */}
         <div style={{ flex: 1.2, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 6px" }}>
+          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
             <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>4. Scalp</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "6px 6px", gap: 2, flex: 1 }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginBottom: 3 }}>
-              {scOpts.map((o) => <OptionChip key={o} label={o} active={activeSc(o)} />)}
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", padding: "5px 5px", gap: 2, flex: 1 }}>
+            {scOpts.map((o) => <Chip key={o} label={o} active={active(va.scalpState ?? va.scalpVisibility, o)} />)}
           </div>
         </div>
-
-        {/* 5. Risk Areas */}
+        {/* 5 Risk Areas */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 6px" }}>
+          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
             <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>5. Risk Areas</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "6px 6px", gap: 4, flex: 1 }}>
-            {riskZoneNames.map((zone, i) => {
-              const found = risks.find((r) => r.area.toLowerCase().includes(zone.split(" ")[0].toLowerCase()));
-              const level = found?.level ?? (i < 2 ? "Alto" : i < 3 ? "Medio" : "Bajo");
+          <div style={{ display: "flex", flexDirection: "column", padding: "5px 6px", gap: 5, flex: 1, justifyContent: "center" }}>
+            {riskZones.map((zone, i) => {
+              const found  = risks.find((r) => r.area.toLowerCase().includes(zone.split(" ")[0].toLowerCase()));
+              const level  = found?.level ?? (i < 2 ? "Alto" : i < 3 ? "Medio" : "Bajo");
+              const level2 = level === "Alto" ? "Medio" : "Bajo";
               return (
                 <div key={zone} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 7, color: M }}>{zone}</span>
-                  <div style={{ display: "flex", gap: 2 }}>
+                  <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>{zone}</span>
+                  <div style={{ display: "flex", gap: 3 }}>
                     <RiskDot level={level} />
-                    <RiskDot level={level === "Alto" ? "Medio" : "Bajo"} />
+                    <RiskDot level={level2} />
                   </div>
                 </div>
               );
@@ -619,61 +441,83 @@ function Infographic({
         </div>
       </div>
 
-      {/* ── SCALP-ZONE ANNOTATION ── */}
-      <div style={{ display: "flex", flexDirection: "column", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
+      {/* SCALP-ZONE ANNOTATION */}
+      <div style={{ display: "flex", flexDirection: "column", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 5 }}>
         <SectionHeader label="Scalp-Zone Annotation" />
         <div style={{ display: "flex", background: "#FAF7F2" }}>
           {zoneItems.slice(0, 6).map((z, i) => (
-            <div key={i} style={{
-              flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-              paddingTop: 8, paddingBottom: 8, gap: 4,
-              borderRight: i < 5 ? `0.5px solid ${G}` : "none",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 14, background: `rgba(196,165,90,0.12)` }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M7 1 C5 1, 2 3, 2 7 S4 13, 7 13 S12 11, 12 7 S9 1, 7 1" stroke={G} strokeWidth="0.9" fill="none"/>
-                  <line x1="5" y1="5" x2="4" y2="1" stroke={D} strokeWidth="1" strokeLinecap="round"/>
-                  <line x1="7" y1="5" x2="7" y2="1" stroke={D} strokeWidth="1" strokeLinecap="round"/>
-                  <line x1="9" y1="5" x2="10" y2="1" stroke={D} strokeWidth="1" strokeLinecap="round"/>
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 8, paddingBottom: 8, gap: 4, borderRight: i < 5 ? `0.5px solid ${G}` : "none" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 13, background: "rgba(196,165,90,0.12)" }}>
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M6.5 1 C5 1, 2 3, 2 6.5 S4 12, 6.5 12 S11 10, 11 6.5 S8 1, 6.5 1" stroke={G} strokeWidth="0.9" fill="none"/>
+                  <line x1="4.5" y1="5" x2="4" y2="1.5" stroke={D} strokeWidth="0.9" strokeLinecap="round"/>
+                  <line x1="6.5" y1="4.5" x2="6.5" y2="1" stroke={D} strokeWidth="0.9" strokeLinecap="round"/>
+                  <line x1="8.5" y1="5" x2="9" y2="1.5" stroke={D} strokeWidth="0.9" strokeLinecap="round"/>
                 </svg>
               </div>
               <span style={{ fontFamily: "Inter", fontSize: 7, fontWeight: 700, color: D }}>{z.zone}</span>
-              <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M, textAlign: "center", lineHeight: 1.2 }}>{z.micro}</span>
-              {z.icon === "check" ? <CheckBadge /> : z.icon === "warn" ? <WarnBadge /> : <CheckBadge />}
+              <span style={{ fontFamily: "Inter", fontSize: 6, color: M, textAlign: "center", lineHeight: 1.2 }}>{z.micro}</span>
+              {z.icon === "warn" ? <WarnBadge /> : <CheckBadge />}
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── RECOMMENDED ROUTINE ── */}
-      <div style={{ display: "flex", flexDirection: "column", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
+      {/* RECOMMENDED ROUTINE */}
+      <div style={{ display: "flex", flexDirection: "column", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 5 }}>
         <SectionHeader label="Recommended Routine" />
         <div style={{ display: "flex", background: "#FAF7F2" }}>
-          <RoutineCol icon={<IconBottle />}   label="Cleanse" items={r.cleanse} />
-          <RoutineCol icon={<IconDropper />}  label="Treat"   items={r.treat} />
-          <RoutineCol icon={<IconShield />}   label="Protect" items={r.protect} />
-          <RoutineCol icon={<IconScissors />} label="Style"   items={r.style} />
+          <RoutineCol label="Cleanse" items={r.cleanse} icon={
+            <svg width="18" height="24" viewBox="0 0 18 24" fill="none">
+              <rect x="5" y="0" width="8" height="3" rx="1" fill={G} opacity="0.5"/>
+              <path d="M3 6 C2 8, 1 11, 1 14 L1 20 C1 22 2 23 4 23 L14 23 C16 23 17 22 17 20 L17 14 C17 11 16 8 15 6 Z" fill={G} opacity="0.18" stroke={G} strokeWidth="0.7"/>
+              <line x1="5" y1="13" x2="13" y2="13" stroke={G} strokeWidth="0.7"/>
+              <line x1="5" y1="16" x2="13" y2="16" stroke={G} strokeWidth="0.7"/>
+            </svg>
+          }/>
+          <RoutineCol label="Treat" items={r.treat} icon={
+            <svg width="16" height="24" viewBox="0 0 16 24" fill="none">
+              <rect x="5" y="0" width="6" height="3" rx="1" fill={G} opacity="0.5"/>
+              <rect x="4" y="3" width="8" height="15" rx="2" fill={G} opacity="0.18" stroke={G} strokeWidth="0.7"/>
+              <path d="M8 18 L8 23" stroke={G} strokeWidth="1.1" strokeLinecap="round"/>
+              <circle cx="8" cy="23" r="1.5" fill={G} opacity="0.45"/>
+            </svg>
+          }/>
+          <RoutineCol label="Protect" items={r.protect} icon={
+            <svg width="20" height="22" viewBox="0 0 20 22" fill="none">
+              <path d="M10 1 L18 5 L18 11 C18 16 14 20 10 22 C6 20 2 16 2 11 L2 5 Z" fill={G} opacity="0.18" stroke={G} strokeWidth="0.8"/>
+              <path d="M7 11 L9.5 13.5 L13 8" stroke={G} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          }/>
+          <RoutineCol label="Style" items={r.style} last icon={
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="4.5" cy="4.5" r="2.5" stroke={G} strokeWidth="0.8" fill={G} opacity="0.15"/>
+              <circle cx="4.5" cy="15.5" r="2.5" stroke={G} strokeWidth="0.8" fill={G} opacity="0.15"/>
+              <line x1="7" y1="6.5" x2="17" y2="16.5" stroke={G} strokeWidth="1.1" strokeLinecap="round"/>
+              <line x1="7" y1="13.5" x2="17" y2="3.5" stroke={G} strokeWidth="1.1" strokeLinecap="round"/>
+            </svg>
+          }/>
         </div>
       </div>
 
-      {/* ── INGREDIENTS GUIDE ── */}
+      {/* INGREDIENTS GUIDE */}
       <div style={{ display: "flex", flexDirection: "column", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
         <SectionHeader label="Ingredients Guide" />
         <div style={{ display: "flex", background: "#FAF7F2" }}>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, padding: "8px 10px", borderRight: `0.5px solid ${G}` }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, padding: "8px 10px", borderRight: `0.5px solid ${G}` }}>
             <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, color: GR, textTransform: "uppercase", letterSpacing: 1 }}>Helpful</span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-              {ing.helpful.map((item, i) => (
-                <div key={i} style={{ background: `rgba(74,138,90,0.12)`, border: `0.5px solid ${GR}`, borderRadius: 3, paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2 }}>
+              {ing2.helpful.map((item, i) => (
+                <div key={i} style={{ background: "rgba(74,138,90,0.12)", border: `0.5px solid ${GR}`, borderRadius: 3, paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2 }}>
                   <span style={{ fontFamily: "Inter", fontSize: 7.5, color: GR }}>{item}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, padding: "8px 10px" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, padding: "8px 10px" }}>
             <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, color: RE, textTransform: "uppercase", letterSpacing: 1 }}>Avoid Overload</span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-              {ing.avoid.map((item, i) => (
+              {ing2.avoid.map((item, i) => (
                 <div key={i} style={{ background: "rgba(196,92,92,0.1)", border: `0.5px solid ${RE}`, borderRadius: 3, paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2 }}>
                   <span style={{ fontFamily: "Inter", fontSize: 7.5, color: RE }}>{item}</span>
                 </div>
@@ -683,39 +527,20 @@ function Infographic({
         </div>
       </div>
 
-      {/* ── FOOTER ── */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        marginLeft: PH, marginRight: PH, marginBottom: 8, gap: 8,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <circle cx="5" cy="5" r="4" stroke={M} strokeWidth="0.8"/>
-            <path d="M5 3V5.5" stroke={M} strokeWidth="0.8" strokeLinecap="round"/>
-            <circle cx="5" cy="7" r="0.5" fill={M}/>
-          </svg>
-          <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>Image-based AI assessment</span>
-        </div>
-        <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>Results may vary with time &amp; lifestyle</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <path d="M5 1 L9 4 L9 9 L5 9 L1 9 L1 4 Z" stroke={M} strokeWidth="0.8" fill="none"/>
-          </svg>
-          <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>Consult a trichologist for personalized diagnosis</span>
-        </div>
+      {/* FOOTER */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginLeft: PH, marginRight: PH, marginBottom: 10 }}>
+        <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>Image-based AI assessment</span>
+        <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>Results may vary with time & lifestyle</span>
+        <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>Consult a trichologist for personalized diagnosis</span>
       </div>
     </div>
   );
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // Auth
   if (!process.env.ANALYSIS_ACCESS_SECRET) {
     return new Response("Service not configured", { status: 503 });
   }
@@ -723,7 +548,6 @@ export async function GET(
   if (!verifyToken(id, token)) {
     return new Response("Unauthorized", { status: 403 });
   }
-
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
     return new Response("DB not configured", { status: 503 });
   }
@@ -734,10 +558,9 @@ export async function GET(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Fetch analysis
     const { data, error } = await supabase
       .from("hair_map_analyses")
-      .select("photo_frontal_url, photo_crown_url, analysis_json, status")
+      .select("photo_frontal_url, photo_crown_url, analysis_json")
       .eq("id", id)
       .single();
 
@@ -747,25 +570,33 @@ export async function GET(
 
     const report = data.analysis_json as HairMapAnalysisReport;
 
-    // Fetch photos + fonts in parallel
-    const [frontalRaw, crownRaw, interRegular, interBold, playfairBold] = await Promise.all([
-      resolvePhotoUrl(supabase, data.photo_frontal_url ?? null).then((url) => (url ? toBase64(url) : undefined)),
-      resolvePhotoUrl(supabase, data.photo_crown_url ?? null).then((url) => (url ? toBase64(url) : undefined)),
-      fetchFont("https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2"),
-      fetchFont("https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7W0Q5nw.woff2"),
-      fetchFont("https://fonts.gstatic.com/s/playfairdisplay/v37/nuFvD-vYSZviVYUb_rj3ij__anPXBYf9lbo.woff2"),
+    // Fetch everything in parallel — each with independent error handling
+    const [frontalUrl, crownUrl, interRegular, interBold, playfairBold] = await Promise.all([
+      resolvePhotoUrl(supabase, data.photo_frontal_url ?? null),
+      resolvePhotoUrl(supabase, data.photo_crown_url  ?? null),
+      fetchGoogleFont("Inter", 400),
+      fetchGoogleFont("Inter", 700),
+      fetchGoogleFont("Playfair Display", 700),
     ]);
 
+    const [frontalB64, crownB64] = await Promise.all([
+      frontalUrl ? toBase64(frontalUrl) : Promise.resolve(undefined),
+      crownUrl   ? toBase64(crownUrl)   : Promise.resolve(undefined),
+    ]);
+
+    type FontEntry = { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" };
+    const fonts: FontEntry[] = [
+      interRegular  && { name: "Inter",    data: interRegular,  weight: 400 as const, style: "normal" as const },
+      interBold     && { name: "Inter",    data: interBold,     weight: 700 as const, style: "normal" as const },
+      playfairBold  && { name: "Playfair", data: playfairBold,  weight: 700 as const, style: "normal" as const },
+    ].filter(Boolean) as FontEntry[];
+
     return new ImageResponse(
-      <Infographic report={report} frontalB64={frontalRaw} crownB64={crownRaw} />,
+      <Infographic report={report} frontalB64={frontalB64} crownB64={crownB64} />,
       {
-        width: W,
+        width:  W,
         height: H,
-        fonts: [
-          { name: "Inter",    data: interRegular, weight: 400, style: "normal" },
-          { name: "Inter",    data: interBold,    weight: 700, style: "normal" },
-          { name: "Playfair", data: playfairBold,  weight: 700, style: "normal" },
-        ],
+        fonts:  fonts.length > 0 ? fonts : undefined,
         headers: {
           "Content-Disposition": `attachment; filename="mapa-capilar-${id.slice(0, 8)}.png"`,
           "Cache-Control": "private, max-age=300",
