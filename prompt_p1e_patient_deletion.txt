@@ -1,0 +1,94 @@
+# P1-E — Endpoint de borrado de paciente con cascade (H12 / P1.5)
+
+> Contexto: Ley 19.628 (Chile), artículo 12 — derecho del titular a solicitar
+> la eliminación de sus datos. El admin debe poder borrar un paciente y todos
+> sus datos asociados (BD + Storage) en una sola operación auditada.
+
+---
+
+## ALCANCE
+
+Solo este ítem. No tocar P1-A, P1-B, P1-C ni P1-D.
+
+---
+
+## TABLAS A BORRAR EN ORDEN (FK constraints)
+
+1. `ai_doctor_reports`  — WHERE patient_id = X
+2. `medical_reviews`    — WHERE patient_id = X
+3. `orders`             — WHERE patient_id = X
+4. `photos`             — WHERE patient_id = X  (antes de borrar intakes)
+5. `intakes`            — WHERE patient_id = X
+6. `patients`           — WHERE id = X
+7. Storage bucket `patient-photos` — listar y borrar archivos del paciente
+
+El borrado de Storage se hace después del borrado de DB para no dejar huérfanos
+en el inventario si algo falla en DB.
+
+## FORMATO DE URLs EN PHOTOS.URL
+
+Después de P1-A, las fotos nuevas almacenan el path relativo (p.ej. `1234_frontal.jpg`).
+Las fotos legacy almacenan la URL completa (empieza con `https://`).
+Para borrar del storage, extraer el path del bucket así:
+- Si empieza con `https://`: extraer todo lo que viene después de `/patient-photos/`
+- Si no empieza con `https://`: usar el valor directamente como path
+
+---
+
+## ARCHIVOS A CREAR / MODIFICAR
+
+### 1. NUEVO — `src/app/api/admin/patients/[id]/route.ts`
+
+Método: `DELETE`
+
+Auth: `verifyAdminToken` (igual que el resto de rutas admin).
+
+Lógica:
+1. Verificar token admin
+2. Extraer `id` de los params (patient_id UUID)
+3. Usar cliente admin (SERVICE_ROLE_KEY) para:
+   a. Obtener todas las fotos del paciente (SELECT url FROM photos WHERE patient_id = id)
+   b. DELETE ai_doctor_reports WHERE patient_id = id
+   c. DELETE medical_reviews WHERE patient_id = id
+   d. DELETE orders WHERE patient_id = id
+   e. DELETE photos WHERE patient_id = id
+   f. DELETE intakes WHERE patient_id = id
+   g. DELETE patients WHERE id = id
+   h. Si hay fotos, extraer paths y llamar storage.from("patient-photos").remove([...paths])
+4. Retornar { ok: true } o { error: "..." } con status apropiado
+
+Si algún paso de DB falla, abortar y retornar 500 con descripción del paso fallido.
+El borrado de storage es best-effort: si falla, loguear pero no hacer fallar el 200.
+
+### 2. NUEVO — `src/app/admin/patients/[id]/DeletePatientButton.tsx`
+
+Client component ("use client").
+
+Props: `{ patientId: string; patientName: string }`
+
+Comportamiento:
+- Botón rojo "Eliminar paciente" con ícono de papelera (usar `Trash2` de lucide-react)
+- Al hacer click: `window.confirm("¿Eliminar a <patientName> y todos sus datos? Esta acción no se puede deshacer.")`
+- Si el usuario cancela: no hacer nada
+- Si confirma: llamar `fetch("/api/admin/patients/<patientId>", { method: "DELETE" })`
+- Durante la llamada: deshabilitar botón y mostrar "Eliminando..."
+- Si ok: `router.push("/admin")` (usando `useRouter` de next/navigation)
+- Si error: mostrar mensaje de error inline en rojo
+
+### 3. MODIFICAR — `src/app/admin/patients/[id]/page.tsx`
+
+- Importar `DeletePatientButton`
+- Añadir el componente en el header de la página, junto al nombre del paciente,
+  alineado a la derecha (usar `ml-auto` o similar)
+- Pasar `patientId={row.patients.id}` y `patientName={row.patients.first_name + " " + row.patients.last_name}`
+
+---
+
+## RESTRICCIONES
+
+- Solo admin autenticado puede borrar (verifyAdminToken)
+- No exponer este endpoint sin auth
+- El borrado es irreversible — el confirm dialog es obligatorio
+- No tocar rutas existentes ni otros archivos fuera del alcance
+- `npm run build` debe pasar antes de dar el trabajo por terminado
+- No hacer git add ni commit

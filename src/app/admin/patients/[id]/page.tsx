@@ -21,6 +21,7 @@ import { displayNationalId } from "@/lib/utils";
 import { StatusUpdater } from "./StatusUpdater";
 import { AiReportSection } from "./AiReportSection";
 import { DoctorAssigner } from "./DoctorAssigner";
+import { DeletePatientButton } from "./DeletePatientButton";
 
 const JOURNEY_LABELS = {
   treatment: "Tratamiento",
@@ -100,6 +101,10 @@ export default async function PatientDetailPage({
             </h1>
             <p className="text-sm text-muted-foreground">{row.patients?.email}</p>
           </div>
+          <DeletePatientButton
+            patientId={row.patients?.id}
+            patientName={`${row.patients?.first_name ?? ""} ${row.patients?.last_name ?? ""}`.trim()}
+          />
         </div>
       </header>
 
