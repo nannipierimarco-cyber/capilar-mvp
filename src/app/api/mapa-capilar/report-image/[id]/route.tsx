@@ -4,6 +4,8 @@ import { createHmac, timingSafeEqual } from "crypto";
 import type { NextRequest } from "next/server";
 import type { HairMapAnalysisReport } from "@/lib/mapaCapilar";
 
+export const maxDuration = 30;
+
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const G  = "#C4A55A";
 const D  = "#1E180A";
@@ -36,7 +38,7 @@ function verifyToken(id: string, token: string): boolean {
 // ── Photo → base64 ────────────────────────────────────────────────────────────
 async function toBase64(url: string): Promise<string | undefined> {
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!res.ok) return undefined;
     const buf = await res.arrayBuffer();
     const b64 = Buffer.from(buf).toString("base64");
@@ -47,27 +49,6 @@ async function toBase64(url: string): Promise<string | undefined> {
   }
 }
 
-// ── Font fetching via Google Fonts CSS API (reliable URLs) ────────────────────
-async function fetchGoogleFont(family: string, weight: number): Promise<ArrayBuffer | null> {
-  try {
-    const cssUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}&display=swap`;
-    const cssRes = await fetch(cssUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; NextJS/1.0)" },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!cssRes.ok) return null;
-    const css = await cssRes.text();
-    // Extract last woff2 URL (latin subset is last)
-    const matches = [...css.matchAll(/url\(([^)]+\.woff2)\)/g)];
-    const fontUrl = matches[matches.length - 1]?.[1];
-    if (!fontUrl) return null;
-    const fontRes = await fetch(fontUrl, { signal: AbortSignal.timeout(8000) });
-    if (!fontRes.ok) return null;
-    return fontRes.arrayBuffer();
-  } catch {
-    return null;
-  }
-}
 
 // ── Supabase photo URL resolver ───────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,7 +89,7 @@ function SectionHeader({ label }: { label: string }) {
       background: CD, borderTop: `1.5px solid ${G}`,
       paddingTop: 5, paddingBottom: 5,
     }}>
-      <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, letterSpacing: 2, color: M, textTransform: "uppercase" }}>
+      <span style={{ fontFamily: "sans-serif", fontSize: 7.5, fontWeight: 700, letterSpacing: 2, color: M, textTransform: "uppercase" }}>
         {label}
       </span>
     </div>
@@ -122,8 +103,8 @@ function MetricPill({ label, value, last }: { label: string; value: string; last
       flex: 1, paddingTop: 7, paddingBottom: 7, paddingLeft: 3, paddingRight: 3, gap: 3,
       borderRight: last ? "none" : `0.5px solid ${G}`,
     }}>
-      <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>{label}</span>
-      <span style={{ fontFamily: "Inter", fontSize: 8.5, fontWeight: 700, color: D, textAlign: "center", lineHeight: 1.2 }}>{value}</span>
+      <span style={{ fontFamily: "sans-serif", fontSize: 6.5, color: M, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>{label}</span>
+      <span style={{ fontFamily: "sans-serif", fontSize: 8.5, fontWeight: 700, color: D, textAlign: "center", lineHeight: 1.2 }}>{value}</span>
     </div>
   );
 }
@@ -138,7 +119,7 @@ function Chip({ label, active }: { label: string; active: boolean }) {
       border: `0.5px solid ${active ? G : "rgba(196,165,90,0.3)"}`,
       marginBottom: 2,
     }}>
-      <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: active ? 700 : 400, color: active ? "#fff" : M }}>
+      <span style={{ fontFamily: "sans-serif", fontSize: 7.5, fontWeight: active ? 700 : 400, color: active ? "#fff" : M }}>
         {label}
       </span>
     </div>
@@ -172,7 +153,7 @@ function DensityCircle({ label, dense }: { label: string; dense: boolean }) {
           {xs.map((x) => <line key={x} x1={x} y1="22" x2={x - 1} y2="3" stroke={D} strokeWidth={dense ? 1.4 : 1.2} strokeLinecap="round"/>)}
         </svg>
       </div>
-      <span style={{ fontFamily: "Inter", fontSize: 6, color: M, textAlign: "center", lineHeight: 1.2, maxWidth: 52 }}>{label}</span>
+      <span style={{ fontFamily: "sans-serif", fontSize: 6, color: M, textAlign: "center", lineHeight: 1.2, maxWidth: 52 }}>{label}</span>
     </div>
   );
 }
@@ -186,13 +167,13 @@ function RoutineCol({ icon, label, items, last }: { icon: React.ReactNode; label
     }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
         {icon}
-        <span style={{ fontFamily: "Inter", fontSize: 7, fontWeight: 700, color: D, textTransform: "uppercase", letterSpacing: 1.5 }}>{label}</span>
+        <span style={{ fontFamily: "sans-serif", fontSize: 7, fontWeight: 700, color: D, textTransform: "uppercase", letterSpacing: 1.5 }}>{label}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {items.slice(0, 4).map((item, i) => (
           <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
             <span style={{ fontSize: 7, color: G, lineHeight: 1.4 }}>•</span>
-            <span style={{ fontFamily: "Inter", fontSize: 7.5, color: D, lineHeight: 1.3 }}>{item}</span>
+            <span style={{ fontFamily: "sans-serif", fontSize: 7.5, color: D, lineHeight: 1.3 }}>{item}</span>
           </div>
         ))}
       </div>
@@ -206,8 +187,8 @@ function Infographic({ report, frontalB64, crownB64 }: {
   frontalB64?: string;
   crownB64?: string;
 }) {
-  const va      = report.visualAnalysis;
-  const zones   = report.zones;
+  const va      = report.visualAnalysis ?? {} as HairMapAnalysisReport["visualAnalysis"];
+  const zones   = report.zones ?? {} as HairMapAnalysisReport["zones"];
   const risks   = report.riskAreas ?? [];
   const routine = report.recommendedRoutine;
   const ing     = report.ingredientHints;
@@ -229,7 +210,8 @@ function Infographic({ report, frontalB64, crownB64 }: {
     { key: "oc",  label: "Overall Condition",  value: va.overallCondition },
   ];
 
-  function active(field: string, opt: string) {
+  function active(field: string | undefined | null, opt: string) {
+    if (!field) return false;
     return field.toLowerCase().includes(opt.toLowerCase());
   }
 
@@ -241,12 +223,12 @@ function Infographic({ report, frontalB64, crownB64 }: {
   const riskZones = ["Temples","Frontal zone","Mid-scalp","Crown","Overall"];
 
   const defaultZones = [
-    { zone:"Hairline",  icon:"check"   as const, micro: zones.frontalLine.label   },
-    { zone:"Temples",   icon:"neutral" as const, micro: zones.temples.label       },
-    { zone:"Frontal",   icon:"check"   as const, micro: zones.frontalDensity.label},
-    { zone:"Mid-scalp", icon:"check"   as const, micro: "Maintained"              },
-    { zone:"Crown",     icon:"warn"    as const, micro: zones.crown.label         },
-    { zone:"Scalp",     icon:"check"   as const, micro: zones.scalpHealth.label   },
+    { zone:"Hairline",  icon:"check"   as const, micro: zones?.frontalLine?.label   ?? "Stable"     },
+    { zone:"Temples",   icon:"neutral" as const, micro: zones?.temples?.label       ?? "Normal"     },
+    { zone:"Frontal",   icon:"check"   as const, micro: zones?.frontalDensity?.label ?? "Good"      },
+    { zone:"Mid-scalp", icon:"check"   as const, micro: "Maintained"                                },
+    { zone:"Crown",     icon:"warn"    as const, micro: zones?.crown?.label         ?? "Thinning"   },
+    { zone:"Scalp",     icon:"check"   as const, micro: zones?.scalpHealth?.label   ?? "Normal"     },
   ];
   const zoneItems = zoneStr.length >= 4 ? zoneStr : defaultZones;
 
@@ -259,11 +241,11 @@ function Infographic({ report, frontalB64, crownB64 }: {
   const r   = routine ?? defRoutine;
   const ing2 = ing ?? { helpful:["Caffeine","Peptides","Niacinamide","Ketoconazole","Panthenol"], avoid:["Heavy oils","Waxy products"] };
 
-  // Callout label positions (% from top, right side)
+  // Callout label positions — pixel values (satori doesn't resolve % in absolute children)
   const calloutPositions = [
-    { top: "8%",  right: "2%" },
-    { top: "38%", right: "2%" },
-    { top: "65%", right: "2%" },
+    { top: 18,  right: 4 },
+    { top: 87,  right: 4 },
+    { top: 149, right: 4 },
   ];
 
   // SVG for callout lines (percentage-based viewBox)
@@ -271,25 +253,25 @@ function Infographic({ report, frontalB64, crownB64 }: {
   const cAnchors = [{ ax:50,ay:24,lx:72,ly:10 },{ ax:30,ay:50,lx:72,ly:40 },{ ax:64,ay:56,lx:72,ly:68 }];
 
   return (
-    <div style={{ width: W, height: H, background: C, display: "flex", flexDirection: "column", fontFamily: "Inter" }}>
+    <div style={{ width: W, height: H, background: C, display: "flex", flexDirection: "column", fontFamily: "sans-serif" }}>
 
       {/* HEADER */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: PH, paddingRight: PH, paddingTop: 12, paddingBottom: 10, borderBottom: `1px solid ${G}` }}>
         <div style={{ display: "flex", flexDirection: "column", border: `0.8px solid ${G}`, paddingLeft: 6, paddingRight: 6, paddingTop: 3, paddingBottom: 3, borderRadius: 3 }}>
-          <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M, letterSpacing: 0.8 }}>Likely visual</span>
-          <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M, letterSpacing: 0.8 }}>assessment</span>
+          <span style={{ fontFamily: "sans-serif", fontSize: 6.5, color: M, letterSpacing: 0.8 }}>Likely visual</span>
+          <span style={{ fontFamily: "sans-serif", fontSize: 6.5, color: M, letterSpacing: 0.8 }}>assessment</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-          <span style={{ fontFamily: "Playfair", fontSize: 26, fontWeight: 700, color: D, lineHeight: 1 }}>AI Hair & Scalp Analysis</span>
-          <span style={{ fontFamily: "Inter", fontSize: 9, color: M, fontStyle: "italic", letterSpacing: 0.5 }}>Visual trichology assessment</span>
+          <span style={{ fontFamily: "serif", fontSize: 26, fontWeight: 700, color: D, lineHeight: 1 }}>AI Hair & Scalp Analysis</span>
+          <span style={{ fontFamily: "sans-serif", fontSize: 9, color: M, fontStyle: "italic", letterSpacing: 0.5 }}>Visual trichology assessment</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", border: `1px solid ${G}`, padding: 6, borderRadius: 4, gap: 2, minWidth: 62 }}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <polygon points="9,1 17,6 17,12 9,17 1,12 1,6" stroke={G} strokeWidth="1" fill="none"/>
             <polygon points="9,5 13,7.5 13,10.5 9,13 5,10.5 5,7.5" stroke={G} strokeWidth="0.6" fill="none"/>
           </svg>
-          <span style={{ fontFamily: "Inter", fontSize: 6, fontWeight: 700, color: D, letterSpacing: 1.5, textTransform: "uppercase" }}>{brand}</span>
-          <span style={{ fontFamily: "Inter", fontSize: 5, color: M, letterSpacing: 0.5, textTransform: "uppercase" }}>Trichology Clinic</span>
+          <span style={{ fontFamily: "sans-serif", fontSize: 6, fontWeight: 700, color: D, letterSpacing: 1.5, textTransform: "uppercase" }}>{brand}</span>
+          <span style={{ fontFamily: "sans-serif", fontSize: 5, color: M, letterSpacing: 0.5, textTransform: "uppercase" }}>Trichology Clinic</span>
         </div>
       </div>
 
@@ -298,25 +280,25 @@ function Infographic({ report, frontalB64, crownB64 }: {
 
         {/* Frontal */}
         <div style={{ flex: 1, marginRight: 6, display: "flex", flexDirection: "column" }}>
-          <div style={{ position: "relative", width: "100%", height: PHOTO_H, borderRadius: 5, overflow: "hidden", border: `0.8px solid ${G}`, background: "#C8C0B8" }}>
+          <div style={{ display: "flex", position: "relative", width: "100%", height: PHOTO_H, borderRadius: 5, overflow: "hidden", border: `0.8px solid ${G}`, background: "#C8C0B8" }}>
             {frontalB64 && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={frontalB64} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%", objectFit: "cover" }} alt="" />
             )}
-            <div style={{ position: "absolute", top: 5, left: 5, background: "rgba(255,255,255,0.9)", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2, borderRadius: 2 }}>
-              <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, letterSpacing: 1, color: D, textTransform: "uppercase" }}>Frontal View</span>
+            <div style={{ display: "flex", alignItems: "center", position: "absolute", top: 5, left: 5, background: "rgba(255,255,255,0.9)", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2, borderRadius: 2 }}>
+              <span style={{ fontFamily: "sans-serif", fontSize: 6.5, fontWeight: 700, letterSpacing: 1, color: D, textTransform: "uppercase" }}>Frontal View</span>
             </div>
             <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }} viewBox="0 0 100 100" preserveAspectRatio="none">
-              {fAnchors.map((a, i) => callF[i] && (
+              {fAnchors.filter((_, i) => !!callF[i]).map((a, i) => (
                 <g key={i}>
-                  <line x1={a.ax} y1={a.ay} x2={a.lx} y2={a.ly} stroke={G} strokeWidth={0.7} strokeDasharray="2 1.5" vectorEffect="non-scaling-stroke"/>
-                  <circle cx={a.ax} cy={a.ay} r={1.4} fill={G} vectorEffect="non-scaling-stroke"/>
+                  <line x1={a.ax} y1={a.ay} x2={a.lx} y2={a.ly} stroke={G} strokeWidth={0.7} strokeDasharray="2 1.5"/>
+                  <circle cx={a.ax} cy={a.ay} r={1.4} fill={G}/>
                 </g>
               ))}
             </svg>
             {callF.map((c, i) => (
-              <div key={i} style={{ position: "absolute", top: calloutPositions[i].top, right: calloutPositions[i].right, background: "rgba(255,255,255,0.88)", paddingLeft: 3, paddingRight: 3, paddingTop: 1.5, paddingBottom: 1.5, borderRadius: 2, border: `0.4px solid ${G}`, maxWidth: "38%" }}>
-                <span style={{ fontFamily: "Inter", fontSize: 5.5, color: D, lineHeight: 1.2 }}>{c.label}</span>
+              <div key={i} style={{ display: "flex", alignItems: "center", position: "absolute", top: calloutPositions[i].top, right: calloutPositions[i].right, background: "rgba(255,255,255,0.88)", paddingLeft: 3, paddingRight: 3, paddingTop: 2, paddingBottom: 2, borderRadius: 2, border: `0.4px solid ${G}`, maxWidth: "38%" }}>
+                <span style={{ fontFamily: "sans-serif", fontSize: 5.5, color: D, lineHeight: 1.2 }}>{c.label}</span>
               </div>
             ))}
           </div>
@@ -324,25 +306,25 @@ function Infographic({ report, frontalB64, crownB64 }: {
 
         {/* Crown */}
         <div style={{ flex: 1, marginRight: 6, display: "flex", flexDirection: "column" }}>
-          <div style={{ position: "relative", width: "100%", height: PHOTO_H, borderRadius: 5, overflow: "hidden", border: `0.8px solid ${G}`, background: "#C8C0B8" }}>
+          <div style={{ display: "flex", position: "relative", width: "100%", height: PHOTO_H, borderRadius: 5, overflow: "hidden", border: `0.8px solid ${G}`, background: "#C8C0B8" }}>
             {crownB64 && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={crownB64} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%", objectFit: "cover" }} alt="" />
             )}
-            <div style={{ position: "absolute", top: 5, left: 5, background: "rgba(255,255,255,0.9)", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2, borderRadius: 2 }}>
-              <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, letterSpacing: 1, color: D, textTransform: "uppercase" }}>Crown View</span>
+            <div style={{ display: "flex", alignItems: "center", position: "absolute", top: 5, left: 5, background: "rgba(255,255,255,0.9)", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2, borderRadius: 2 }}>
+              <span style={{ fontFamily: "sans-serif", fontSize: 6.5, fontWeight: 700, letterSpacing: 1, color: D, textTransform: "uppercase" }}>Crown View</span>
             </div>
             <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }} viewBox="0 0 100 100" preserveAspectRatio="none">
-              {cAnchors.map((a, i) => callC[i] && (
+              {cAnchors.filter((_, i) => !!callC[i]).map((a, i) => (
                 <g key={i}>
-                  <line x1={a.ax} y1={a.ay} x2={a.lx} y2={a.ly} stroke={G} strokeWidth={0.7} strokeDasharray="2 1.5" vectorEffect="non-scaling-stroke"/>
-                  <circle cx={a.ax} cy={a.ay} r={1.4} fill={G} vectorEffect="non-scaling-stroke"/>
+                  <line x1={a.ax} y1={a.ay} x2={a.lx} y2={a.ly} stroke={G} strokeWidth={0.7} strokeDasharray="2 1.5"/>
+                  <circle cx={a.ax} cy={a.ay} r={1.4} fill={G}/>
                 </g>
               ))}
             </svg>
             {callC.map((c, i) => (
-              <div key={i} style={{ position: "absolute", top: calloutPositions[i].top, right: calloutPositions[i].right, background: "rgba(255,255,255,0.88)", paddingLeft: 3, paddingRight: 3, paddingTop: 1.5, paddingBottom: 1.5, borderRadius: 2, border: `0.4px solid ${G}`, maxWidth: "38%" }}>
-                <span style={{ fontFamily: "Inter", fontSize: 5.5, color: D, lineHeight: 1.2 }}>{c.label}</span>
+              <div key={i} style={{ display: "flex", alignItems: "center", position: "absolute", top: calloutPositions[i].top, right: calloutPositions[i].right, background: "rgba(255,255,255,0.88)", paddingLeft: 3, paddingRight: 3, paddingTop: 2, paddingBottom: 2, borderRadius: 2, border: `0.4px solid ${G}`, maxWidth: "38%" }}>
+                <span style={{ fontFamily: "sans-serif", fontSize: 5.5, color: D, lineHeight: 1.2 }}>{c.label}</span>
               </div>
             ))}
           </div>
@@ -351,18 +333,18 @@ function Infographic({ report, frontalB64, crownB64 }: {
         {/* Density map */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, height: PHOTO_H }}>
           <div style={{ flex: 1, border: `0.8px solid ${G}`, borderRadius: 5, background: "#FAF7F2", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 8, gap: 4 }}>
-            <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, letterSpacing: 1.5, color: M, textTransform: "uppercase" }}>Scalp Density Map</span>
-            <span style={{ fontFamily: "Inter", fontSize: 5.5, color: M }}>Top view overlay</span>
+            <span style={{ fontFamily: "sans-serif", fontSize: 6.5, fontWeight: 700, letterSpacing: 1.5, color: M, textTransform: "uppercase" }}>Scalp Density Map</span>
+            <span style={{ fontFamily: "sans-serif", fontSize: 5.5, color: M }}>Top view overlay</span>
             <HeatCircle intensity={crown?.heatmapIntensity ?? 55} />
             <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-              <span style={{ fontFamily: "Inter", fontSize: 5.5, color: GR }}>High</span>
+              <span style={{ fontFamily: "sans-serif", fontSize: 5.5, color: GR }}>High</span>
               <div style={{ width: 40, height: 5, borderRadius: 3, background: `linear-gradient(to right, ${GR}, #D4A84B, ${OR}, ${RE})` }} />
-              <span style={{ fontFamily: "Inter", fontSize: 5.5, color: RE }}>Low</span>
+              <span style={{ fontFamily: "sans-serif", fontSize: 5.5, color: RE }}>Low</span>
             </div>
-            <span style={{ fontFamily: "Inter", fontSize: 6, color: M, textAlign: "center", lineHeight: 1.3 }}>{crown?.legend ?? "Crown: visible thinning"}</span>
+            <span style={{ fontFamily: "sans-serif", fontSize: 6, color: M, textAlign: "center", lineHeight: 1.3 }}>{crown?.legend ?? "Crown: visible thinning"}</span>
           </div>
           <div style={{ border: `0.8px solid ${G}`, borderRadius: 5, background: "#FAF7F2", padding: 8, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-            <span style={{ fontFamily: "Inter", fontSize: 6, fontWeight: 700, letterSpacing: 1, color: M, textTransform: "uppercase" }}>Density Comparison</span>
+            <span style={{ fontFamily: "sans-serif", fontSize: 6, fontWeight: 700, letterSpacing: 1, color: M, textTransform: "uppercase" }}>Density Comparison</span>
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <DensityCircle label={denComp?.frontal.caption ?? "Frontal Zone\nStronger"} dense={true} />
               <DensityCircle label={denComp?.crown.caption  ?? "Crown Zone\nLower"} dense={false} />
@@ -383,53 +365,53 @@ function Infographic({ report, frontalB64, crownB64 }: {
       <div style={{ display: "flex", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 5 }}>
         {/* 1 Hair Type */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
-            <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>1. Hair Type</span>
+          <div style={{ display: "flex", alignItems: "center", background: CD, borderBottom: `0.5px solid ${G}`, paddingTop: 4, paddingBottom: 4, paddingLeft: 5, paddingRight: 5 }}>
+            <span style={{ fontFamily: "sans-serif", fontSize: 7.5, fontWeight: 700, color: D }}>1. Hair Type</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "5px 5px", gap: 2, flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", paddingTop: 5, paddingBottom: 5, paddingLeft: 5, paddingRight: 5, gap: 2, flex: 1 }}>
             {htOpts.map((o) => <Chip key={o} label={o} active={active(va.hairType, o)} />)}
           </div>
         </div>
         {/* 2 Density */}
         <div style={{ flex: 0.8, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
-            <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>2. Density</span>
+          <div style={{ display: "flex", alignItems: "center", background: CD, borderBottom: `0.5px solid ${G}`, paddingTop: 4, paddingBottom: 4, paddingLeft: 5, paddingRight: 5 }}>
+            <span style={{ fontFamily: "sans-serif", fontSize: 7.5, fontWeight: 700, color: D }}>2. Density</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "5px 5px", gap: 2, flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", paddingTop: 5, paddingBottom: 5, paddingLeft: 5, paddingRight: 5, gap: 2, flex: 1 }}>
             {denOpts.map((o) => <Chip key={o} label={o} active={active(va.density, o)} />)}
           </div>
         </div>
         {/* 3 Hairline */}
         <div style={{ flex: 1.3, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
-            <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>3. Hairline</span>
+          <div style={{ display: "flex", alignItems: "center", background: CD, borderBottom: `0.5px solid ${G}`, paddingTop: 4, paddingBottom: 4, paddingLeft: 5, paddingRight: 5 }}>
+            <span style={{ fontFamily: "sans-serif", fontSize: 7.5, fontWeight: 700, color: D }}>3. Hairline</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "5px 5px", gap: 2, flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", paddingTop: 5, paddingBottom: 5, paddingLeft: 5, paddingRight: 5, gap: 2, flex: 1 }}>
             {hlOpts.map((o) => <Chip key={o} label={o} active={active(va.hairline, o)} />)}
           </div>
         </div>
         {/* 4 Scalp */}
         <div style={{ flex: 1.2, display: "flex", flexDirection: "column", borderRight: `0.5px solid ${G}` }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
-            <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>4. Scalp</span>
+          <div style={{ display: "flex", alignItems: "center", background: CD, borderBottom: `0.5px solid ${G}`, paddingTop: 4, paddingBottom: 4, paddingLeft: 5, paddingRight: 5 }}>
+            <span style={{ fontFamily: "sans-serif", fontSize: 7.5, fontWeight: 700, color: D }}>4. Scalp</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "5px 5px", gap: 2, flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", paddingTop: 5, paddingBottom: 5, paddingLeft: 5, paddingRight: 5, gap: 2, flex: 1 }}>
             {scOpts.map((o) => <Chip key={o} label={o} active={active(va.scalpState ?? va.scalpVisibility, o)} />)}
           </div>
         </div>
         {/* 5 Risk Areas */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          <div style={{ background: CD, borderBottom: `0.5px solid ${G}`, padding: "4px 5px" }}>
-            <span style={{ fontFamily: "Inter", fontSize: 7.5, fontWeight: 700, color: D }}>5. Risk Areas</span>
+          <div style={{ display: "flex", alignItems: "center", background: CD, borderBottom: `0.5px solid ${G}`, paddingTop: 4, paddingBottom: 4, paddingLeft: 5, paddingRight: 5 }}>
+            <span style={{ fontFamily: "sans-serif", fontSize: 7.5, fontWeight: 700, color: D }}>5. Risk Areas</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", padding: "5px 6px", gap: 5, flex: 1, justifyContent: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", paddingTop: 5, paddingBottom: 5, paddingLeft: 6, paddingRight: 6, gap: 5, flex: 1, justifyContent: "center" }}>
             {riskZones.map((zone, i) => {
               const found  = risks.find((r) => r.area.toLowerCase().includes(zone.split(" ")[0].toLowerCase()));
               const level  = found?.level ?? (i < 2 ? "Alto" : i < 3 ? "Medio" : "Bajo");
               const level2 = level === "Alto" ? "Medio" : "Bajo";
               return (
                 <div key={zone} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>{zone}</span>
+                  <span style={{ fontFamily: "sans-serif", fontSize: 6.5, color: M }}>{zone}</span>
                   <div style={{ display: "flex", gap: 3 }}>
                     <RiskDot level={level} />
                     <RiskDot level={level2} />
@@ -455,8 +437,8 @@ function Infographic({ report, frontalB64, crownB64 }: {
                   <line x1="8.5" y1="5" x2="9" y2="1.5" stroke={D} strokeWidth="0.9" strokeLinecap="round"/>
                 </svg>
               </div>
-              <span style={{ fontFamily: "Inter", fontSize: 7, fontWeight: 700, color: D }}>{z.zone}</span>
-              <span style={{ fontFamily: "Inter", fontSize: 6, color: M, textAlign: "center", lineHeight: 1.2 }}>{z.micro}</span>
+              <span style={{ fontFamily: "sans-serif", fontSize: 7, fontWeight: 700, color: D }}>{z.zone}</span>
+              <span style={{ fontFamily: "sans-serif", fontSize: 6, color: M, textAlign: "center", lineHeight: 1.2 }}>{z.micro}</span>
               {z.icon === "warn" ? <WarnBadge /> : <CheckBadge />}
             </div>
           ))}
@@ -504,22 +486,22 @@ function Infographic({ report, frontalB64, crownB64 }: {
       <div style={{ display: "flex", flexDirection: "column", marginLeft: PH, marginRight: PH, border: `0.8px solid ${G}`, borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
         <SectionHeader label="Ingredients Guide" />
         <div style={{ display: "flex", background: "#FAF7F2" }}>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, padding: "8px 10px", borderRight: `0.5px solid ${G}` }}>
-            <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, color: GR, textTransform: "uppercase", letterSpacing: 1 }}>Helpful</span>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, paddingTop: 8, paddingBottom: 8, paddingLeft: 10, paddingRight: 10, borderRight: `0.5px solid ${G}` }}>
+            <span style={{ fontFamily: "sans-serif", fontSize: 6.5, fontWeight: 700, color: GR, textTransform: "uppercase", letterSpacing: 1 }}>Helpful</span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
               {ing2.helpful.map((item, i) => (
-                <div key={i} style={{ background: "rgba(74,138,90,0.12)", border: `0.5px solid ${GR}`, borderRadius: 3, paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 7.5, color: GR }}>{item}</span>
+                <div key={i} style={{ display: "flex", alignItems: "center", background: "rgba(74,138,90,0.12)", border: `0.5px solid ${GR}`, borderRadius: 3, paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2 }}>
+                  <span style={{ fontFamily: "sans-serif", fontSize: 7.5, color: GR }}>{item}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, padding: "8px 10px" }}>
-            <span style={{ fontFamily: "Inter", fontSize: 6.5, fontWeight: 700, color: RE, textTransform: "uppercase", letterSpacing: 1 }}>Avoid Overload</span>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5, paddingTop: 8, paddingBottom: 8, paddingLeft: 10, paddingRight: 10 }}>
+            <span style={{ fontFamily: "sans-serif", fontSize: 6.5, fontWeight: 700, color: RE, textTransform: "uppercase", letterSpacing: 1 }}>Avoid Overload</span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
               {ing2.avoid.map((item, i) => (
-                <div key={i} style={{ background: "rgba(196,92,92,0.1)", border: `0.5px solid ${RE}`, borderRadius: 3, paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 7.5, color: RE }}>{item}</span>
+                <div key={i} style={{ display: "flex", alignItems: "center", background: "rgba(196,92,92,0.1)", border: `0.5px solid ${RE}`, borderRadius: 3, paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2 }}>
+                  <span style={{ fontFamily: "sans-serif", fontSize: 7.5, color: RE }}>{item}</span>
                 </div>
               ))}
             </div>
@@ -529,9 +511,9 @@ function Infographic({ report, frontalB64, crownB64 }: {
 
       {/* FOOTER */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginLeft: PH, marginRight: PH, marginBottom: 10 }}>
-        <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>Image-based AI assessment</span>
-        <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>Results may vary with time & lifestyle</span>
-        <span style={{ fontFamily: "Inter", fontSize: 6.5, color: M }}>Consult a trichologist for personalized diagnosis</span>
+        <span style={{ fontFamily: "sans-serif", fontSize: 6.5, color: M }}>Image-based AI assessment</span>
+        <span style={{ fontFamily: "sans-serif", fontSize: 6.5, color: M }}>Results may vary with time & lifestyle</span>
+        <span style={{ fontFamily: "sans-serif", fontSize: 6.5, color: M }}>Consult a trichologist for personalized diagnosis</span>
       </div>
     </div>
   );
@@ -569,42 +551,36 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const report = data.analysis_json as HairMapAnalysisReport;
+    console.log("[report-image] DB OK, analysis_json keys:", Object.keys(report ?? {}));
 
-    // Fetch everything in parallel — each with independent error handling
-    const [frontalUrl, crownUrl, interRegular, interBold, playfairBold] = await Promise.all([
-      resolvePhotoUrl(supabase, data.photo_frontal_url ?? null),
-      resolvePhotoUrl(supabase, data.photo_crown_url  ?? null),
-      fetchGoogleFont("Inter", 400),
-      fetchGoogleFont("Inter", 700),
-      fetchGoogleFont("Playfair Display", 700),
-    ]);
-
+    // Fetch photos in parallel (fonts use next/og built-in Noto)
     const [frontalB64, crownB64] = await Promise.all([
-      frontalUrl ? toBase64(frontalUrl) : Promise.resolve(undefined),
-      crownUrl   ? toBase64(crownUrl)   : Promise.resolve(undefined),
+      resolvePhotoUrl(supabase, data.photo_frontal_url ?? null).then((u) => u ? toBase64(u) : undefined),
+      resolvePhotoUrl(supabase, data.photo_crown_url  ?? null).then((u) => u ? toBase64(u) : undefined),
     ]);
+    console.log("[report-image] photos resolved, frontal:", !!frontalB64, "crown:", !!crownB64);
 
-    type FontEntry = { name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" };
-    const fonts: FontEntry[] = [
-      interRegular  && { name: "Inter",    data: interRegular,  weight: 400 as const, style: "normal" as const },
-      interBold     && { name: "Inter",    data: interBold,     weight: 700 as const, style: "normal" as const },
-      playfairBold  && { name: "Playfair", data: playfairBold,  weight: 700 as const, style: "normal" as const },
-    ].filter(Boolean) as FontEntry[];
-
-    return new ImageResponse(
+    // Buffer the full ImageResponse stream inside the try/catch so satori
+    // errors are caught here instead of escaping to Next.js's error boundary.
+    console.log("[report-image] calling ImageResponse...");
+    const imgResponse = new ImageResponse(
       <Infographic report={report} frontalB64={frontalB64} crownB64={crownB64} />,
-      {
-        width:  W,
-        height: H,
-        fonts:  fonts.length > 0 ? fonts : undefined,
-        headers: {
-          "Content-Disposition": `attachment; filename="mapa-capilar-${id.slice(0, 8)}.png"`,
-          "Cache-Control": "private, max-age=300",
-        },
-      }
+      { width: W, height: H }
     );
+    const buf = await imgResponse.arrayBuffer(); // satori renders here — throws if it crashes
+    console.log("[report-image] image generated OK, bytes:", buf.byteLength);
+
+    return new Response(buf, {
+      headers: {
+        "content-type": "image/png",
+        "Content-Disposition": `attachment; filename="mapa-capilar-${id.slice(0, 8)}.png"`,
+        "Cache-Control": "private, max-age=300",
+      },
+    });
   } catch (err) {
-    console.error("[report-image]", err);
+    const msg = err instanceof Error ? err.stack ?? err.message : String(err);
+    console.error("[report-image] CRASH:", msg);
+    await new Promise((r) => setTimeout(r, 300));
     return new Response("Error generating image", { status: 500 });
   }
 }
