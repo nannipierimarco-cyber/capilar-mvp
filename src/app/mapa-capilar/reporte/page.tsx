@@ -264,6 +264,7 @@ export default function ReportePage() {
     setSubmitting(true);
 
     // Non-blocking lead save
+    const analysisId = sessionStorage.getItem("mapa_capilar_analysis_id") ?? null;
     fetch("/api/mapa-capilar/save-lead", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -276,6 +277,7 @@ export default function ReportePage() {
         familyHistory: answers.familyHistory ?? "",
         goal: answers.goal ?? "",
         report: report ?? undefined,
+        analysisId,
       }),
     }).catch(() => {});
 

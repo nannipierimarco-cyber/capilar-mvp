@@ -15,11 +15,11 @@ interface LeadBody {
   goal: string;
   photoUrl?: string;
   report?: MapaCapilarReport | Record<string, unknown>;
+  analysisId?: string | null;
 }
 
 export async function POST(req: NextRequest) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    // DB not configured — skip silently
     return NextResponse.json({ ok: true, skipped: true });
   }
 
@@ -30,15 +30,49 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const ageNum = body.age != null && body.age !== "" ? parseInt(body.age, 10) : NaN;
+
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // 1. Upsert patient (source = mapa_capilar) — deduplicate by email
+    const { data: patient, error: patientError } = await supabase
+      .from("patients")
+      .upsert(
+        {
+          email: body.email,
+          first_name: body.name?.trim().split(" ")[0] ?? "",
+          last_name: body.name?.trim().split(" ").slice(1).join(" ") ?? "",
+          phone: body.phone,
+          age: !isNaN(ageNum) ? ageNum : null,
+          source: "mapa_capilar",
+          status: "lead",
+        },
+        { onConflict: "email", ignoreDuplicates: false }
+      )
+      .select("id")
+      .single();
 
-    const ageNum = body.age != null && body.age !== "" ? parseInt(body.age, 10) : NaN;
+    if (patientError) {
+      console.warn("[save-lead] patient upsert warning:", patientError.message);
+    }
 
-    const { error } = await supabase.from("hair_map_leads").insert({
+    // 2. Link hair_map_analyses to patient if analysisId provided
+    if (patient?.id && body.analysisId) {
+      const { error: linkError } = await supabase
+        .from("hair_map_analyses")
+        .update({ patient_id: patient.id })
+        .eq("id", body.analysisId);
+      if (linkError) {
+        console.warn("[save-lead] link analysis warning:", linkError.message);
+      }
+    }
+
+    // 3. Keep writing to hair_map_leads for backward compat
+    const { error: leadError } = await supabase.from("hair_map_leads").insert({
       name: body.name?.trim() || null,
       email: body.email,
       phone: body.phone,
@@ -53,14 +87,13 @@ export async function POST(req: NextRequest) {
       report_json: body.report ?? null,
     });
 
-    if (error) {
-      console.warn("[mapa-capilar/save-lead] DB insert warning:", error.message);
+    if (leadError) {
+      console.warn("[save-lead] hair_map_leads insert warning:", leadError.message);
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[mapa-capilar/save-lead] Unexpected error:", err);
-    // Never block the user response on DB failure
     return NextResponse.json({ ok: true, warning: "DB save failed" });
   }
 }

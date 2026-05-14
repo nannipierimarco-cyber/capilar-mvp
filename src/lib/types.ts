@@ -25,6 +25,7 @@ export interface Patient {
   age: number | null;
   sex: "male" | "female" | null;
   city: string | null;
+  source: string | null;
   consented_at: string | null;
   created_at: string;
 }

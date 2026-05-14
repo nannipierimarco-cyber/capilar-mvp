@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { verifyAdminToken } from "@/lib/admin/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { type Intake, type Patient, STATUS_LABELS, STATUS_COLORS } from "@/lib/types";
 
 const JOURNEY_LABELS = {
@@ -11,26 +12,20 @@ const JOURNEY_LABELS = {
   both: "Tratamiento + Trasplante",
 };
 
-interface HairMapLead {
+interface MapaCapilarLead {
   id: string;
-  name: string | null;
-  email: string | null;
-  phone: string | null;
+  email: string;
+  phone: string;
   age: number | null;
-  main_concern: string | null;
-  duration: string | null;
-  goal: string | null;
-  final_interest: string | null;
   created_at: string;
+  hair_map_analyses: {
+    id: string;
+    goal: string | null;
+    concern: string | null;
+    status: string | null;
+  } | null;
 }
 
-const INTEREST_COLORS: Record<string, string> = {
-  "Evaluar trasplante capilar": "bg-amber-100 text-amber-800",
-  "Evaluar trasplante": "bg-amber-100 text-amber-800",
-  "Soluciones para minimizar la caída": "bg-blue-100 text-blue-800",
-  "Solo quiero conocer mi situación capilar": "bg-gray-100 text-gray-600",
-  "Frenar la caída": "bg-emerald-100 text-emerald-800",
-};
 
 export default async function AdminPage({
   searchParams,
@@ -61,15 +56,20 @@ export default async function AdminPage({
   const { data: intakes } = await query;
   const rows = (intakes ?? []) as (Intake & { patients: Patient })[];
 
-  // Fetch hair map leads when on that tab
-  let hairMapLeads: HairMapLead[] = [];
+  // Fetch mapa-capilar leads when on that tab (from patients table)
+  let mapaCapilarLeads: MapaCapilarLead[] = [];
   if (activeTab === "mapa-capilar") {
-    const { data } = await supabase
-      .from("hair_map_leads")
-      .select("id, name, email, phone, age, main_concern, duration, goal, final_interest, created_at")
+    const adminDb = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data } = await adminDb
+      .from("patients")
+      .select("id, email, phone, age, created_at, hair_map_analyses(id, goal, concern, status)")
+      .eq("source", "mapa_capilar")
       .order("created_at", { ascending: false })
       .limit(200);
-    hairMapLeads = (data ?? []) as HairMapLead[];
+    mapaCapilarLeads = (data ?? []) as unknown as MapaCapilarLead[];
   }
 
   return (
@@ -196,83 +196,70 @@ export default async function AdminPage({
 
         {activeTab === "mapa-capilar" && (
           <div className="bg-white rounded-2xl border border-border overflow-hidden">
-            <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-sm">Leads — Mapa Capilar AI</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{hairMapLeads.length} leads registrados</p>
-              </div>
+            <div className="px-5 py-4 border-b border-border">
+              <h2 className="font-semibold text-sm">Leads — Mapa Capilar AI</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{mapaCapilarLeads.length} leads registrados</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nombre</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Contacto</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">
-                      Preocupación
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">
                       Objetivo
                     </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Interés</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">
                       Edad
                     </th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">
                       Fecha
                     </th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody>
-                  {hairMapLeads.length === 0 && (
+                  {mapaCapilarLeads.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                      <td colSpan={5} className="text-center py-12 text-muted-foreground">
                         No hay leads de Mapa Capilar todavía.
                       </td>
                     </tr>
                   )}
-                  {hairMapLeads.map((lead) => {
-                    const interestLabel =
-                      lead.final_interest?.trim() || lead.goal?.trim() || null;
+                  {mapaCapilarLeads.map((lead) => {
+                    const analysis = Array.isArray(lead.hair_map_analyses)
+                      ? lead.hair_map_analyses[0]
+                      : lead.hair_map_analyses;
                     return (
-                    <tr
-                      key={lead.id}
-                      className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-medium">{lead.name ?? "—"}</p>
-                        <p className="text-xs text-muted-foreground">{lead.email ?? "—"}</p>
-                        <p className="text-xs text-muted-foreground">{lead.phone ?? "—"}</p>
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
-                        {lead.main_concern ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">
-                        {lead.goal ?? "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        {interestLabel ? (
-                          <span
-                            className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
-                              INTEREST_COLORS[interestLabel] ?? "bg-gray-100 text-gray-600"
-                            }`}
+                      <tr
+                        key={lead.id}
+                        className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{lead.email}</p>
+                          <p className="text-xs text-muted-foreground">{lead.phone}</p>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
+                          {analysis?.goal ?? analysis?.concern ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
+                          {lead.age ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">
+                          {new Date(lead.created_at).toLocaleDateString("es-CL", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Link
+                            href={`/admin/mapa-capilar/${lead.id}`}
+                            className="text-xs text-primary hover:underline font-medium"
                           >
-                            {interestLabel}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">
-                        {lead.age ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">
-                        {new Date(lead.created_at).toLocaleDateString("es-CL", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-                    </tr>
+                            Ver →
+                          </Link>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
