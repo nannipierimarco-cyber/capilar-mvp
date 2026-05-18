@@ -1,0 +1,45 @@
+﻿Ejecuta solo el bloque P0.6 del plan de seguridad en docs/SECURITY_STABILIZATION_PLAN.md.
+
+Objetivo:
+Corregir el IDOR en /api/mapa-capilar/get-analysis para que nadie pueda acceder a análisis, fotos o datos de otro usuario cambiando simplemente el parámetro id.
+
+Endpoint afectado:
+- /api/mapa-capilar/get-analysis
+
+Reglas:
+- No toques P1 ni P2.
+- No toques Supabase Storage todavía salvo que sea estrictamente necesario para este fix.
+- No hagas refactor grande.
+- No rompas la visualización normal del reporte.
+- No expongas SUPABASE_SERVICE_ROLE_KEY en frontend.
+- No uses secrets NEXT_PUBLIC.
+- No hagas git add ni commit.
+- No modifiques archivos no relacionados.
+
+Implementación esperada:
+1. Revisa cómo se crea y se consume actualmente el análisis de mapa capilar.
+2. Identifica dónde se genera el id del análisis y cómo se navega hacia /mapa-capilar/reporte/[id].
+3. Implementa un mecanismo de acceso seguro compatible con el flujo actual. Opciones aceptables:
+   - access_token no adivinable asociado al análisis, o
+   - report_token seguro, o
+   - validación equivalente de ownership/sesión.
+4. El endpoint /api/mapa-capilar/get-analysis no debe devolver datos sensibles si no se valida acceso.
+5. El reporte debe seguir funcionando para el usuario que acaba de generar su análisis.
+6. Si agregas una columna/campo nuevo, documenta exactamente qué migración o cambio de Supabase se requiere.
+7. Si no puedes aplicar una migración automáticamente, deja el SQL necesario en un archivo claro dentro de supabase/migrations o docs.
+
+Debes revisar:
+- src/app/api/mapa-capilar/get-analysis/route.ts
+- src/app/api/mapa-capilar/analyze/route.ts
+- src/app/mapa-capilar/reporte/[id]/page.tsx
+- cualquier archivo que genere o consuma el id del reporte
+- tablas Supabase relacionadas con mapa capilar/análisis/fotos
+
+Al final entrega:
+- Qué riesgo corregiste.
+- Qué mecanismo de acceso implementaste.
+- Qué archivos tocaste.
+- Si requiere cambio en Supabase.
+- Cómo probarlo manualmente.
+- Corre npm.cmd run build.
+- Muestra git diff --stat.

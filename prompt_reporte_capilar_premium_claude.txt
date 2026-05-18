@@ -1,0 +1,367 @@
+﻿Necesito mejorar el reporte visual de Mapa Capilar, pero con una regla crítica:
+
+NO quiero que se genere una imagen nueva con IA.
+NO quiero que se modifiquen, reinterpreten o regeneren las fotos del usuario.
+NO quiero que cambie la cara, pelo, textura o identidad visual de las fotos originales.
+
+El reporte debe usar las fotos originales subidas por el usuario dentro de un template visual fijo hecho con React/HTML/CSS/SVG.
+
+Contexto:
+Ya existe el flujo de Mapa Capilar y ya existe una página de reporte. Probé pedir una recreación del reporte de referencia, pero el resultado fue muy básico y en algunos casos modificó la cara/fotos. Eso no puede pasar.
+
+Objetivo:
+Mejorar el reporte actual para que se parezca mucho más a la imagen de referencia, pero sin reconstruir todo desde cero y sin generar imágenes con IA.
+
+Debes trabajar de forma incremental:
+1. Primero inspecciona la estructura actual del proyecto.
+2. Encuentra los archivos actuales del reporte de Mapa Capilar.
+3. Preserva lo que ya funciona.
+4. Mejora solo la presentación visual del reporte.
+5. No rompas el flujo actual.
+6. No cambies la lógica de análisis IA salvo que sea estrictamente necesario.
+7. No reemplaces las fotos originales con imágenes generadas.
+
+Rutas a preservar:
+- /mapa-capilar
+- /mapa-capilar/analizando
+- /mapa-capilar/reporte/[id]
+- /api/mapa-capilar/analyze
+
+Reglas críticas:
+- No usar OpenAI image generation para crear el reporte final.
+- No usar prompts de imagen para generar la lámina final.
+- No generar una nueva imagen del usuario.
+- No cambiar la cara ni las fotos originales.
+- Las fotos deben mostrarse usando photo_front_url y photo_crown_url originales.
+- El reporte final debe ser un template visual renderizado por frontend.
+- El usuario puede descargar el reporte como imagen PNG, pero esa imagen debe ser una captura del template HTML, no una imagen generada por IA.
+
+Formato visual deseado:
+Quiero un reporte tipo infografía médica premium en formato A4 vertical, similar a una hoja de análisis capilar/tricológico de alta gama.
+
+Debe parecer:
+- premium
+- médico-estético
+- limpio
+- editorial
+- visual-first
+- estilo clínica de tricología
+- fondo crema/off-white
+- tarjetas blancas o beige claro
+- bordes finos
+- acentos dorados suaves
+- texto oscuro
+- tipografía elegante
+- grilla compacta
+- muchos iconos lineales
+- poco texto
+
+La referencia visual tiene estas secciones:
+1. Header
+2. Frontal View
+3. Crown View
+4. Scalp Density Map
+5. Assessment Summary
+6. Hair Type / Density / Hairline / Scalp / Risk Areas
+7. Scalp-Zone Annotation
+8. Footer
+
+Quiero replicar esa estructura, pero eliminando las secciones inferiores de:
+- Recommended Routine
+- Ingredients Guide
+- Avoid Overload
+
+No incluir:
+- rutina recomendada
+- guía de ingredientes
+- avoid overload
+- recomendaciones de productos
+- shampoos
+- tratamientos
+- ingredientes
+- paso a paso de cuidado capilar
+
+IMPORTANTE:
+No quiero que reemplaces el contenido actual por algo genérico. Usa el analysis_json real que ya se guarda para rellenar los valores.
+
+Datos a usar:
+- analysis_json
+- photo_front_url
+- photo_crown_url
+- answers_json si existe
+
+Si falta algún campo:
+- usar fallback elegante
+- no romper el diseño
+- no inventar demasiado texto largo
+
+Diseño específico que quiero:
+
+1. HEADER
+Crear un header compacto similar a la referencia:
+- badge pequeño arriba izquierda: “Likely visual assessment” o “Análisis visual IA”
+- título centrado: “AI Hair & Scalp Analysis” o “Mapa Capilar IA”, según el branding actual
+- subtítulo: “Visual trichology assessment” o “Análisis visual capilar”
+- logo o marca actual arriba derecha si ya existe
+- línea divisoria fina dorada debajo
+
+2. BLOQUE SUPERIOR CON 3 COLUMNAS
+Crear una grilla superior de 3 columnas.
+
+Columna 1:
+- Card con foto frontal/lateral original.
+- Label superior tipo pill: “FRONTAL VIEW”.
+- La foto debe ser exactamente la original, sin transformación generativa.
+- Agregar callouts encima con CSS:
+  - Temples
+  - Hairline
+  - Frontal density
+- Los callouts deben usar:
+  - position absolute
+  - línea punteada
+  - punto pequeño
+  - texto blanco o claro
+  - sombra suave para legibilidad
+- No hace falta que sean perfectos dinámicamente. Pueden tener posiciones fijas razonables.
+
+Columna 2:
+- Card con foto coronilla original.
+- Label superior tipo pill: “CROWN VIEW”.
+- Agregar callouts encima:
+  - Vertex / crown
+  - Scalp visibility
+  - Mid-scalp
+- Usar la foto original.
+
+Columna 3:
+- Crear panel “SCALP DENSITY MAP”.
+- Este bloque es prioritario.
+- Debe verse mucho mejor que la versión básica.
+- No debe ser generado por IA.
+- Debe ser un componente frontend determinístico usando CSS/SVG.
+
+Scalp Density Map:
+Crear o mejorar un componente:
+src/components/hair-report/ScalpDensityMap.tsx
+
+Debe incluir:
+- título: “SCALP DENSITY MAP”
+- subtítulo: “TOP VIEW OVERLAY”
+- usar la foto de coronilla original como base
+- overlay radial encima con CSS/SVG
+- gradiente verde → amarillo → naranja → rojo
+- rojo/naranja más concentrado en la coronilla
+- círculos punteados blancos sobre la zona central
+- leyenda horizontal debajo:
+  - “High Density” a la izquierda
+  - “Low Density” a la derecha
+- bloque “DENSITY COMPARISON” debajo
+- dos mini gráficos circulares:
+  - Frontal Zone / Stronger Density
+  - Crown Zone / Lower Density
+
+El heatmap debe ser visualmente similar a la referencia:
+- radial
+- luminoso
+- centrado
+- con opacidad
+- integrado sobre la foto de coronilla
+- no una caja plana ni un simple gradiente rectangular
+
+3. ASSESSMENT SUMMARY
+Crear una fila de 8 cards pequeñas:
+- Hair Type
+- Density
+- Hairline
+- Scalp
+- Texture
+- Crown Coverage
+- Scalp Visibility
+- Overall Condition
+
+Cada card debe tener:
+- icono lineal arriba
+- label
+- valor del analysis_json
+- subvalor corto si existe
+- borde fino
+- estilo premium
+
+4. ICONOS
+No uses iconos genéricos feos.
+Si lucide-react ya está instalado, puedes usarlo solo para iconos simples, pero intenta crear SVGs custom para los principales.
+
+Crear una carpeta si hace falta:
+src/components/hair-report/icons/
+
+Iconos custom sugeridos:
+- HairTypeIcon: folículos/ondas de pelo
+- DensityIcon: varios folículos
+- HairlineIcon: silueta de línea capilar
+- ScalpIcon: cuero cabelludo con sparkles
+- TextureIcon: hebra curva de pelo
+- CrownCoverageIcon: target/círculo
+- ScalpVisibilityIcon: círculo punteado
+- OverallConditionIcon: shield/check
+- HairlineZoneIcon
+- TemplesIcon
+- FrontalDensityIcon
+- MidScalpIcon
+- CrownIcon
+- ScalpHealthIcon
+
+Estilo de iconos:
+- stroke fino
+- color negro/dorado/gris cálido
+- sin rellenos pesados
+- minimalista
+- elegante
+- consistente
+- parecido a la referencia
+
+5. BLOQUES DE CLASIFICACIÓN
+Crear 5 cards bajo Assessment Summary:
+
+Card 1: HAIR TYPE
+Opciones:
+- Straight
+- Wavy
+- Curly
+- Coily
+Resaltar la detectada.
+
+Card 2: DENSITY
+Opciones:
+- Low
+- Medium
+- High
+Resaltar la detectada.
+
+Card 3: HAIRLINE
+Opciones:
+- Stable
+- Mild recession
+- Moderate recession
+- Advanced recession
+Resaltar la detectada.
+
+Card 4: SCALP
+Opciones:
+- Healthy
+- Oily
+- Dry
+- Flaky
+- Sensitive
+Resaltar la detectada.
+
+Card 5: RISK AREAS
+Mostrar:
+- Temples
+- Frontal zone
+- Mid-scalp
+- Crown
+
+Cada una con indicadores de riesgo tipo puntitos circulares como la referencia:
+- bajo: 1 punto activo
+- medio: 2 puntos activos
+- alto: 3 puntos activos
+Usar colores suaves:
+- bajo verde suave
+- medio naranja/dorado
+- alto rojo suave
+
+6. SCALP-ZONE ANNOTATION
+Crear una sección:
+“SCALP-ZONE ANNOTATION”
+
+Con 6 bloques:
+- Hairline
+- Temples
+- Frontal density
+- Mid-scalp
+- Crown
+- Scalp health
+
+Cada bloque:
+- icono custom
+- título
+- estado corto
+- indicador check/warning pequeño
+- borde fino
+- estilo visual similar a la referencia
+
+7. FOOTER
+Crear un footer compacto con 3 notas:
+- “Image-based AI assessment”
+- “Results may vary with photo quality, light & context”
+- “This report does not replace a professional medical evaluation”
+
+Usar iconos simples y pequeños.
+
+8. DESCARGA COMO IMAGEN
+No quiero PDF como formato principal.
+Quiero poder descargar el reporte como PNG.
+
+Si no existe, crear:
+src/components/hair-report/DownloadReportImageButton.tsx
+
+Usar html-to-image:
+npm install html-to-image
+
+El botón debe:
+- estar fuera del contenedor capturado
+- capturar el contenedor con id="hair-report-image"
+- exportar como PNG
+- usar pixelRatio: 2
+- backgroundColor crema/off-white
+- manejar error visible
+
+El contenedor del reporte debe ser:
+<div id="hair-report-image">...</div>
+
+9. MEDIDAS / FORMATO
+El reporte debe verse como una imagen A4 vertical:
+- ancho fijo aproximado: 794px
+- fondo crema
+- padding controlado
+- grilla compacta
+- todo debe caber bien sin verse vacío
+- como eliminamos recommended routine e ingredients guide, reequilibrar la altura para que cierre bien
+
+No quiero una página web larga cualquiera.
+Quiero una lámina visual compacta.
+
+10. COSAS QUE NO DEBES HACER
+- No regenerar imágenes del usuario.
+- No llamar a OpenAI image generation para el reporte final.
+- No cambiar la cara.
+- No reemplazar fotos por placeholders si las URLs existen.
+- No crear un diseño básico de cards genéricas.
+- No eliminar el análisis actual.
+- No romper la página actual.
+- No agregar rutina o ingredientes.
+- No dejar botones dentro de la imagen exportada.
+- No reconstruir todo sin mirar primero los archivos existentes.
+
+11. CRITERIOS DE ACEPTACIÓN
+El cambio está bien si:
+- La foto frontal es exactamente la foto original.
+- La foto coronilla es exactamente la foto original.
+- El reporte se ve como una infografía A4 premium.
+- El scalp density map tiene overlay radial sobre la foto de coronilla.
+- Hay iconos custom o consistentes.
+- No aparecen Recommended Routine, Ingredients Guide ni Avoid Overload.
+- El usuario puede descargar PNG.
+- El diseño no es básico.
+- El flujo actual sigue funcionando.
+
+12. AL FINAL
+Cuando termines, dime:
+- qué archivos revisaste
+- qué archivos modificaste
+- qué componentes creaste
+- si instalaste html-to-image
+- cómo resolviste los iconos
+- cómo resolviste el ScalpDensityMap
+- qué comandos correr para probar localmente
+- si hay algo que no pudiste replicar fielmente

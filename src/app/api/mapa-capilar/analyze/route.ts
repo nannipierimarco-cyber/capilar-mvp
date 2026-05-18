@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createHmac } from "crypto";
-import {
-  generateFallbackAnalysisReport,
-  normalizeHairMapReport,
-  type HairMapAnalysisReport,
-  type MapaCapilarAnswers,
-} from "@/lib/mapaCapilar";
+import { type MapaCapilarAnswers } from "@/lib/mapaCapilar";
+import { generateFallbackHairAnalysis } from "@/lib/hairMapAnalysis";
+import type { HairMapReport } from "@/lib/types";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 function generateAccessToken(id: string): string | null {
@@ -26,7 +23,8 @@ const PASS1_SYSTEM = `You are a clinical trichology specialist performing a visu
 Analyze the provided photos with clinical precision.
 Describe only what is directly observable in the images — do not invent, assume, or fabricate details.
 Use clinical, descriptive language. Note explicitly when something is unclear or not visible in the photos.
-This is a visual assessment tool only. Do not provide medical diagnoses or treatment prescriptions.`;
+This is a visual assessment tool only. Do not provide medical diagnoses or treatment prescriptions.
+Always respond in Spanish. All observations, labels, descriptions and clinical terms must be written in Spanish.`;
 
 function buildPass1User(answers: Partial<MapaCapilarAnswers>, hasPhotos: boolean): string {
   return `Patient profile:
@@ -70,89 +68,84 @@ function buildPass2User(prose: string, answers: Partial<MapaCapilarAnswers>): st
 ${prose}
 """
 
-Patient profile:
-- Concern: ${answers.concern ?? "Not specified"}
-- Duration: ${answers.duration ?? "Not specified"}
-- Previous treatment: ${answers.previousTreatment ?? "Not specified"}
-- Family history: ${answers.familyHistory ?? "Not specified"}
-- Goal: ${answers.goal ?? "Not specified"}
-
-Convert the narrative into this exact JSON structure. Fill every field from the narrative above:
+Convert the narrative into this exact JSON. Fill every field from the narrative. Return ONLY valid JSON:
+All text values in the JSON must be written in Spanish, including labels, status descriptions, notes, and observations. Only exception: keep field names in English as shown in the schema.
 
 {
-  "summary": {
-    "title": "AI Hair & Scalp Analysis",
-    "mainFinding": "single concise sentence summarising the main visual finding (max 15 words)",
-    "overallScore": <integer 0-100 reflecting overall hair/scalp health>,
-    "confidence": "Low|Medium|High",
-    "priority": "brief description of the most important action area"
+  "patient": {
+    "hair_type": "Lacio | Ondulado | Rizado | Muy rizado",
+    "norwood_stage": 1,
+    "norwood_label": "Norwood N - descripcion breve",
+    "report_id": "RPT-AAAAMMDD-XXXX"
   },
-  "userContext": {
-    "mainConcern": "${answers.concern ?? "Not specified"}",
-    "hairLossDuration": "${answers.duration ?? "Not specified"}",
-    "familyHistory": "${answers.familyHistory ?? "Not specified"}",
-    "previousTreatments": "${answers.previousTreatment ?? "Not specified"}"
-  },
-  "visualAnalysis": {
-    "hairType": "Straight|Wavy|Curly|Coily",
-    "density": "<concise density description, e.g. 'Medium overall'>",
-    "hairline": "Stable|Mild recession|Moderate recession|Advanced recession",
-    "scalpState": "Healthy|Oily|Dry|Flaky|Sensitive",
-    "scalpVisibility": "Low|Moderate|High",
-    "crownCoverage": "Good|Reduced|Low",
-    "hairTexture": "Fine|Medium thickness|Coarse",
-    "overallCondition": "<brief descriptor, max 6 words>"
-  },
-  "zones": {
-    "frontalLine": { "status": "<brief>", "score": <0-100>, "label": "<2-3 words>" },
-    "frontalDensity": { "status": "<brief>", "score": <0-100>, "label": "<2-3 words>" },
-    "temples": { "status": "<brief>", "score": <0-100>, "label": "<2-3 words>" },
-    "crown": { "status": "<brief>", "score": <0-100>, "label": "<2-3 words>" },
-    "scalpHealth": { "status": "<brief>", "score": <0-100>, "label": "<2-3 words>" }
-  },
-  "riskAreas": [
-    { "area": "<zone name>", "level": "Low|Medium|High", "reason": "<brief reason from narrative>" }
-  ],
-  "photoCallouts": {
-    "frontPhoto": [
-      { "label": "<Zone>\\n<Observation>" },
-      { "label": "<Zone>\\n<Observation>" },
-      { "label": "<Zone>\\n<Observation>" }
+  "photo_annotations": {
+    "frontal": [
+      { "label": "observacion corta", "position": "linea_frontal | sien_izquierda | sien_derecha | densidad_frontal | vertex | coronilla | occipital" }
     ],
-    "crownPhoto": [
-      { "label": "<Zone>\\n<Observation>" },
-      { "label": "<Zone>\\n<Observation>" },
-      { "label": "<Zone>\\n<Observation>" }
+    "coronilla": [
+      { "label": "observacion corta", "position": "vertex | coronilla | occipital | sien_izquierda | sien_derecha" }
     ]
   },
-  "scalpZoneStrip": [
-    { "zone": "Hairline",        "icon": "check|warn|neutral", "micro": "<2-5 word status>" },
-    { "zone": "Temples",         "icon": "check|warn|neutral", "micro": "<2-5 word status>" },
-    { "zone": "Frontal density", "icon": "check|warn|neutral", "micro": "<2-5 word status>" },
-    { "zone": "Mid-scalp",       "icon": "check|warn|neutral", "micro": "<2-5 word status>" },
-    { "zone": "Crown",           "icon": "check|warn|neutral", "micro": "<2-5 word status>" },
-    { "zone": "Scalp health",    "icon": "check|warn|neutral", "micro": "<2-5 word status>" }
+  "density_map": {
+    "zones": {
+      "frontal":     { "level": "alta | media | baja | muy_baja", "color_hex": "#hex", "notes": "corto" },
+      "vertex":      { "level": "alta | media | baja | muy_baja", "color_hex": "#hex", "notes": "corto" },
+      "coronilla":   { "level": "alta | media | baja | muy_baja", "color_hex": "#hex", "notes": "corto" },
+      "occipital":   { "level": "alta | media | baja | muy_baja", "color_hex": "#hex", "notes": "corto" },
+      "entrada_izq": { "level": "alta | media | baja | muy_baja", "color_hex": "#hex", "notes": "corto" },
+      "entrada_der": { "level": "alta | media | baja | muy_baja", "color_hex": "#hex", "notes": "corto" }
+    },
+    "density_comparison": {
+      "zone_a_label": "texto",
+      "zone_b_label": "texto",
+      "summary": "max 2 oraciones"
+    }
+  },
+  "evaluation_summary": {
+    "hair_type":        { "value": "texto", "detail": "" },
+    "density":          { "value": "texto", "detail": "texto" },
+    "hairline":         { "value": "texto", "detail": "" },
+    "scalp_condition":  { "value": "texto", "detail": "texto" },
+    "texture":          { "value": "texto", "detail": "" },
+    "crown_coverage":   { "value": "texto", "detail": "" },
+    "scalp_visibility": { "value": "texto", "detail": "" },
+    "overall_health":   { "value": "texto", "detail": "" }
+  },
+  "selectors": {
+    "hair_type":       { "options": ["Lacio","Ondulado","Rizado","Muy rizado"], "selected": "valor" },
+    "density":         { "options": ["Baja","Media","Alta"], "selected": "valor", "note": "texto" },
+    "hairline":        { "options": ["Estable","Retroceso leve","Retroceso moderado","Retroceso avanzado"], "selected": "valor" },
+    "scalp_condition": { "options": ["Sano","Graso","Seco","Descamado","Sensible"], "selected": "valor", "note": "texto" },
+    "risk_areas": [
+      { "zone": "Entradas",              "level": "bajo | medio | alto", "dots": 1 },
+      { "zone": "Zona frontal",          "level": "bajo | medio | alto", "dots": 1 },
+      { "zone": "Cuero cabelludo medio", "level": "bajo | medio | alto", "dots": 1 },
+      { "zone": "Coronilla",             "level": "bajo | medio | alto", "dots": 1 }
+    ]
+  },
+  "zone_annotations": [
+    { "zone": "linea_capilar",         "label": "Linea capilar",            "status": "texto", "state": "ok | warning | alert", "icon": "hairline" },
+    { "zone": "entradas",              "label": "Entradas",                 "status": "texto", "state": "ok | warning | alert", "icon": "temples" },
+    { "zone": "densidad_frontal",      "label": "Densidad frontal",         "status": "texto", "state": "ok | warning | alert", "icon": "density_front" },
+    { "zone": "cuero_cabelludo_medio", "label": "Cuero cabelludo medio",    "status": "texto", "state": "ok | warning | alert", "icon": "mid_scalp" },
+    { "zone": "coronilla",             "label": "Coronilla",                "status": "texto", "state": "ok | warning | alert", "icon": "crown" },
+    { "zone": "salud_cuero_cabelludo", "label": "Salud del cuero cabelludo","status": "texto", "state": "ok | warning | alert", "icon": "scalp_health" }
   ],
-  "densityComparison": {
-    "frontal": { "caption": "Frontal Zone\\n<density label>" },
-    "crown":   { "caption": "Crown Zone\\n<density label>" }
+  "follicular_health": {
+    "shaft_caliber": "fino | medio | grueso",
+    "sebum_level": "normal | elevado | bajo",
+    "scalp_inflammation": "ninguna | leve | moderada | severa",
+    "visible_miniaturization": false,
+    "estimated_density_hairs_per_cm2": "60-80",
+    "notes": "texto"
   },
-  "crownDensityMap": {
-    "heatmapIntensity": <integer 0-100, higher = more thinning at crown>,
-    "legend": "<brief description of crown density, max 6 words>"
+  "clinical_next_steps": {
+    "priority":    { "action": "texto", "description": "texto en ingles" },
+    "recommended": { "action": "texto", "description": "texto en ingles" },
+    "optional":    { "action": "texto", "description": "texto en ingles" },
+    "long_term":   { "action": "texto", "description": "texto en ingles" }
   },
-  "recommendedRoutine": {
-    "cleanse":  ["<product type/approach>", "<product type/approach>"],
-    "treat":    ["<ingredient/approach>", "<ingredient/approach>", "<ingredient/approach>"],
-    "protect":  ["<habit/approach>", "<habit/approach>"],
-    "style":    ["<styling guidance>", "<styling guidance>", "<styling guidance>"]
-  },
-  "ingredientHints": {
-    "helpful": ["<ingredient>", "<ingredient>", "<ingredient>", "<ingredient>", "<ingredient>"],
-    "avoid":   ["<ingredient/product type>", "<ingredient/product type>"]
-  },
-  "brandLine": "PERFECTO",
-  "disclaimer": "This is a visual assessment only and does not constitute a medical diagnosis. Consult a licensed dermatologist or trichologist for personalised care."
+  "disclaimer": "Este analisis es orientativo y no reemplaza una evaluacion medica profesional."
 }`;
 }
 
@@ -265,7 +258,6 @@ export async function POST(req: NextRequest) {
   }
 
   const hasPhotos = !!(photoFrontal || photoCrown);
-  const fallback = generateFallbackAnalysisReport(answers);
   const hasDB = !!(process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL);
 
   // Create DB record
@@ -308,7 +300,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Two-pass AI analysis ────────────────────────────────────────────────────
-  let report: HairMapAnalysisReport = fallback;
+  let report: HairMapReport = generateFallbackHairAnalysis();
 
   if (process.env.OPENAI_API_KEY) {
     // ── Pass 1: free-form visual analysis with photos ───────────────────────
@@ -353,7 +345,7 @@ export async function POST(req: NextRequest) {
 
       if (jsonText) {
         try {
-          report = normalizeHairMapReport(JSON.parse(jsonText) as unknown, answers);
+          report = JSON.parse(jsonText) as HairMapReport;
           console.log("[analyze] Pass 2 OK, report keys:", Object.keys(report));
         } catch {
           console.error("[analyze] Pass 2 JSON parse failed — using fallback");

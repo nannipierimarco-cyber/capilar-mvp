@@ -1,0 +1,32 @@
+﻿Ejecuta solo el bloque P0-B del plan de seguridad en docs/SECURITY_STABILIZATION_PLAN.md.
+
+Objetivo:
+Proteger endpoints que consumen OpenAI o escriben en HubSpot, sin romper el funnel público.
+
+Endpoints a revisar:
+- /api/mapa-capilar/analyze
+- /api/ai/doctor-report
+- /api/hubspot/sync-lead
+
+Reglas:
+- No agregues admin auth a endpoints que necesita usar un usuario público del funnel.
+- Protege cada endpoint según su uso real.
+- Usa validación fuerte de inputs.
+- Agrega rate limiting básico donde corresponda.
+- Usa token interno si el endpoint debe ser server-only.
+- Comprueba lead/intake existente si aplica.
+- /api/ai/doctor-report debe estar protegido porque accede a datos médicos/intake y consume OpenAI.
+- /api/hubspot/sync-lead no debe aceptar escrituras públicas arbitrarias.
+- No expongas secrets en frontend.
+- No uses NEXT_PUBLIC para secretos.
+- No hagas refactor grande.
+- No toques Supabase Storage todavía.
+- No toques Flow todavía.
+- No toques consentimiento/borrado todavía.
+- No modifiques archivos no relacionados.
+- No hagas git add ni commit.
+
+Al final:
+- Explica endpoint por endpoint qué protección agregaste.
+- Corre npm.cmd run build.
+- Muestra git diff --stat.

@@ -1,0 +1,74 @@
+﻿/brainstorm
+
+Necesito ejecutar un Sprint 0 de estabilización, seguridad y compliance para Nilo antes de seguir agregando features.
+
+Contexto:
+Ya existe docs/FLOW_MAP.md con una auditoría AS-IS del producto. Los hallazgos críticos son:
+
+1. 3 API routes consumen OpenAI sin auth — acceso libre a créditos.
+2. Hay fetch("http://127.0.0.1:7425/...") en quiz/page.tsx alrededor de la línea 1271 enviando RUT/email a localhost.
+3. Fotos de pacientes usan getPublicUrl — acceso sin autenticación.
+4. Hay dos funnels capilares paralelos activos: /mapa-capilar y /score-capilar legacy.
+5. No hay tracking de conversión.
+6. Post-pago es manual.
+7. /api/hubspot/sync-lead no tiene auth.
+8. IDOR en /api/mapa-capilar/get-analysis.
+9. Webhook Flow sin HMAC/verificación robusta.
+10. Falta consentimiento explícito y mecanismo de borrado de datos.
+
+Objetivo:
+Crear un plan técnico priorizado para corregir primero los riesgos P0 sin romper el producto.
+
+Importante:
+No implementes cambios todavía.
+Primero revisa el código, confirma cada hallazgo con archivos exactos, y propón un plan de implementación.
+
+Quiero que entregues:
+
+1. Confirmación técnica de cada hallazgo
+- archivo exacto
+- ruta/API afectada
+- riesgo
+- severidad
+- recomendación
+
+2. Plan P0 para corregir inmediatamente:
+- eliminar debug localhost con RUT/email
+- proteger endpoints OpenAI
+- proteger endpoint HubSpot
+- corregir IDOR en get-analysis
+- pasar fotos a storage privado o acceso controlado
+- revisar variables de entorno sensibles
+
+3. Plan P1:
+- verificación robusta webhook Flow
+- consentimiento explícito
+- mecanismo de solicitud de borrado
+- política de privacidad básica
+- decisión sobre /score-capilar legacy vs /mapa-capilar
+
+4. Plan P2:
+- tracking de conversión
+- eventos del funnel
+- automatización post-pago
+- mejoras operativas
+
+5. Para cada cambio propuesto:
+- archivos a tocar
+- riesgo de romper algo
+- cómo testearlo
+- comando de verificación
+- si requiere variable de entorno nueva
+
+6. Reglas:
+- No exponer SUPABASE_SERVICE_ROLE_KEY en frontend.
+- No usar secrets NEXT_PUBLIC salvo que sean realmente públicos.
+- No romper rutas existentes.
+- No cambiar copy médico sin mantener lenguaje seguro: la IA no diagnostica ni prescribe.
+- No hacer refactor grande innecesario.
+- Mantener compatibilidad con Next.js App Router, TypeScript, Supabase y Vercel.
+- Al final, proponer orden de implementación en commits pequeños.
+
+Output esperado:
+Crea docs/SECURITY_STABILIZATION_PLAN.md con el plan completo.
+No modifiques lógica todavía.

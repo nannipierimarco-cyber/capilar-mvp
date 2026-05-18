@@ -1,0 +1,213 @@
+﻿Quiero trabajar SOLO en la parte visual del reporte de Mapa Capilar.
+
+La imagen de referencia está guardada en:
+reference/hair-report-reference.png
+
+Usa esa imagen como referencia visual principal para replicar layout, proporciones, colores, iconografía, grilla, spacing y estilo general.
+
+IMPORTANTE:
+No modifiques la lógica del flujo.
+No modifiques el endpoint de IA.
+No modifiques el análisis.
+No cambies las fotos del usuario.
+No uses generación de imágenes IA.
+No cambies rutas existentes salvo crear una ruta/demo visual si te sirve.
+No agregues Recommended Routine.
+No agregues Ingredients Guide.
+No agregues Avoid Overload.
+
+Objetivo de esta tarea:
+Crear una versión visual estática/determinística del reporte que replique lo más fielmente posible el layout de la imagen de referencia.
+
+Esta tarea es SOLO de diseño frontend.
+
+No quiero que primero conectes todo al analysis_json.
+Primero quiero lograr una maqueta visual premium casi idéntica a la referencia.
+Después conectaremos los datos reales.
+
+Problema actual:
+Los iconos que estás usando se ven más básicos y menos profesionales que los de la referencia. Quiero dejar de usar iconos genéricos de librerías para los iconos principales.
+
+Regla crítica sobre iconos:
+NO uses lucide-react, heroicons ni iconos genéricos para los iconos principales del reporte.
+Crea SVGs custom inline para imitar la familia visual de la referencia.
+
+Los iconos deben ser:
+- lineales
+- minimalistas
+- de stroke fino
+- elegantes
+- médicos/premium
+- consistentes entre sí
+- en negro, gris cálido o dorado suave
+- similares a la referencia
+
+Crear si hace falta:
+src/components/hair-report/icons/HairReportIcons.tsx
+
+Ahí deben vivir todos los SVGs custom:
+- HairTypeIcon
+- DensityIcon
+- HairlineIcon
+- ScalpIcon
+- TextureIcon
+- CrownCoverageIcon
+- ScalpVisibilityIcon
+- OverallConditionIcon
+- HairlineZoneIcon
+- TemplesIcon
+- FrontalDensityIcon
+- MidScalpIcon
+- CrownIcon
+- ScalpHealthIcon
+- FollicleComparisonIcon
+- CameraIcon
+- CalendarIcon
+- UserIcon
+
+No reemplaces esos iconos por librerías externas.
+
+Crear o mejorar una maqueta visual del reporte con esta estructura exacta:
+
+1. Header superior
+- badge pequeño arriba izquierda
+- título centrado: AI Hair & Scalp Analysis
+- subtítulo: Visual trichology assessment
+- logo/marca arriba derecha
+- divisor dorado fino
+
+2. Fila principal superior de 3 columnas
+- Columna 1: FRONTAL VIEW con foto original o placeholder, label pill superior y callouts
+- Columna 2: CROWN VIEW con foto original o placeholder, label pill superior y callouts
+- Columna 3: SCALP DENSITY MAP
+
+3. Scalp Density Map
+Este bloque es prioridad máxima.
+Debe parecerse mucho a la referencia:
+- título SCALP DENSITY MAP
+- subtítulo TOP VIEW OVERLAY
+- foto/placeholder superior
+- heatmap radial sobre la coronilla
+- gradiente verde → amarillo → naranja → rojo
+- círculos punteados blancos en el centro
+- leyenda High Density → Low Density
+- sección DENSITY COMPARISON
+- dos mini gráficos circulares con folículos:
+  - Frontal Zone / Stronger Density
+  - Crown Zone / Lower Density
+
+No hacer un gradiente rectangular simple.
+Debe ser un heatmap radial sofisticado sobre la foto.
+
+4. Assessment Summary
+Fila horizontal de 8 cards:
+- Hair Type
+- Density
+- Hairline
+- Scalp
+- Texture
+- Crown Coverage
+- Scalp Visibility
+- Overall Condition
+
+Cada card debe tener:
+- icono SVG custom
+- label
+- valor
+- estilo igual al reporte de referencia
+
+5. Bloques de clasificación
+Crear 5 cards:
+- 1. HAIR TYPE
+- 2. DENSITY
+- 3. HAIRLINE
+- 4. SCALP
+- 5. RISK AREAS
+
+Usar el mismo estilo:
+- títulos centrados
+- opciones tipo pills
+- opción seleccionada en dorado/verde suave
+- risk areas con puntitos circulares como la referencia
+
+6. Scalp-Zone Annotation
+Crear sección:
+SCALP-ZONE ANNOTATION
+
+Con 6 bloques:
+- Hairline
+- Temples
+- Frontal density
+- Mid-scalp
+- Crown
+- Scalp health
+
+Cada bloque:
+- icono SVG custom
+- título
+- texto corto
+- check/warning pequeño
+
+7. Footer
+Tres notas pequeñas:
+- Image-based AI assessment
+- Results may vary with time & lifestyle
+- Consult a trichologist for personalized diagnosis
+
+Eliminar completamente:
+- Recommended Routine
+- Ingredients Guide
+- Avoid Overload
+
+Como esas secciones se eliminan, reequilibra la lámina para que cierre bien visualmente y no quede un vacío raro.
+
+Formato:
+- A4 portrait visual
+- contenedor fijo aprox 794px de ancho
+- fondo crema/off-white
+- cards blanco cálido
+- bordes beige muy finos
+- acentos dorado suave
+- texto oscuro
+- tipografía editorial
+- grilla compacta
+- poco padding excesivo
+- se debe ver como infografía, no como dashboard web
+
+Regla sobre fotos:
+Las fotos deben tener proporciones similares a la referencia.
+No deben quedar dentro de rectángulos demasiado largos.
+Usar:
+- object-fit: cover
+- aspect ratio controlado
+- altura compacta
+- sin márgenes internos raros
+
+Resultado esperado de esta tarea:
+Una maqueta visual que se vea mucho más parecida a la imagen de referencia, aunque use datos dummy por ahora.
+
+NO conectes todavía toda la lógica si eso complica la tarea.
+Prioridad absoluta:
+1. layout igual
+2. iconos custom premium
+3. scalp density map
+4. proporciones de fotos
+5. colores y espaciado
+
+Criterio de aceptación:
+- La maqueta debe parecer una infografía A4 premium.
+- Los iconos principales deben ser SVGs custom, no iconos genéricos.
+- El Scalp Density Map debe ser visualmente sofisticado y parecido a la referencia.
+- No debe aparecer Recommended Routine.
+- No debe aparecer Ingredients Guide.
+- No debe aparecer Avoid Overload.
+- No debe romper el flujo actual.
+- No debe tocar la lógica de IA.
+
+Al terminar dime:
+- qué archivos creaste
+- qué archivos modificaste
+- si usaste iconos custom SVG
+- si eliminaste dependencia de iconos genéricos en los iconos principales
+- cómo resolviste el scalp density map
+- cómo puedo abrir la maqueta para revisarla

@@ -1,7 +1,7 @@
-export type Field = "concern" | "duration" | "previousTreatment" | "familyHistory" | "goal";
+﻿export type Field = "concern" | "duration" | "previousTreatment" | "familyHistory" | "goal";
 export type MapaCapilarAnswers = Record<Field, string>;
 
-// ─── Rich analysis report (new flow with [id] route) ─────────────────────────
+// â”€â”€â”€ Rich analysis report (new flow with [id] route) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface HairMapMetricStripItem {
   key: string;
@@ -41,7 +41,7 @@ export interface HairMapIngredientHints {
 }
 
 export interface HairMapAnalysisReport {
-  /** Infografía de una columna → export como imagen; metadato opcional del modelo */
+  /** InfografÃ­a de una columna â†’ export como imagen; metadato opcional del modelo */
   outputHint?: { layout?: string; language?: string };
   brandLine?: string;
   header?: { title: string; subtitle: string };
@@ -69,14 +69,14 @@ export interface HairMapAnalysisReport {
     density: string;
     hairline: string;
     scalpVisibility: string;
-    /** Estado aparente del cuero (tricología); opcional, enriquece la infografía */
+    /** Estado aparente del cuero (tricologÃ­a); opcional, enriquece la infografÃ­a */
     scalpState?: string;
     crownCoverage: string;
     hairTexture: string;
     hairThickness: string;
     overallCondition: string;
   };
-  /** Fila de 8 métricas cortas para strip visual; si falta, el front deriva de visualAnalysis */
+  /** Fila de 8 mÃ©tricas cortas para strip visual; si falta, el front deriva de visualAnalysis */
   metricStrip?: HairMapMetricStripItem[];
   densityComparison?: {
     frontal: HairMapDensityDisk;
@@ -101,7 +101,7 @@ export interface HairMapAnalysisReport {
     frontPhoto: Array<{ label: string; area: string; level: "Bajo" | "Medio" | "Alto" }>;
     crownPhoto: Array<{ label: string; area: string; level: "Bajo" | "Medio" | "Alto" }>;
   };
-  /** Autocuidado cosmético general, sin marcas ni fármacos */
+  /** Autocuidado cosmÃ©tico general, sin marcas ni fÃ¡rmacos */
   recommendedRoutine?: HairMapRecommendedRoutine;
   ingredientHints?: HairMapIngredientHints;
   disclaimer: string;
@@ -153,8 +153,8 @@ function asPhotoCalloutList(
   for (const item of arr) {
     if (!isRecord(item)) continue;
     out.push({
-      label: str(item.label, "Observación"),
-      area: str(item.area, "—"),
+      label: str(item.label, "ObservaciÃ³n"),
+      area: str(item.area, "â€”"),
       level: asLevel(item.level),
     });
   }
@@ -355,7 +355,7 @@ export function normalizeHairMapReport(
       isRecord(raw.header) && (raw.header.title || raw.header.subtitle)
         ? {
             title: str(raw.header.title, "Mapa Capilar AI"),
-            subtitle: str(raw.header.subtitle, "Evaluación visual orientativa"),
+            subtitle: str(raw.header.subtitle, "EvaluaciÃ³n visual orientativa"),
           }
         : undefined,
     summary,
@@ -381,7 +381,7 @@ export function generateFallbackAnalysisReport(
   return {
     summary: {
       title: "Mapa Capilar IA",
-      mainFinding: "Análisis visual preliminar completado según tus respuestas.",
+      mainFinding: "AnÃ¡lisis visual preliminar completado segÃºn tus respuestas.",
       overallScore: 65,
       confidence: "Media",
       priority: "Seguimiento recomendado",
@@ -406,20 +406,20 @@ export function generateFallbackAnalysisReport(
       crownCoverage: "Adecuada",
       hairTexture: "Media",
       hairThickness: "Medio",
-      overallCondition: "Estado visual estándar",
+      overallCondition: "Estado visual estÃ¡ndar",
     },
     zones: {
       frontalLine: { status: "Estable", score: 70, label: "Sin cambios evidentes" },
       frontalDensity: { status: "Media", score: 65, label: "Densidad moderada" },
       temples: { status: "Estable", score: 70, label: "Sin alteraciones" },
       crown: { status: "Adecuada", score: 65, label: "Cobertura aceptable" },
-      scalpHealth: { status: "Saludable", score: 75, label: "Sin irritación visible" },
+      scalpHealth: { status: "Saludable", score: 75, label: "Sin irritaciÃ³n visible" },
     },
     riskAreas: [],
-    visualTags: ["Análisis preliminar", "Requiere revisión profesional"],
+    visualTags: ["AnÃ¡lisis preliminar", "Requiere revisiÃ³n profesional"],
     photoCallouts: { frontPhoto: [], crownPhoto: [] },
     disclaimer:
-      "Este análisis es visual y orientativo. No constituye diagnóstico médico ni reemplaza una evaluación profesional.",
+      "Este anÃ¡lisis es visual y orientativo. No constituye diagnÃ³stico mÃ©dico ni reemplaza una evaluaciÃ³n profesional.",
   };
 }
 
@@ -445,9 +445,9 @@ export function generateFallbackReport(concern: string, goal: string): MapaCapil
     hairType: "Liso",
     visualDensity: needsEval || isTransplant ? "Baja" : "Media",
     hairlineRecession: isTransplant
-      ? "Recesión moderada aparente"
+      ? "RecesiÃ³n moderada aparente"
       : needsEval
-      ? "Recesión leve aparente"
+      ? "RecesiÃ³n leve aparente"
       : "Sin cambios visibles",
     scalpVisibility: needsEval ? "Media" : "Baja",
     observationZones: isTransplant
@@ -470,11 +470,33 @@ export function generateFallbackReport(concern: string, goal: string): MapaCapil
       laterales: "Alta",
     },
     nextStep: isTransplant
-      ? "Evaluar recuperación capilar / trasplante"
+      ? "Evaluar recuperaciÃ³n capilar / trasplante"
       : needsEval
-      ? "Evaluar caída con revisión médica"
+      ? "Evaluar caÃ­da con revisiÃ³n mÃ©dica"
       : "Seguir monitoreando",
     summary:
-      "Análisis visual orientativo generado según tus respuestas y foto. No reemplaza una evaluación médica profesional.",
+      "AnÃ¡lisis visual orientativo generado segÃºn tus respuestas y foto. No reemplaza una evaluaciÃ³n mÃ©dica profesional.",
   };
 }
+
+// â”€â”€â”€ Nuevo normalizer para HairMapReport (schema rico directo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Si el JSON de OpenAI ya viene con el nuevo schema (tiene patient.norwood_stage),
+// lo devolvemos directo sin transformar. Si no, usamos el fallback.
+import type { HairMapReport } from "@/lib/types";
+
+export function normalizeToHairMapReport(
+  raw: unknown,
+  _answers?: Partial<MapaCapilarAnswers>
+): HairMapReport {
+  if (
+    isRecord(raw) &&
+    isRecord(raw.patient) &&
+    typeof (raw.patient as Record<string, unknown>).norwood_stage === "number"
+  ) {
+    return raw as unknown as HairMapReport;
+  }
+  // fallback al schema rico
+  const { generateFallbackHairAnalysis } = require("@/lib/hairMapAnalysis");
+  return generateFallbackHairAnalysis() as HairMapReport;
+}
+

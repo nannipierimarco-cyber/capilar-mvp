@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import {
   HAIR_MAP_SYSTEM_PROMPT,
+  HAIR_MAP_USER_PROMPT,
   generateFallbackHairAnalysis,
-  type HairAnalysisResult,
 } from "@/lib/hairMapAnalysis";
+import type { HairMapReport } from "@/lib/types";
 
 const AI_MODEL = "gpt-4o";
 
@@ -39,10 +40,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const userContent: ContentPart[] = [
-      {
-        type: "text",
-        text: "Analiza las siguientes fotos de pelo y cuero cabelludo y devuelve el JSON estructurado según el esquema indicado.",
-      },
+      { type: "text", text: HAIR_MAP_USER_PROMPT },
     ];
 
     if (photoFrontalUrl) {
@@ -56,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
+    const timeout = setTimeout(() => controller.abort(), 45_000);
 
     let aiResponse: Response;
     try {
@@ -73,7 +71,7 @@ export async function POST(req: NextRequest) {
             { role: "system", content: HAIR_MAP_SYSTEM_PROMPT },
             { role: "user", content: userContent },
           ],
-          max_tokens: 1000,
+          max_tokens: 2500,
           temperature: 0.2,
         }),
         signal: controller.signal,
@@ -98,9 +96,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ analysis: fallback, isFallback: true });
     }
 
-    let analysis: HairAnalysisResult;
+    let analysis: HairMapReport;
     try {
-      analysis = JSON.parse(rawContent) as HairAnalysisResult;
+      analysis = JSON.parse(rawContent) as HairMapReport;
     } catch {
       console.error("[ai/hair-map] Failed to parse AI JSON:", rawContent.slice(0, 200));
       return NextResponse.json({ analysis: fallback, isFallback: true });

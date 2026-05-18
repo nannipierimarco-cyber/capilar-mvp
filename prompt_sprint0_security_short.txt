@@ -1,0 +1,63 @@
+﻿Lee docs/FLOW_MAP.md y crea un plan de estabilización, seguridad y compliance para Nilo.
+
+Objetivo:
+Crear docs/SECURITY_STABILIZATION_PLAN.md basado en los hallazgos críticos del mapa operativo actual.
+
+Importante:
+No implementes cambios todavía.
+No modifiques lógica de producto.
+No borres archivos.
+No hagas refactor.
+Solo confirma hallazgos y crea el plan.
+
+Debes revisar el código real del repo y confirmar especialmente estos riesgos:
+
+1. API routes que consumen OpenAI sin auth o sin protección.
+2. Debug code con fetch("http://127.0.0.1:7425/...") enviando RUT/email.
+3. Fotos de pacientes expuestas con getPublicUrl.
+4. /api/hubspot/sync-lead sin auth.
+5. IDOR en /api/mapa-capilar/get-analysis.
+6. Webhook Flow sin verificación robusta.
+7. Falta de consentimiento explícito y mecanismo de borrado.
+8. Dos funnels capilares activos: /mapa-capilar y /score-capilar.
+9. Falta de tracking de conversión.
+10. Flujo post-pago manual.
+
+El documento docs/SECURITY_STABILIZATION_PLAN.md debe incluir:
+
+1. Resumen ejecutivo.
+2. Confirmación técnica de cada hallazgo:
+   - archivo exacto
+   - ruta/API afectada
+   - riesgo
+   - severidad
+   - recomendación
+3. Plan P0:
+   - eliminar debug localhost
+   - proteger endpoints OpenAI
+   - proteger HubSpot sync
+   - corregir IDOR
+   - restringir acceso público a fotos
+4. Plan P1:
+   - robustecer webhook Flow
+   - agregar consentimiento explícito
+   - agregar mecanismo de borrado
+   - decidir qué hacer con /score-capilar legacy
+5. Plan P2:
+   - tracking de conversión
+   - automatización post-pago
+   - mejoras operativas
+6. Para cada cambio:
+   - archivos a tocar
+   - riesgo de romper algo
+   - cómo testearlo
+   - comando de verificación
+   - si requiere variable de entorno nueva
+7. Orden sugerido de implementación en commits pequeños.
+
+Reglas:
+- No exponer SUPABASE_SERVICE_ROLE_KEY en frontend.
+- No usar secrets NEXT_PUBLIC salvo que sean públicos.
+- No romper rutas existentes.
+- Mantener lenguaje seguro: la IA no diagnostica ni prescribe.
+- Mantener compatibilidad con Next.js App Router, TypeScript, Supabase y Vercel.

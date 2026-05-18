@@ -1,0 +1,171 @@
+﻿/brainstorm
+
+Quiero que audites mi proyecto actual Nilo / capilar-mvp y me ayudes a crear un mapa operativo AS-IS de todos los flujos que existen hoy.
+
+Objetivo:
+Tener claridad total de cómo funciona hoy el producto: páginas, CTAs, formularios, APIs, Supabase, integraciones, estados del lead y automatizaciones actuales.
+
+Importante:
+No modifiques lógica de producto.
+No borres archivos.
+No hagas refactor.
+No implementes mejoras todavía.
+Solo audita, documenta y crea/actualiza el archivo docs/FLOW_MAP.md.
+
+Revisa el repo completo y documenta:
+
+1. Flujos de usuario
+Identifica todas las rutas existentes, incluyendo:
+- /
+- /salud-capilar
+- /score-capilar
+- /mapa-capilar
+- /dermatologia-mujer
+- /evaluacion-piel
+- /admin
+- cualquier otra ruta detectada en src/app
+
+Para cada ruta explica:
+- Qué objetivo tiene
+- Qué ve el usuario
+- Qué acción principal puede tomar
+- Qué CTA existe
+- A dónde lleva cada CTA
+- Qué datos se piden
+- Qué paso del funnel representa
+
+2. CTAs y navegación
+Mapea:
+- Todos los botones principales
+- Links internos
+- Links externos
+- WhatsApp links si existen
+- Formularios
+- Puntos donde el usuario puede abandonar el flujo
+
+3. Funnel actual
+Documenta el flujo actual desde que el usuario entra hasta que completa o abandona.
+
+Especialmente revisa:
+- Inicio del flujo
+- Preguntas del formulario
+- Subida de fotos
+- Generación de análisis
+- Visualización de reporte
+- Descarga de PDF si existe
+- Envío de datos/contacto
+- WhatsApp o CTA de consulta
+- Cualquier paso posterior al reporte
+
+4. API routes
+Lista todas las rutas en src/app/api/**.
+
+Para cada API route explica:
+- Archivo
+- Endpoint
+- Método esperado
+- Qué hace
+- Inputs
+- Outputs
+- Qué tablas toca
+- Qué servicios externos llama
+- Qué variables de entorno usa
+- Riesgos o validaciones faltantes
+
+5. Supabase
+Identifica desde el código:
+- Tablas usadas
+- Campos principales
+- Datos personales guardados
+- Fotos o archivos guardados
+- Estados del lead
+- Queries importantes
+- Uso de service role key
+- Uso de anon key
+- Posibles riesgos de seguridad o privacidad
+
+6. Integraciones
+Identifica integraciones actuales o parcialmente implementadas:
+- OpenAI
+- HubSpot
+- WhatsApp / Meta
+- Supabase
+- Vercel
+- Email
+- PDF generation
+- cualquier otra integración detectada
+
+Para cada integración explica:
+- Dónde está implementada
+- Qué hace
+- Si está activa, parcial o pendiente
+- Qué datos recibe/envía
+
+7. Automatizaciones actuales
+Documenta qué automatizaciones existen hoy, si hay:
+- Cron jobs
+- Webhooks
+- Sync con HubSpot
+- Mensajes WhatsApp
+- Emails automáticos
+- Actualización de estados
+- Generación automática de reportes
+- Follow-ups
+
+También indica qué cosas parecen manuales hoy.
+
+8. Estados del lead
+Busca y documenta todos los estados o etapas del usuario/lead que existan o se infieran desde el código.
+
+Ejemplos:
+- started
+- photos_uploaded
+- analysis_generated
+- report_viewed
+- contact_submitted
+- sent_to_hubspot
+- whatsapp_sent
+- abandoned
+
+Si no existen formalmente, indica que no están estandarizados.
+
+9. Riesgos y gaps
+Identifica:
+- Rutas huérfanas
+- CTAs rotos o confusos
+- Flujos incompletos
+- APIs sin validación
+- Datos que se guardan pero no se usan
+- Integraciones parcialmente implementadas
+- Falta de tracking
+- Falta de eventos de conversión
+- Riesgos de compliance médico
+- Riesgos de privacidad
+- Lugares donde se puede romper el funnel
+
+10. Output esperado
+Crea o actualiza el archivo:
+
+docs/FLOW_MAP.md
+
+El documento debe incluir:
+- Resumen ejecutivo
+- Mapa general del producto
+- Diagrama Mermaid del flujo de usuario
+- Tabla de páginas/rutas
+- Tabla de CTAs
+- Tabla de API routes
+- Tabla de Supabase/tablas/datos
+- Tabla de integraciones
+- Tabla de automatizaciones actuales
+- Tabla de estados del lead
+- Lista de gaps/riesgos
+- Recomendaciones priorizadas
+- Checklist de qué debería actualizarse cuando cambie el flujo
+
+Reglas:
+- El documento debe representar el estado actual real del código, no ideas futuras.
+- Si algo no existe o está incompleto, dilo explícitamente.
+- No inventes funcionalidades.
+- Cita los archivos del repo donde encontraste cada flujo o integración.
+- Al final, entrega un resumen de los 10 hallazgos más importantes.

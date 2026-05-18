@@ -375,3 +375,89 @@ export const STATUS_COLORS: Record<PatientStatus, string> = {
   transplant_closed: "bg-emerald-200 text-emerald-800",
   not_eligible: "bg-red-100 text-red-700",
 };
+
+export interface HairMapDensityZone {
+  level: "alta" | "media" | "baja" | "muy_baja";
+  color_hex: string;
+  notes: string;
+}
+
+export interface HairMapPhotoAnnotation {
+  label: string;
+  position: string;
+}
+
+export interface HairMapRiskArea {
+  zone: string;
+  level: "bajo" | "medio" | "alto";
+  dots: number;
+}
+
+export interface HairMapZoneAnnotation {
+  zone: string;
+  label: string;
+  status: string;
+  state: "ok" | "warning" | "alert";
+  icon: string;
+}
+
+export interface HairMapReport {
+  patient: {
+    hair_type: string;
+    norwood_stage: number;
+    norwood_label: string;
+    report_id: string;
+  };
+  photo_annotations: {
+    frontal: HairMapPhotoAnnotation[];
+    coronilla: HairMapPhotoAnnotation[];
+  };
+  density_map: {
+    zones: {
+      frontal: HairMapDensityZone;
+      vertex: HairMapDensityZone;
+      coronilla: HairMapDensityZone;
+      occipital: HairMapDensityZone;
+      entrada_izq: HairMapDensityZone;
+      entrada_der: HairMapDensityZone;
+    };
+    density_comparison: {
+      zone_a_label: string;
+      zone_b_label: string;
+      summary: string;
+    };
+  };
+  evaluation_summary: {
+    hair_type:        { value: string; detail: string };
+    density:          { value: string; detail: string };
+    hairline:         { value: string; detail: string };
+    scalp_condition:  { value: string; detail: string };
+    texture:          { value: string; detail: string };
+    crown_coverage:   { value: string; detail: string };
+    scalp_visibility: { value: string; detail: string };
+    overall_health:   { value: string; detail: string };
+  };
+  selectors: {
+    hair_type:       { options: string[]; selected: string };
+    density:         { options: string[]; selected: string; note: string };
+    hairline:        { options: string[]; selected: string };
+    scalp_condition: { options: string[]; selected: string; note: string };
+    risk_areas: HairMapRiskArea[];
+  };
+  zone_annotations: HairMapZoneAnnotation[];
+  follicular_health: {
+    shaft_caliber: string;
+    sebum_level: string;
+    scalp_inflammation: string;
+    visible_miniaturization: boolean;
+    estimated_density_hairs_per_cm2: string;
+    notes: string;
+  };
+  clinical_next_steps: {
+    priority:    { action: string; description: string };
+    recommended: { action: string; description: string };
+    optional:    { action: string; description: string };
+    long_term:   { action: string; description: string };
+  };
+  disclaimer: string;
+}

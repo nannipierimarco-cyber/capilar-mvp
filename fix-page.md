@@ -1,3 +1,5 @@
+Reemplaza completamente el archivo src/app/mapa-capilar/reporte/[id]/page.tsx con este contenido exacto:
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -78,8 +80,6 @@ export default function ReporteIdPage() {
 
   useEffect(() => {
     const rawReport = sessionStorage.getItem("mapa_capilar_report");
-    console.log("[reporte] rawReport exists:", !!rawReport);
-    console.log("[reporte] rawReport preview:", rawReport?.slice(0, 200));
     if (rawReport) {
       try {
         const parsed = JSON.parse(rawReport) as unknown;

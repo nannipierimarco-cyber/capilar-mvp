@@ -1,0 +1,29 @@
+﻿Audita solamente los cambios actuales de P1-E / borrado de paciente.
+
+Objetivo:
+Verificar si el DELETE de paciente con cascade es seguro antes de commitearlo.
+
+No implementes cambios todavía salvo que encuentres un bug crítico de seguridad.
+
+Revisa:
+- src/app/api/admin/patients/[id]/route.ts
+- src/app/admin/patients/[id]/DeletePatientButton.tsx
+- src/app/admin/patients/[id]/page.tsx
+- docs/P1E_PATIENT_DELETION_NOTES.md
+
+Checklist obligatorio:
+1. Confirmar que el endpoint DELETE requiere autenticación admin.
+2. Confirmar que un usuario público no puede borrar pacientes.
+3. Confirmar que no se expone SUPABASE_SERVICE_ROLE_KEY en frontend.
+4. Confirmar que el botón de borrado solo aparece en admin.
+5. Confirmar que hay confirmación explícita antes de borrar.
+6. Confirmar que el cascade borra en orden seguro.
+7. Confirmar que si falla Storage, no rompe toda la app de forma peligrosa.
+8. Confirmar que npm.cmd run build pasa.
+9. Decir si conviene commitear, corregir o revertir.
+
+Output:
+- Veredicto: commit / corregir / revertir
+- Riesgos encontrados
+- Archivos tocados
+- git diff --stat

@@ -1,0 +1,214 @@
+﻿Necesito modificar el flujo de “Mapa Capilar” en mi proyecto Next.js.
+
+Objetivo:
+Después de que el usuario responda las preguntas y suba 2 fotos del pelo, quiero correr un análisis de IA, mostrar un reporte visual premium en una página y permitir descargarlo como PDF.
+
+Cambios requeridos:
+
+1. En el último paso del formulario de /mapa-capilar, exigir 2 fotos:
+- Foto frontal/lateral
+- Foto desde arriba/coronilla
+
+No permitir avanzar si falta alguna.
+
+2. El análisis IA debe usar como input:
+- Respuestas iniciales del usuario
+- Foto frontal/lateral
+- Foto coronilla
+
+3. El output de la IA debe ser JSON estructurado, no imagen.
+
+4. El reporte final debe mostrar:
+- Resumen general
+- Score general
+- Contexto inicial del usuario
+- Fotos analizadas
+- Tipo de pelo
+- Densidad capilar
+- Línea capilar
+- Visibilidad del cuero cabelludo
+- Cobertura de coronilla
+- Textura del pelo
+- Grosor aparente del pelo
+- Estado general del pelo
+- Línea frontal
+- Densidad frontal
+- Recesión en entradas
+- Salud visible del cuero cabelludo
+- Áreas de riesgo
+- Scores por zona
+- Callouts visuales
+- Disclaimer médico
+
+5. MUY IMPORTANTE:
+No debe aparecer en el reporte ninguna de estas secciones:
+- Rutina recomendada
+- Guía de ingredientes
+- Avoid overload
+- Recomendaciones de productos
+- Recomendaciones de shampoos
+- Tratamientos recomendados
+- Ingredientes recomendados
+- Paso a paso de cuidado capilar
+
+6. Crear o ajustar estas rutas:
+- /mapa-capilar
+- /mapa-capilar/analizando
+- /mapa-capilar/reporte/[id]
+- /api/mapa-capilar/analyze
+
+7. La página /mapa-capilar/analizando debe mostrar una carga premium con mensajes tipo:
+- Analizando línea frontal...
+- Evaluando densidad capilar...
+- Revisando coronilla...
+- Cruzando respuestas iniciales...
+- Generando tu Mapa Capilar...
+
+Cuando termine, debe redirigir a /mapa-capilar/reporte/[id].
+
+8. La página /mapa-capilar/reporte/[id] debe renderizar el reporte visual usando el JSON de la IA.
+
+9. Agregar botón “Descargar reporte” para descargar el reporte como PDF usando html2canvas + jsPDF o una solución equivalente.
+
+10. Guardar en Supabase:
+- respuestas del usuario
+- URL de foto frontal/lateral
+- URL de foto coronilla
+- status: pending, processing, done, error
+- analysis_json
+- error_message
+- created_at
+
+11. Prompt interno para la IA:
+
+Eres un asistente experto en análisis visual capilar y cuero cabelludo para una experiencia digital de orientación capilar.
+
+Analiza dos imágenes del usuario:
+1. Foto frontal/lateral para evaluar línea capilar, entradas, densidad frontal, textura y estado general.
+2. Foto superior/coronilla para evaluar cobertura de coronilla, visibilidad del cuero cabelludo y densidad general.
+
+Además de las imágenes, utiliza obligatoriamente las respuestas iniciales del usuario como contexto del análisis. Las respuestas del usuario deben influir en el resultado y también deben aparecer resumidas en el reporte final.
+
+No hagas diagnóstico médico.
+No indiques tratamientos farmacológicos como receta.
+No prometas resultados.
+Usa lenguaje preventivo, educativo y orientativo.
+Incluye siempre un disclaimer médico.
+
+Evalúa:
+- Tipo de pelo probable
+- Densidad capilar
+- Línea capilar
+- Visibilidad del cuero cabelludo
+- Cobertura de coronilla
+- Textura del pelo
+- Grosor aparente del pelo
+- Estado general del pelo
+- Línea frontal
+- Densidad frontal
+- Recesión en entradas
+- Coronilla
+- Salud visible del cuero cabelludo
+- Áreas de riesgo
+
+No incluyas:
+- Rutina recomendada
+- Guía de ingredientes
+- Avoid overload
+- Recomendaciones de productos
+- Shampoos
+- Tratamientos
+- Ingredientes recomendados
+- Paso a paso de cuidado capilar
+
+Devuelve SOLO JSON válido.
+
+12. El JSON esperado debe tener esta estructura:
+
+{
+  "summary": {
+    "title": "Mapa Capilar IA",
+    "mainFinding": string,
+    "overallScore": number,
+    "confidence": "Baja" | "Media" | "Alta",
+    "priority": string
+  },
+  "userContext": {
+    "age": string,
+    "gender": string,
+    "mainConcern": string,
+    "hairLossDuration": string,
+    "familyHistory": string,
+    "scalpSymptoms": string[],
+    "washFrequency": string,
+    "previousTreatments": string
+  },
+  "visualAnalysis": {
+    "hairType": "Liso" | "Ondulado" | "Rizado" | "Afro / muy rizado" | "No concluyente",
+    "density": "Baja" | "Media" | "Alta" | "No concluyente",
+    "hairline": "Estable" | "Recesión leve" | "Recesión moderada" | "Recesión avanzada" | "No concluyente",
+    "scalpVisibility": string,
+    "crownCoverage": string,
+    "hairTexture": string,
+    "hairThickness": string,
+    "overallCondition": string
+  },
+  "zones": {
+    "frontalLine": {
+      "status": string,
+      "score": number,
+      "label": string
+    },
+    "frontalDensity": {
+      "status": string,
+      "score": number,
+      "label": string
+    },
+    "temples": {
+      "status": string,
+      "score": number,
+      "label": string
+    },
+    "crown": {
+      "status": string,
+      "score": number,
+      "label": string
+    },
+    "scalpHealth": {
+      "status": string,
+      "score": number,
+      "label": string
+    }
+  },
+  "riskAreas": [
+    {
+      "area": "Entradas" | "Zona frontal" | "Zona media" | "Coronilla",
+      "level": "Bajo" | "Medio" | "Alto",
+      "reason": string
+    }
+  ],
+  "visualTags": string[],
+  "photoCallouts": {
+    "frontPhoto": [
+      {
+        "label": string,
+        "area": string,
+        "level": "Bajo" | "Medio" | "Alto"
+      }
+    ],
+    "crownPhoto": [
+      {
+        "label": string,
+        "area": string,
+        "level": "Bajo" | "Medio" | "Alto"
+      }
+    ]
+  },
+  "disclaimer": string
+}
+
+13. Mantener el diseño actual de la marca.
+14. No romper rutas existentes.
+15. Usar componentes reutilizables.
+16. Manejar errores si falla la IA.
+17. Al final, dime exactamente qué archivos modificaste y qué comandos debo correr para probarlo localmente.
