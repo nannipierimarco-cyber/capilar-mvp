@@ -184,7 +184,6 @@ function PhotoWithAnnotations({
             src={imageUrl}
             alt={label}
             className="absolute inset-0 w-full h-full object-cover"
-            crossOrigin="anonymous"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">

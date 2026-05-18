@@ -293,7 +293,7 @@ export default function QuizPage() {
       const journeyQuery =
         data.journeyType === "transplant" ? "transplant" : "treatment";
       ph?.capture("quiz_completed", { journey_type: data.journeyType });
-      router.push(`/membership?plan=inicio&journey=${journeyQuery}`);
+      router.push(`/results?intake_id=${intake.id}&journey=${journeyQuery}`);
     } catch (err) {
       const e = err as { message?: string; details?: string; hint?: string; code?: string };
       console.error("[quiz/submit] unhandled error", {
