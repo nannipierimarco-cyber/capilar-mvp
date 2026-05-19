@@ -65,12 +65,27 @@ type ContentPart =
   | { type: "text"; text: string }
   | { type: "image_url"; image_url: { url: string; detail: "high" } };
 
+export interface IntakeSnapshot {
+  journey_type: string | null;
+  hair_loss_duration: string | null;
+  family_history: boolean | null;
+  previous_treatments: string[] | null;
+  medical_conditions: string[] | null;
+  current_medications: boolean | null;
+  loss_severity: string | null;
+  severe_irritation: boolean | null;
+  heart_disease: boolean | null;
+  liver_disease: boolean | null;
+  kidney_disease: boolean | null;
+}
+
 interface RouteResponse {
   report: HairMapReport;
   isFallback: boolean;
   frontalUrl: string | null;
   crownUrl: string | null;
   patientName: string;
+  intake: IntakeSnapshot | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -90,7 +105,7 @@ export async function POST(req: NextRequest) {
 
   if (!process.env.OPENAI_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.warn("[ai/patient-report] Missing env vars — returning fallback");
-    const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl: null, crownUrl: null, patientName: "" };
+    const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl: null, crownUrl: null, patientName: "", intake: null };
     return NextResponse.json(res);
   }
 
@@ -108,6 +123,20 @@ export async function POST(req: NextRequest) {
 
   const patient = intake.patients as { first_name: string; last_name: string } | null;
   const patientName = patient ? `${patient.first_name} ${patient.last_name}` : "";
+
+  const intakeSnapshot: IntakeSnapshot = {
+    journey_type: (intake.journey_type as string | null) ?? null,
+    hair_loss_duration: (intake.hair_loss_duration as string | null) ?? null,
+    family_history: (intake.family_history as boolean | null) ?? null,
+    previous_treatments: (intake.previous_treatments as string[] | null) ?? null,
+    medical_conditions: (intake.medical_conditions as string[] | null) ?? null,
+    current_medications: (intake.current_medications as boolean | null) ?? null,
+    loss_severity: (intake.loss_severity as string | null) ?? null,
+    severe_irritation: (intake.severe_irritation as boolean | null) ?? null,
+    heart_disease: (intake.heart_disease as boolean | null) ?? null,
+    liver_disease: (intake.liver_disease as boolean | null) ?? null,
+    kidney_disease: (intake.kidney_disease as boolean | null) ?? null,
+  };
 
   const { data: photos } = await supabase
     .from("photos")
@@ -179,7 +208,7 @@ export async function POST(req: NextRequest) {
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("[ai/patient-report] OpenAI error:", aiResponse.status, errText);
-      const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl, crownUrl, patientName };
+      const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl, crownUrl, patientName, intake: intakeSnapshot };
       return NextResponse.json(res);
     }
 
@@ -190,7 +219,7 @@ export async function POST(req: NextRequest) {
 
     if (!rawContent) {
       console.error("[ai/patient-report] Empty AI response");
-      const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl, crownUrl, patientName };
+      const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl, crownUrl, patientName, intake: intakeSnapshot };
       return NextResponse.json(res);
     }
 
@@ -199,17 +228,17 @@ export async function POST(req: NextRequest) {
       report = JSON.parse(rawContent) as HairMapReport;
     } catch {
       console.error("[ai/patient-report] Failed to parse AI JSON:", rawContent.slice(0, 200));
-      const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl, crownUrl, patientName };
+      const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl, crownUrl, patientName, intake: intakeSnapshot };
       return NextResponse.json(res);
     }
 
-    const res: RouteResponse = { report, isFallback: false, frontalUrl, crownUrl, patientName };
+    const res: RouteResponse = { report, isFallback: false, frontalUrl, crownUrl, patientName, intake: intakeSnapshot };
     return NextResponse.json(res);
   } catch (err) {
     clearTimeout(timeout);
     const isAbort = err instanceof Error && err.name === "AbortError";
     console.error("[ai/patient-report]", isAbort ? "timed out" : "unexpected error:", err);
-    const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl, crownUrl, patientName };
+    const res: RouteResponse = { report: fallback, isFallback: true, frontalUrl, crownUrl, patientName, intake: intakeSnapshot };
     return NextResponse.json(res);
   }
 }
