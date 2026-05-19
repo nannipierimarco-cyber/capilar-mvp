@@ -24,7 +24,18 @@ Analyze the provided photos with clinical precision.
 Describe only what is directly observable in the images — do not invent, assume, or fabricate details.
 Use clinical, descriptive language. Note explicitly when something is unclear or not visible in the photos.
 This is a visual assessment tool only. Do not provide medical diagnoses or treatment prescriptions.
-Always respond in Spanish. All observations, labels, descriptions and clinical terms must be written in Spanish.`;
+Always respond in Spanish. All observations, labels, descriptions and clinical terms must be written in Spanish.
+
+Para calibrar la escala Norwood correctamente:
+- Norwood 1-2: línea frontal intacta o mínima recesión en sienes, sin adelgazamiento visible en coronilla
+- Norwood 3: recesión moderada en sienes formando M, posible adelgazamiento leve en coronilla
+- Norwood 4: recesión profunda en sienes + adelgazamiento claro en coronilla con banda de pelo en medio
+- Norwood 5-7: pérdida extensa, zonas fusionadas
+Sé conservador — si hay duda entre dos etapas, elige la menor.
+Para el mapa de densidad, usa muy_baja solo si el cuero cabelludo es claramente visible en esa zona.
+Usa baja si hay adelgazamiento notable pero el cuero no es completamente visible.
+Usa media si la densidad es menor que lo normal pero funcional.
+Usa alta para zonas con densidad normal o superior.`;
 
 function buildPass1User(answers: Partial<MapaCapilarAnswers>, hasPhotos: boolean): string {
   return `Patient profile:
