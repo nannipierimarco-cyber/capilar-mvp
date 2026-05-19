@@ -36,6 +36,15 @@ async function toSignedUrl(
   return data?.signedUrl ?? rawUrl;
 }
 
+// Returns a server-side proxy URL so the browser never hits Supabase directly.
+// Avoids signed-URL CORS/accessibility issues in headless and restricted environments.
+function toProxyUrl(rawUrl: string | null): string | null {
+  if (!rawUrl) return null;
+  const path = extractStoragePath(rawUrl);
+  if (!path) return null;
+  return `/api/images?path=${encodeURIComponent(path)}`;
+}
+
 function boolLabel(val: unknown): string {
   if (val === true) return "sí";
   if (val === false) return "no";
@@ -147,12 +156,17 @@ export async function POST(req: NextRequest) {
     (photos ?? []).map((p: { type: string; url: string }) => [p.type, p.url])
   );
 
-  const [frontalUrl, crownUrl, templesUrl, sideUrl] = await Promise.all([
+  // Signed URLs for GPT-4o vision (needs direct image access)
+  const [frontalSignedUrl, crownSignedUrl, templesSignedUrl, sideSignedUrl] = await Promise.all([
     toSignedUrl(supabase, photoMap.get("frontal") ?? null),
     toSignedUrl(supabase, photoMap.get("crown") ?? null),
     toSignedUrl(supabase, photoMap.get("temples") ?? null),
     toSignedUrl(supabase, photoMap.get("side") ?? null),
   ]);
+
+  // Proxy URLs for the browser (avoids signed-URL accessibility issues)
+  const frontalUrl = toProxyUrl(photoMap.get("frontal") ?? null);
+  const crownUrl = toProxyUrl(photoMap.get("crown") ?? null);
 
   const intakeContext = buildIntakeContext(intake as Record<string, unknown>, patientName);
 
@@ -164,10 +178,10 @@ export async function POST(req: NextRequest) {
   ];
 
   const photoOrder = [
-    { url: frontalUrl, label: "FOTO 1 — Vista frontal:" },
-    { url: crownUrl, label: "FOTO 2 — Vista superior / coronilla:" },
-    { url: templesUrl, label: "FOTO 3 — Entradas:" },
-    { url: sideUrl, label: "FOTO 4 — Vista lateral:" },
+    { url: frontalSignedUrl, label: "FOTO 1 — Vista frontal:" },
+    { url: crownSignedUrl,   label: "FOTO 2 — Vista superior / coronilla:" },
+    { url: templesSignedUrl, label: "FOTO 3 — Entradas:" },
+    { url: sideSignedUrl,    label: "FOTO 4 — Vista lateral:" },
   ];
 
   for (const { url, label } of photoOrder) {
