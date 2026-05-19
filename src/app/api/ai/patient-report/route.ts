@@ -8,12 +8,32 @@ import {
 import type { HairMapReport } from "@/lib/types";
 
 const AI_MODEL = "gpt-4o";
+const SIGNED_URL_EXPIRY = 3600; // 1 hour
 
 function getAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+}
+
+function extractStoragePath(url: string): string | null {
+  const marker = "/patient-photos/";
+  const idx = url.indexOf(marker);
+  return idx !== -1 ? url.slice(idx + marker.length) : null;
+}
+
+async function toSignedUrl(
+  supabase: ReturnType<typeof getAdminClient>,
+  rawUrl: string | null
+): Promise<string | null> {
+  if (!rawUrl) return null;
+  const path = extractStoragePath(rawUrl);
+  if (!path) return rawUrl;
+  const { data } = await supabase.storage
+    .from("patient-photos")
+    .createSignedUrl(path, SIGNED_URL_EXPIRY);
+  return data?.signedUrl ?? rawUrl;
 }
 
 function boolLabel(val: unknown): string {
@@ -97,10 +117,13 @@ export async function POST(req: NextRequest) {
   const photoMap = new Map(
     (photos ?? []).map((p: { type: string; url: string }) => [p.type, p.url])
   );
-  const frontalUrl = photoMap.get("frontal") ?? null;
-  const crownUrl = photoMap.get("crown") ?? null;
-  const templesUrl = photoMap.get("temples") ?? null;
-  const sideUrl = photoMap.get("side") ?? null;
+
+  const [frontalUrl, crownUrl, templesUrl, sideUrl] = await Promise.all([
+    toSignedUrl(supabase, photoMap.get("frontal") ?? null),
+    toSignedUrl(supabase, photoMap.get("crown") ?? null),
+    toSignedUrl(supabase, photoMap.get("temples") ?? null),
+    toSignedUrl(supabase, photoMap.get("side") ?? null),
+  ]);
 
   const intakeContext = buildIntakeContext(intake as Record<string, unknown>, patientName);
 
