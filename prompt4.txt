@@ -1,0 +1,26 @@
+Dental Care redesign — 3 changes:
+
+CHANGE 1: Inline DentalCareBlock in src/app/page.tsx
+- Remove import of DentalCareBlock from @/components/DentalCareBlock
+- Add const dentalBullets and function DentalCareBlock() inline at bottom of page.tsx
+- Pattern matches HairCareBlock/SkinCareBlock: section id="dental-care", bg-[#E8F4F0]
+- Left col: white aspect-square emoji card + bullets card with #2D7A5F palette
+- Right col: eyebrow text-[#2D7A5F], h2 text-[#1A4A38], 2 mini UI cards (score + findings), text, LinkButton to /dental-care
+- LinkButton: border-0 bg-[#2D7A5F] text-white hover:bg-[#3D8B6E]
+
+CHANGE 2: Rewrite src/app/dental-care/page.tsx matching dermatologia-mujer style
+- Sections: HeroSection, ProblemSection, HowItWorksSection, AIReportSection, UseCasesSection, DifferentiatorSection, MedicalTrustSection, FinalCTA
+- Green palette: bg-[#E8F4F0], text-[#2D7A5F], text-[#1A4A38], hover:bg-[#3D8B6E]
+- CTA to /dental/quiz throughout
+- Imports: Header, Footer, ValuePropMarquee, LinkButton, Card, CardContent
+
+CHANGE 3: Replace sky- colors in DentalCareFunnel.tsx and analizando/page.tsx
+- bg-sky-500 -> bg-[#2D7A5F]
+- hover:bg-sky-600 -> hover:bg-[#235F4A]
+- border-sky-500 -> border-[#2D7A5F]
+- bg-sky-50 -> bg-[#E8F4F0]
+- text-sky-900 -> text-[#1A4A38]
+- hover:border-sky-300 -> hover:border-[#3D8B6E]
+- border-sky-400 -> border-[#3D8B6E]
+- focus:border-sky-400 -> focus:border-[#3D8B6E]
+- analizando: bg-sky-400 -> bg-[#3D8B6E]

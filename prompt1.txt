@@ -1,0 +1,319 @@
+﻿Crea exactamente los siguientes 4 archivos en el proyecto. No modifiques ningún archivo existente todavía. Crea las carpetas que no existan.
+
+== ARCHIVO 1: src/lib/dental/types.ts ==
+
+// ─── Dental Care — tipos y constantes ────────────────────────────────────────
+
+export interface DentalQuizAnswers {
+  motivoPrincipal: "dolor" | "estetica" | "encias" | "mal_aliento" | "revision" | "";
+  dolorReciente: "frecuente" | "ocasional" | "frio_dulce" | "no" | "";
+  ultimaVisita: "menos_6m" | "6_12m" | "1_3a" | "mas_3a" | "";
+  enciasNgran: "siempre" | "aveces" | "rara_vez" | "nunca" | "";
+  sensibilidad: "intensa" | "leve" | "solo_frio" | "no" | "";
+  colorDientes: "muy_amarillos" | "algo_amarillos" | "manchas" | "conforme" | "";
+  interesTratamiento: "mucho" | "si_pero_no_se" | "si_si_no_caro" | "solo_saber" | "";
+  historialMedico: "si" | "no" | "prefiero_no" | "";
+}
+
+export type DentalAnswerKey = keyof DentalQuizAnswers;
+
+export interface DentalLead {
+  nombre: string;
+  telefono: string;
+  email: string;
+}
+
+export interface DentalMapReport {
+  brandLine: "PERFECTO";
+  summary: {
+    title: string;
+    mainFinding: string;
+    overallScore: number;
+    urgencyLevel: "alta" | "media" | "baja";
+    confidence: "Alta" | "Media" | "Baja";
+  };
+  zones: {
+    frontal: ZoneAssessment;
+    lateral_izq: ZoneAssessment;
+    lateral_der: ZoneAssessment;
+    superior: ZoneAssessment;
+    inferior: ZoneAssessment;
+  };
+  findings: {
+    staining: FindingDetail;
+    calculus: FindingDetail;
+    gumHealth: FindingDetail;
+    alignment: FindingDetail;
+    erosion: FindingDetail;
+    cariesRisk: FindingDetail;
+  };
+  riskFactors: string[];
+  recommendations: {
+    immediate: string[];
+    shortTerm: string[];
+    longTerm: string[];
+  };
+  treatmentInterest: {
+    whitening: boolean;
+    orthodontics: boolean;
+    periodontal: boolean;
+    restoration: boolean;
+    preventive: boolean;
+  };
+  nextStep: string;
+}
+
+interface ZoneAssessment {
+  label: string;
+  score: number;
+  notes: string;
+}
+
+interface FindingDetail {
+  label: string;
+  severity: "normal" | "leve" | "moderado" | "severo";
+  description: string;
+}
+
+export interface DentalScoreResult {
+  score: number;
+  urgencyScore: number;
+  paymentPropensity: number;
+  category: "preventivo" | "correctivo_leve" | "correctivo_urgente";
+  label: string;
+  color: string;
+  cta: string;
+}
+
+export function calculateDentalScore(answers: DentalQuizAnswers): DentalScoreResult {
+  let urgency = 0;
+  let payment = 0;
+  if (answers.motivoPrincipal === "dolor") urgency += 30;
+  if (answers.motivoPrincipal === "encias") urgency += 20;
+  if (answers.dolorReciente === "frecuente") urgency += 25;
+  else if (answers.dolorReciente === "ocasional") urgency += 15;
+  else if (answers.dolorReciente === "frio_dulce") urgency += 10;
+  if (answers.ultimaVisita === "mas_3a") urgency += 20;
+  else if (answers.ultimaVisita === "1_3a") urgency += 10;
+  if (answers.enciasNgran === "siempre") urgency += 15;
+  else if (answers.enciasNgran === "aveces") urgency += 8;
+  if (answers.sensibilidad === "intensa") urgency += 15;
+  else if (answers.sensibilidad === "leve") urgency += 8;
+  if (answers.interesTratamiento === "mucho") payment += 40;
+  else if (answers.interesTratamiento === "si_pero_no_se") payment += 25;
+  else if (answers.interesTratamiento === "si_si_no_caro") payment += 15;
+  if (answers.motivoPrincipal === "estetica") payment += 20;
+  if (answers.colorDientes === "muy_amarillos") payment += 15;
+  else if (answers.colorDientes === "algo_amarillos") payment += 8;
+  if (answers.ultimaVisita === "mas_3a") payment += 10;
+  urgency = Math.min(urgency, 100);
+  payment = Math.min(payment, 100);
+  const score = Math.round((urgency * 0.6 + payment * 0.4));
+  let category: DentalScoreResult["category"];
+  let label: string;
+  let color: string;
+  let cta: string;
+  if (urgency >= 50 || score >= 60) {
+    category = "correctivo_urgente"; label = "Atencion prioritaria"; color = "#D85A30";
+    cta = "Tu boca necesita atencion pronto. Agenda con nuestro dentista esta semana.";
+  } else if (score >= 30) {
+    category = "correctivo_leve"; label = "Revision recomendada"; color = "#BA7517";
+    cta = "Hay algunos puntos a revisar. Un dentista puede ayudarte antes de que avancen.";
+  } else {
+    category = "preventivo"; label = "Mantenimiento preventivo"; color = "#0F6E56";
+    cta = "Tu salud bucal parece estar bien. Manten el ritmo con una revision preventiva.";
+  }
+  return { score, urgencyScore: urgency, paymentPropensity: payment, category, label, color, cta };
+}
+
+export function generateFallbackDentalReport(): DentalMapReport {
+  return {
+    brandLine: "PERFECTO",
+    summary: { title: "Analisis Dental AI", mainFinding: "Acumulacion de sarro en zona interproximal", overallScore: 62, urgencyLevel: "media", confidence: "Media" },
+    zones: {
+      frontal: { label: "Frontal", score: 6, notes: "Manchas superficiales visibles" },
+      lateral_izq: { label: "Lateral izq.", score: 7, notes: "Dentro de parametros" },
+      lateral_der: { label: "Lateral der.", score: 7, notes: "Dentro de parametros" },
+      superior: { label: "Arcada superior", score: 6, notes: "Sarro leve en molares" },
+      inferior: { label: "Arcada inferior", score: 5, notes: "Mayor acumulacion de sarro" },
+    },
+    findings: {
+      staining: { label: "Manchas", severity: "leve", description: "Decoloracion superficial moderada" },
+      calculus: { label: "Sarro", severity: "moderado", description: "Acumulacion en zona inferior" },
+      gumHealth: { label: "Encias", severity: "leve", description: "Leve inflamacion marginal" },
+      alignment: { label: "Alineacion", severity: "normal", description: "Alineacion dentro de parametros" },
+      erosion: { label: "Desgaste", severity: "leve", description: "Desgaste incisal leve" },
+      cariesRisk: { label: "Caries", severity: "leve", description: "Riesgo bajo-moderado" },
+    },
+    riskFactors: ["Higiene interproximal insuficiente", "Acidez frecuente", "Largo tiempo sin control"],
+    recommendations: {
+      immediate: ["Limpieza profesional (profilaxis)"],
+      shortTerm: ["Control y revision de puntos de sarro", "Evaluacion periodontal"],
+      longTerm: ["Mantenimiento semestral", "Uso de hilo dental diario"],
+    },
+    treatmentInterest: { whitening: true, orthodontics: false, periodontal: true, restoration: false, preventive: true },
+    nextStep: "Agenda tu consulta dental para una evaluacion completa y limpieza profesional.",
+  };
+}
+
+== ARCHIVO 2: src/lib/dental/prompts.ts ==
+
+export const DENTAL_MAP_SYSTEM_PROMPT = `Eres una IA de analisis dental para Perfecto Labs. Analizas fotografias de la boca del paciente con la precision de un odontologo clinico.
+
+Tu unica salida es un objeto JSON valido. Sin markdown. Sin explicaciones. Sin preambulo. Sin texto fuera del JSON.
+
+Estandares:
+- Solo describe lo visualmente observable. Nunca inventes hallazgos.
+- Usa terminologia odontologica clinica.
+- Descripciones en espanol. Recomendaciones en ingles.
+- Distingue entre: dientes anteriores, premolares, molares, arcada superior, arcada inferior.
+- Evalua: color del esmalte, sarro visible, estado de encias, alineacion, desgaste incisal, lesiones oscuras.
+- Nunca diagnostiques definitivamente caries o enfermedad periodontal — usa lenguaje de riesgo.`;
+
+export const DENTAL_MAP_USER_PROMPT = `Analiza las fotografias dentales. Devuelve UNICAMENTE este JSON:
+
+{
+  "brandLine": "PERFECTO",
+  "summary": { "title": "Analisis Dental AI", "mainFinding": "<hallazgo en 1 frase>", "overallScore": <0-100>, "urgencyLevel": "<alta|media|baja>", "confidence": "<Alta|Media|Baja>" },
+  "zones": {
+    "frontal": { "label": "Frontal", "score": <0-10>, "notes": "<max 8 palabras>" },
+    "lateral_izq": { "label": "Lateral izq.", "score": <0-10>, "notes": "<max 8 palabras>" },
+    "lateral_der": { "label": "Lateral der.", "score": <0-10>, "notes": "<max 8 palabras>" },
+    "superior": { "label": "Arcada superior", "score": <0-10>, "notes": "<max 8 palabras>" },
+    "inferior": { "label": "Arcada inferior", "score": <0-10>, "notes": "<max 8 palabras>" }
+  },
+  "findings": {
+    "staining": { "label": "Manchas", "severity": "<normal|leve|moderado|severo>", "description": "<max 8 palabras>" },
+    "calculus": { "label": "Sarro", "severity": "<normal|leve|moderado|severo>", "description": "<max 8 palabras>" },
+    "gumHealth": { "label": "Encias", "severity": "<normal|leve|moderado|severo>", "description": "<max 8 palabras>" },
+    "alignment": { "label": "Alineacion", "severity": "<normal|leve|moderado|severo>", "description": "<max 8 palabras>" },
+    "erosion": { "label": "Desgaste", "severity": "<normal|leve|moderado|severo>", "description": "<max 8 palabras>" },
+    "cariesRisk": { "label": "Caries", "severity": "<normal|leve|moderado|severo>", "description": "<max 8 palabras>" }
+  },
+  "riskFactors": ["<factor 1>", "<factor 2>", "<factor 3>"],
+  "recommendations": { "immediate": ["<accion>"], "shortTerm": ["<accion>", "<accion>"], "longTerm": ["<accion>", "<accion>"] },
+  "treatmentInterest": { "whitening": <true|false>, "orthodontics": <true|false>, "periodontal": <true|false>, "restoration": <true|false>, "preventive": <true|false> },
+  "nextStep": "<CTA para agendar, max 2 frases>"
+}`;
+
+export function buildDentalUserPrompt(answers: Record<string, string>): string {
+  return `Contexto del paciente:
+- Motivo: ${answers.motivoPrincipal ?? "no especificado"}
+- Dolor reciente: ${answers.dolorReciente ?? "no especificado"}
+- Ultima visita: ${answers.ultimaVisita ?? "no especificado"}
+- Encias sangran: ${answers.enciasNgran ?? "no especificado"}
+- Sensibilidad: ${answers.sensibilidad ?? "no especificado"}
+- Color dientes: ${answers.colorDientes ?? "no especificado"}
+- Interes tratamiento: ${answers.interesTratamiento ?? "no especificado"}
+- Historial medico: ${answers.historialMedico ?? "no especificado"}
+
+${DENTAL_MAP_USER_PROMPT}`;
+}
+
+== ARCHIVO 3: src/app/api/ai/dental-map/route.ts ==
+
+import { NextRequest, NextResponse } from "next/server";
+import { generateFallbackDentalReport } from "@/lib/dental/types";
+import { DENTAL_MAP_SYSTEM_PROMPT, buildDentalUserPrompt } from "@/lib/dental/prompts";
+import type { DentalMapReport } from "@/lib/dental/types";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+export async function POST(req: NextRequest) {
+  const fallback = generateFallbackDentalReport();
+  try {
+    const formData = await req.formData();
+    const photoFrontal = formData.get("photoFrontal") as File | null;
+    const photoAbierta = formData.get("photoAbierta") as File | null;
+    const answersRaw = formData.get("answers") as string | null;
+    const answers: Record<string, string> = answersRaw ? JSON.parse(answersRaw) : {};
+
+    async function toBase64(file: File): Promise<string> {
+      const buffer = await file.arrayBuffer();
+      return Buffer.from(buffer).toString("base64");
+    }
+
+    const imageContent: Array<{ type: "image_url"; image_url: { url: string; detail: "high" | "low" } }> = [];
+    if (photoFrontal) {
+      const b64 = await toBase64(photoFrontal);
+      imageContent.push({ type: "image_url", image_url: { url: `data:${photoFrontal.type};base64,${b64}`, detail: "high" } });
+    }
+    if (photoAbierta) {
+      const b64 = await toBase64(photoAbierta);
+      imageContent.push({ type: "image_url", image_url: { url: `data:${photoAbierta.type};base64,${b64}`, detail: "high" } });
+    }
+    if (imageContent.length === 0) return NextResponse.json({ analysis: fallback, isFallback: true });
+
+    const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        max_tokens: 1500,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: DENTAL_MAP_SYSTEM_PROMPT },
+          { role: "user", content: [...imageContent, { type: "text", text: buildDentalUserPrompt(answers) }] },
+        ],
+      }),
+      signal: AbortSignal.timeout(50_000),
+    });
+
+    if (!aiResponse.ok) return NextResponse.json({ analysis: fallback, isFallback: true });
+    const aiData = (await aiResponse.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const rawContent = aiData.choices?.[0]?.message?.content;
+    if (!rawContent) return NextResponse.json({ analysis: fallback, isFallback: true });
+
+    let analysis: DentalMapReport;
+    try { analysis = JSON.parse(rawContent) as DentalMapReport; }
+    catch { return NextResponse.json({ analysis: fallback, isFallback: true }); }
+    return NextResponse.json({ analysis, isFallback: false });
+  } catch (err) {
+    console.error("[ai/dental-map]", err);
+    return NextResponse.json({ analysis: fallback, isFallback: true });
+  }
+}
+
+== ARCHIVO 4: src/app/api/dental/lead/route.ts ==
+
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { nanoid } from "nanoid";
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { lead, answers, analysis } = body as {
+      lead: { nombre: string; telefono: string; email: string };
+      answers: Record<string, string>;
+      analysis: Record<string, unknown>;
+    };
+    const id = nanoid(12);
+    const { error } = await supabase.from("dental_patients").insert({
+      id, nombre: lead.nombre, telefono: lead.telefono, email: lead.email,
+      answers, analysis,
+      overall_score: (analysis?.summary as Record<string, unknown>)?.overallScore ?? null,
+      urgency_level: (analysis?.summary as Record<string, unknown>)?.urgencyLevel ?? null,
+      status: "lead", created_at: new Date().toISOString(),
+    });
+    if (error) console.error("[dental/lead] Supabase error:", error);
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/hubspot`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: lead.email, firstName: lead.nombre.split(" ")[0], lastName: lead.nombre.split(" ").slice(1).join(" "), phone: lead.telefono, source: "dental_funnel" }),
+      });
+    } catch { /* silencioso */ }
+    return NextResponse.json({ id, success: true });
+  } catch (err) {
+    console.error("[dental/lead] Error:", err);
+    return NextResponse.json({ error: "Error guardando lead" }, { status: 500 });
+  }
+}
+
+== FIN ==
+
+Cuando termines de crear los 4 archivos, corre: npx tsc --noEmit
+Responde con: "Prompt 1 listo. X errores encontrados."

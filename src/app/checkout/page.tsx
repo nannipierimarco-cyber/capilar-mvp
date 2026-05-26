@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { usePostHog } from "posthog-js/react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ const FAQ_ITEMS = [
 ];
 
 function CheckoutContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const planParam = searchParams.get("plan") ?? "inicio";
   const membershipParam = searchParams.get("membership") ?? null;
@@ -83,11 +84,17 @@ function CheckoutContent() {
     }
   }
 
-  async function handleTransplant() {
+  function handleTransplant() {
+    ph?.capture("transplant_booking_started");
     setLoading(true);
-    setTimeout(() => {
-      window.location.href = "/success";
-    }, 800);
+    setError(null);
+    const id = intakeId ?? (typeof window !== "undefined" ? localStorage.getItem("capilar_intake_id") : null);
+    if (!id) {
+      setError("No encontramos tu evaluación. Completa el cuestionario nuevamente.");
+      setLoading(false);
+      return;
+    }
+    router.push(`/agendar-consulta?intake_id=${encodeURIComponent(id)}`);
   }
 
   if (isTransplant) {
@@ -107,12 +114,17 @@ function CheckoutContent() {
             </p>
           </CardContent>
         </Card>
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
         <Button
           onClick={handleTransplant}
           disabled={loading}
           className="w-full rounded-full h-12"
         >
-          {loading ? "Enviando solicitud..." : "Solicitar evaluación clínica"}
+          {loading ? "Redirigiendo..." : "Agendar consulta"}
         </Button>
         <div className="text-center">
           <LinkButton href="/" variant="ghost" className="text-sm text-muted-foreground">

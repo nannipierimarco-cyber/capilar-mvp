@@ -247,9 +247,7 @@ export default function QuizPage() {
 
       const photoTypes = [
         { key: "photoFrontal" as const, type: "frontal" },
-        { key: "photoTemples" as const, type: "temples" },
         { key: "photoCrown" as const, type: "crown" },
-        { key: "photoSide" as const, type: "side" },
       ];
 
       for (const { key, type } of photoTypes) {
@@ -1098,18 +1096,15 @@ interface PhotoStepProps extends StepProps {
 
 function PhotoStep({ data, onChange, onNext, error }: PhotoStepProps) {
   const photos: {
-    key: keyof Pick<QuizData, "photoFrontal" | "photoTemples" | "photoCrown" | "photoSide">;
+    key: keyof Pick<QuizData, "photoFrontal" | "photoCrown">;
     label: string;
     hint: string;
-    required: boolean;
   }[] = [
-    { key: "photoFrontal", label: "Frontal",    hint: "Frente completa, mirando a la cámara",   required: true  },
-    { key: "photoCrown",   label: "Coronilla",  hint: "Vista superior, pelo hacia adelante",    required: true  },
-    { key: "photoTemples", label: "Entradas",   hint: "Zona de las entradas laterales",         required: false },
-    { key: "photoSide",    label: "Lateral",    hint: "Perfil completo",                        required: false },
+    { key: "photoFrontal", label: "Frontal",   hint: "Frente completa, mirando a la cámara" },
+    { key: "photoCrown",   label: "Coronilla", hint: "Vista superior, pelo hacia adelante" },
   ];
 
-  const requiredUploaded = photos.filter((p) => p.required).every((p) => data[p.key] !== null);
+  const requiredUploaded = photos.every((p) => data[p.key] !== null);
 
   return (
     <div>
@@ -1127,7 +1122,7 @@ function PhotoStep({ data, onChange, onNext, error }: PhotoStepProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {photos.map(({ key, label, hint, required }) => {
+        {photos.map(({ key, label, hint }) => {
           const file = data[key] as File | null;
           return (
             <label
@@ -1161,11 +1156,6 @@ function PhotoStep({ data, onChange, onNext, error }: PhotoStepProps) {
                 <>
                   <span className="text-2xl text-muted-foreground">📷</span>
                   <p className="text-xs font-semibold mt-1">{label}</p>
-                  {!required && (
-                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full mt-0.5">
-                      opcional
-                    </span>
-                  )}
                   <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>
                 </>
               )}
@@ -1181,8 +1171,7 @@ function PhotoStep({ data, onChange, onNext, error }: PhotoStepProps) {
       )}
 
       <p className="mt-4 text-xs text-muted-foreground text-center">
-        Frontal y coronilla son obligatorias. Entradas y lateral son opcionales.
-        Son confidenciales y solo las verá el médico asignado.
+        Ambas fotos son obligatorias. Son confidenciales y solo las verá el médico asignado.
       </p>
 
       <Button
@@ -1341,7 +1330,7 @@ function PersonalStep({ data, onChange, onNext }: StepProps) {
           className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border accent-primary"
         />
         <label htmlFor="consent" className="cursor-pointer text-sm leading-snug text-muted-foreground">
-          Acepto que Nilo trate mis datos personales y de salud para coordinar mi evaluación capilar.
+          Acepto que Perfecto Labs trate mis datos personales y de salud para coordinar mi evaluación capilar.
           Entiendo que esta evaluación no es un diagnóstico médico y que un médico revisará mi caso
           antes de cualquier indicación de tratamiento.{" "}
           <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">

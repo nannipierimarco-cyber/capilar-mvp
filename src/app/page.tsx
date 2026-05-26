@@ -20,6 +20,7 @@ export default function HomePage() {
         <ValuePropMarquee />
         <HairCareBlock />
         <SkinCareBlock />
+        <DentalCareBlock />
       </main>
       <Footer />
     </div>
@@ -243,6 +244,110 @@ function HairCareBlock() {
             <div>
               <LinkButton href="/salud-capilar" className="rounded-full px-8">
                 Conocer Hair Care
+              </LinkButton>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── DENTAL CARE BLOCK ─────────────────────────────────────────────────── */
+
+const dentalBullets = [
+  "Análisis IA zona por zona de tu boca",
+  "Quiz clínico de 8 preguntas",
+  "Reporte personalizado con plan de acción",
+  "Conexión directa con dentista Perfecto Labs",
+];
+
+function DentalCareBlock() {
+  return (
+    <section id="dental-care" className="scroll-mt-4 bg-[#E8F4F0] py-16 md:py-24">
+      <div className="mx-auto max-w-5xl px-4">
+        <div className="flex flex-col gap-8 md:flex-row md:gap-10 lg:gap-14">
+
+          {/* Left column: emoji card + bullets — second on mobile, first on desktop */}
+          <div className="order-2 shrink-0 md:order-1 md:w-[290px] lg:w-[330px]">
+            <div className="relative aspect-square overflow-hidden rounded-2xl shadow-sm bg-white flex items-center justify-center">
+              <span className="text-9xl">🦷</span>
+            </div>
+            <div className="mt-4 rounded-2xl border border-[#2D7A5F]/20 bg-white p-6">
+              <p className="text-sm font-semibold leading-snug text-[#2D7A5F]">
+                Tu salud bucal analizada por IA antes de que sea un problema
+              </p>
+              <ul className="mt-4 space-y-2.5">
+                {dentalBullets.map((b) => (
+                  <li
+                    key={b}
+                    className="flex items-start gap-2.5 text-sm text-[#2D7A5F]/80"
+                  >
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[#2D7A5F]/30 bg-[#E8F4F0] text-[10px] font-bold text-[#2D7A5F]">
+                      ✓
+                    </span>
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Right column: eyebrow + title + UI cards + text + CTA — first on mobile */}
+          <div className="order-1 flex flex-1 flex-col gap-5 md:order-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2D7A5F]">
+              Dental Care — Nuevo
+            </p>
+            <h2 className="text-3xl font-bold leading-tight tracking-tight text-[#1A4A38] md:text-4xl lg:text-[2.6rem]">
+              Analiza tu salud dental con IA — antes de que sea un problema
+            </h2>
+
+            {/* Two UI preview cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-[#2D7A5F]/15 bg-white p-4 shadow-sm">
+                <p className="text-[10px] font-semibold text-[#2D7A5F] tracking-widest mb-2">SCORE DENTAL</p>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-14 h-14 flex-shrink-0">
+                    <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="#E8F4F0" strokeWidth="10" />
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="#3D8B6E" strokeWidth="10" strokeLinecap="round" strokeDasharray="151 251" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-base font-bold text-gray-900">62</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">Urgencia media</p>
+                    <p className="text-[10px] text-gray-400">Limpieza recomendada</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-[#2D7A5F]/15 bg-white p-4 shadow-sm flex flex-col justify-center gap-2">
+                {[
+                  { label: "Sarro", color: "#D85A30", status: "Moderado" },
+                  { label: "Encias", color: "#BA7517", status: "Leve" },
+                  { label: "Alineacion", color: "#2D7A5F", status: "Normal" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between text-[10px]">
+                    <span className="text-gray-500">{item.label}</span>
+                    <span
+                      className="font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background: item.color + "18", color: item.color }}
+                    >
+                      {item.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Text + CTA */}
+            <p className="leading-relaxed text-[#2D7A5F]/80">
+              Responde 8 preguntas, sube una foto de tu boca y recibe un reporte personalizado. Sin turnos. En 60 segundos.
+            </p>
+            <div>
+              <LinkButton href="/dental-care" className="rounded-full px-8 border-0 bg-[#2D7A5F] text-white hover:bg-[#3D8B6E]">
+                Conocer Dental Care
               </LinkButton>
             </div>
           </div>

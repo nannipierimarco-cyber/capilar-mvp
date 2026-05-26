@@ -136,7 +136,12 @@ async function shot(page, label) {
   // Wait for the report to appear (loading screen disappears)
   try {
     await page.waitForSelector("text=Tu Mapa Capilar", { timeout: 65000 });
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState("networkidle");
+    // Wait for all proxy images to finish loading
+    await page.waitForFunction(
+      () => [...document.querySelectorAll("img")].every((img) => img.complete && img.naturalHeight > 0),
+      { timeout: 20000 }
+    );
     await shot(page, "results-report");
     // Scroll down to see CTA
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));

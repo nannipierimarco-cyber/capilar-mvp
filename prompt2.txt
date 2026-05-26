@@ -1,0 +1,635 @@
+﻿Crea exactamente los siguientes 5 archivos. No modifiques ningún archivo existente. Crea las carpetas que no existan.
+
+== ARCHIVO 1: src/app/dental/quiz/DentalCareFunnel.tsx ==
+
+"use client";
+
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import type { DentalQuizAnswers, DentalLead } from "@/lib/dental/types";
+
+const STEPS = [
+  {
+    id: 1, key: "motivoPrincipal" as keyof DentalQuizAnswers,
+    question: "Que te trajo aqui hoy?",
+    subtitle: "Cuentanos tu principal preocupacion dental",
+    options: [
+      { value: "dolor", label: "Dolor o molestia", icon: "🦷" },
+      { value: "estetica", label: "No me gusta como se ven mis dientes", icon: "✨" },
+      { value: "encias", label: "Encias que sangran o inflaman", icon: "🩸" },
+      { value: "mal_aliento", label: "Mal aliento recurrente", icon: "💨" },
+      { value: "revision", label: "Hace tiempo que no voy al dentista", icon: "📅" },
+    ],
+  },
+  {
+    id: 2, key: "dolorReciente" as keyof DentalQuizAnswers,
+    question: "Has tenido dolor dental en los ultimos 3 meses?",
+    subtitle: "Incluye sensibilidad, punzadas o molestias",
+    options: [
+      { value: "frecuente", label: "Si, con frecuencia", icon: "🔴" },
+      { value: "ocasional", label: "Si, de vez en cuando", icon: "🟡" },
+      { value: "frio_dulce", label: "Solo al comer frio o dulce", icon: "🧊" },
+      { value: "no", label: "No, ningun dolor", icon: "✅" },
+    ],
+  },
+  {
+    id: 3, key: "ultimaVisita" as keyof DentalQuizAnswers,
+    question: "Cuando fue tu ultima visita al dentista?",
+    subtitle: "Sin juzgar, queremos saber donde partimos",
+    options: [
+      { value: "menos_6m", label: "Menos de 6 meses", icon: "🗓️" },
+      { value: "6_12m", label: "Entre 6 y 12 meses", icon: "📆" },
+      { value: "1_3a", label: "Entre 1 y 3 anos", icon: "⏳" },
+      { value: "mas_3a", label: "Mas de 3 anos o nunca", icon: "⚠️" },
+    ],
+  },
+  {
+    id: 4, key: "enciasNgran" as keyof DentalQuizAnswers,
+    question: "Tus encias sangran al cepillarte o usar hilo dental?",
+    subtitle: "El sangrado es una senal que no debemos ignorar",
+    options: [
+      { value: "siempre", label: "Siempre o casi siempre", icon: "🩸" },
+      { value: "aveces", label: "A veces", icon: "🔸" },
+      { value: "rara_vez", label: "Muy rara vez", icon: "🔹" },
+      { value: "nunca", label: "Nunca", icon: "✅" },
+    ],
+  },
+  {
+    id: 5, key: "sensibilidad" as keyof DentalQuizAnswers,
+    question: "Sientes sensibilidad al frio, calor o alimentos dulces?",
+    subtitle: "La sensibilidad puede indicar erosion del esmalte",
+    options: [
+      { value: "intensa", label: "Si, sensibilidad intensa", icon: "⚡" },
+      { value: "leve", label: "Si, sensibilidad leve", icon: "🔸" },
+      { value: "solo_frio", label: "Solo con cosas muy frias", icon: "🧊" },
+      { value: "no", label: "No tengo sensibilidad", icon: "✅" },
+    ],
+  },
+  {
+    id: 6, key: "colorDientes" as keyof DentalQuizAnswers,
+    question: "Como describirias el color de tus dientes?",
+    subtitle: "Tu percepcion nos ayuda a personalizar el analisis",
+    options: [
+      { value: "muy_amarillos", label: "Muy amarillos o manchados", icon: "😬" },
+      { value: "algo_amarillos", label: "Un poco amarillos", icon: "😐" },
+      { value: "manchas", label: "Blancos pero con manchas", icon: "🔸" },
+      { value: "conforme", label: "Estoy conforme con el color", icon: "😊" },
+    ],
+  },
+  {
+    id: 7, key: "interesTratamiento" as keyof DentalQuizAnswers,
+    question: "Te interesa mejorar tu sonrisa o salud dental?",
+    subtitle: "Queremos entender que esperas de esta evaluacion",
+    options: [
+      { value: "mucho", label: "Si, es algo que me preocupa mucho", icon: "💪" },
+      { value: "si_pero_no_se", label: "Si, pero no se por donde empezar", icon: "🤔" },
+      { value: "si_si_no_caro", label: "Si, si no es muy caro", icon: "💰" },
+      { value: "solo_saber", label: "Solo quiero saber como estoy", icon: "🔍" },
+    ],
+  },
+  {
+    id: 8, key: "historialMedico" as keyof DentalQuizAnswers,
+    question: "Tomas medicamentos o tienes alguna condicion medica?",
+    subtitle: "Diabetes, hipertension y otros pueden afectar la salud bucal",
+    options: [
+      { value: "si", label: "Si, tengo condicion o tomo medicamentos", icon: "💊" },
+      { value: "no", label: "No, estoy sano/a", icon: "✅" },
+      { value: "prefiero_no", label: "Prefiero no decir", icon: "🔒" },
+    ],
+  },
+];
+
+const EMPTY_ANSWERS: DentalQuizAnswers = {
+  motivoPrincipal: "", dolorReciente: "", ultimaVisita: "", enciasNgran: "",
+  sensibilidad: "", colorDientes: "", interesTratamiento: "", historialMedico: "",
+};
+
+type FunnelStep = "quiz" | "photo" | "lead" | "done";
+
+export default function DentalCareFunnel() {
+  const router = useRouter();
+  const [funnelStep, setFunnelStep] = useState<FunnelStep>("quiz");
+  const [quizStep, setQuizStep] = useState(0);
+  const [answers, setAnswers] = useState<DentalQuizAnswers>(EMPTY_ANSWERS);
+  const [photoFrontal, setPhotoFrontal] = useState<File | null>(null);
+  const [photoAbierta, setPhotoAbierta] = useState<File | null>(null);
+  const [photoFrontalPreview, setPhotoFrontalPreview] = useState<string | null>(null);
+  const [photoAbiertaPreview, setPhotoAbiertaPreview] = useState<string | null>(null);
+  const [lead, setLead] = useState<DentalLead>({ nombre: "", telefono: "", email: "" });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const frontalRef = useRef<HTMLInputElement>(null);
+  const abiertaRef = useRef<HTMLInputElement>(null);
+  const currentStep = STEPS[quizStep];
+
+  function handleAnswer(value: string) {
+    const updated = { ...answers, [currentStep.key]: value };
+    setAnswers(updated);
+    if (quizStep < STEPS.length - 1) { setTimeout(() => setQuizStep((s) => s + 1), 200); }
+    else { setFunnelStep("photo"); }
+  }
+
+  function handlePhotoChange(file: File | null, type: "frontal" | "abierta") {
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    if (type === "frontal") { setPhotoFrontal(file); setPhotoFrontalPreview(preview); }
+    else { setPhotoAbierta(file); setPhotoAbiertaPreview(preview); }
+  }
+
+  function handleLeadChange(field: keyof DentalLead, value: string) {
+    setLead((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSubmit() {
+    if (!lead.nombre || !lead.telefono || !lead.email) return;
+    setIsAnalyzing(true);
+    sessionStorage.setItem("dental_answers", JSON.stringify(answers));
+    sessionStorage.setItem("dental_lead", JSON.stringify(lead));
+    if (photoFrontal) {
+      const reader = new FileReader();
+      reader.onloadend = () => { sessionStorage.setItem("dental_photo_frontal", reader.result as string); };
+      reader.readAsDataURL(photoFrontal);
+    }
+    if (photoAbierta) {
+      const reader = new FileReader();
+      reader.onloadend = () => { sessionStorage.setItem("dental_photo_abierta", reader.result as string); };
+      reader.readAsDataURL(photoAbierta);
+    }
+    router.push("/dental/analizando");
+  }
+
+  if (funnelStep === "quiz") {
+    const progress = ((quizStep + 1) / STEPS.length) * 100;
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <span className="text-sm font-medium text-gray-400">PERFECTO DENTAL</span>
+        </div>
+        <div className="h-1 bg-gray-100">
+          <div className="h-full bg-sky-500 transition-all duration-500" style={{ width: `${progress}%` }} />
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-lg mx-auto w-full">
+          <p className="text-sm text-gray-400 mb-4">{quizStep + 1} de {STEPS.length}</p>
+          <h2 className="text-2xl font-semibold text-gray-900 text-center mb-2">{currentStep.question}</h2>
+          <p className="text-base text-gray-500 text-center mb-8">{currentStep.subtitle}</p>
+          <div className="w-full space-y-3">
+            {currentStep.options.map((opt) => {
+              const isSelected = answers[currentStep.key] === opt.value;
+              return (
+                <button key={opt.value} onClick={() => handleAnswer(opt.value)}
+                  className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border text-left transition-all ${
+                    isSelected ? "border-sky-500 bg-sky-50 text-sky-900" : "border-gray-200 hover:border-sky-300 hover:bg-gray-50"
+                  }`}>
+                  <span className="text-2xl">{opt.icon}</span>
+                  <span className="text-base font-medium text-gray-800">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          {quizStep > 0 && (
+            <button onClick={() => setQuizStep((s) => s - 1)} className="mt-6 text-sm text-gray-400 hover:text-gray-600">
+              Volver
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (funnelStep === "photo") {
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <span className="text-sm font-medium text-gray-400">PERFECTO DENTAL</span>
+        </div>
+        <div className="flex-1 flex flex-col items-center px-6 py-10 max-w-lg mx-auto w-full">
+          <div className="mb-2 text-4xl">📸</div>
+          <h2 className="text-2xl font-semibold text-gray-900 text-center mb-2">Ahora analicemos tu boca</h2>
+          <p className="text-base text-gray-500 text-center mb-8">
+            Necesitamos una foto frontal de tu sonrisa. Si puedes, sube tambien una con la boca abierta.
+          </p>
+          <div className="w-full mb-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">Foto frontal <span className="text-red-400">*</span></p>
+            <div onClick={() => frontalRef.current?.click()}
+              className={`w-full h-44 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
+                photoFrontalPreview ? "border-sky-400 bg-sky-50" : "border-gray-200 hover:border-sky-300"
+              }`}>
+              {photoFrontalPreview
+                ? <img src={photoFrontalPreview} alt="Frontal" className="h-full w-full object-cover rounded-xl" />
+                : <><span className="text-3xl mb-2">😁</span><p className="text-sm text-gray-500">Sonrisa de frente</p><p className="text-xs text-gray-400 mt-1">Toca para subir foto</p></>
+              }
+            </div>
+            <input ref={frontalRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "frontal")} />
+          </div>
+          <div className="w-full mb-8">
+            <p className="text-sm font-medium text-gray-700 mb-2">Boca abierta <span className="text-gray-400 font-normal">(opcional)</span></p>
+            <div onClick={() => abiertaRef.current?.click()}
+              className={`w-full h-44 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
+                photoAbiertaPreview ? "border-sky-400 bg-sky-50" : "border-gray-200 hover:border-sky-300"
+              }`}>
+              {photoAbiertaPreview
+                ? <img src={photoAbiertaPreview} alt="Abierta" className="h-full w-full object-cover rounded-xl" />
+                : <><span className="text-3xl mb-2">🦷</span><p className="text-sm text-gray-500">Boca abierta amplia</p><p className="text-xs text-gray-400 mt-1">Toca para subir foto</p></>
+              }
+            </div>
+            <input ref={abiertaRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "abierta")} />
+          </div>
+          <button onClick={() => setFunnelStep("lead")} disabled={!photoFrontal}
+            className="w-full py-4 rounded-xl bg-sky-500 text-white font-semibold text-base disabled:opacity-40 hover:bg-sky-600 transition-colors">
+            Continuar
+          </button>
+          <button onClick={() => setFunnelStep("quiz")} className="mt-4 text-sm text-gray-400 hover:text-gray-600">
+            Volver al quiz
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (funnelStep === "lead") {
+    const canSubmit = lead.nombre.length > 1 && lead.telefono.length > 7 && lead.email.includes("@");
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <span className="text-sm font-medium text-gray-400">PERFECTO DENTAL</span>
+        </div>
+        <div className="flex-1 flex flex-col items-center px-6 py-10 max-w-lg mx-auto w-full">
+          <div className="mb-2 text-4xl">🔬</div>
+          <h2 className="text-2xl font-semibold text-gray-900 text-center mb-2">Casi listo!</h2>
+          <p className="text-base text-gray-500 text-center mb-8">
+            Ingresa tus datos para enviarte el analisis y conectarte con un dentista de Perfecto Labs.
+          </p>
+          <div className="w-full space-y-4 mb-8">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+              <input type="text" placeholder="Ej: Maria Gonzalez" value={lead.nombre}
+                onChange={(e) => handleLeadChange("nombre", e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-sky-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp / Telefono</label>
+              <input type="tel" placeholder="+56 9 1234 5678" value={lead.telefono}
+                onChange={(e) => handleLeadChange("telefono", e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-sky-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input type="email" placeholder="tucorreo@email.com" value={lead.email}
+                onChange={(e) => handleLeadChange("email", e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-sky-400" />
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 text-center mb-6">
+            Tu informacion es privada. Solo la usamos para enviarte el analisis y que un dentista pueda contactarte.
+          </p>
+          <button onClick={handleSubmit} disabled={!canSubmit || isAnalyzing}
+            className="w-full py-4 rounded-xl bg-sky-500 text-white font-semibold text-base disabled:opacity-40 hover:bg-sky-600 transition-colors">
+            {isAnalyzing ? "Preparando analisis..." : "Ver mi analisis dental"}
+          </button>
+          <button onClick={() => setFunnelStep("photo")} className="mt-4 text-sm text-gray-400 hover:text-gray-600">
+            Volver
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+== ARCHIVO 2: src/app/dental/quiz/page.tsx ==
+
+import DentalCareFunnel from "./DentalCareFunnel";
+export default function DentalQuizPage() { return <DentalCareFunnel />; }
+
+== ARCHIVO 3: src/app/dental/analizando/page.tsx ==
+
+"use client";
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+
+const MESSAGES = [
+  "Analizando estructura dental...",
+  "Evaluando estado de encias...",
+  "Detectando acumulacion de sarro...",
+  "Revisando alineacion y color...",
+  "Generando reporte personalizado...",
+];
+
+export default function DentalAnalizandoPage() {
+  const router = useRouter();
+  const ran = useRef(false);
+
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+    analyze();
+  }, []);
+
+  async function analyze() {
+    const answersRaw = sessionStorage.getItem("dental_answers");
+    const leadRaw = sessionStorage.getItem("dental_lead");
+    const photoFrontalData = sessionStorage.getItem("dental_photo_frontal");
+    const photoAbiertaData = sessionStorage.getItem("dental_photo_abierta");
+    const answers = answersRaw ? JSON.parse(answersRaw) : {};
+    const lead = leadRaw ? JSON.parse(leadRaw) : {};
+
+    try {
+      let analysis = null;
+      let isFallback = true;
+
+      if (photoFrontalData) {
+        const formData = new FormData();
+        formData.append("answers", JSON.stringify(answers));
+        const toBlob = (dataUrl: string): Blob => {
+          const [header, data] = dataUrl.split(",");
+          const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+          const binary = atob(data);
+          const arr = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+          return new Blob([arr], { type: mime });
+        };
+        formData.append("photoFrontal", toBlob(photoFrontalData), "frontal.jpg");
+        if (photoAbiertaData) formData.append("photoAbierta", toBlob(photoAbiertaData), "abierta.jpg");
+        const aiRes = await fetch("/api/ai/dental-map", { method: "POST", body: formData });
+        if (aiRes.ok) { const aiData = await aiRes.json(); analysis = aiData.analysis; isFallback = aiData.isFallback; }
+      }
+
+      if (!analysis) {
+        const { generateFallbackDentalReport } = await import("@/lib/dental/types");
+        analysis = generateFallbackDentalReport();
+        isFallback = true;
+      }
+
+      const leadRes = await fetch("/api/dental/lead", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead, answers, analysis }),
+      });
+      let reportId = "demo";
+      if (leadRes.ok) { const leadData = await leadRes.json(); reportId = leadData.id ?? "demo"; }
+
+      sessionStorage.setItem("dental_report", JSON.stringify(analysis));
+      sessionStorage.setItem("dental_analysis_id", reportId);
+      sessionStorage.setItem("dental_is_fallback", String(isFallback));
+      router.replace(`/dental/reporte/${reportId}`);
+    } catch (err) {
+      console.error("[dental/analizando] Error:", err);
+      router.replace("/dental/reporte/demo");
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
+      <div className="flex flex-col items-center gap-6 max-w-sm text-center">
+        <div className="text-6xl animate-bounce">🦷</div>
+        <h2 className="text-2xl font-semibold text-gray-900">Analizando tu salud dental</h2>
+        <p className="text-base text-gray-500">Nuestra IA esta revisando tus fotos y respuestas. Esto toma unos segundos...</p>
+        <div className="w-full space-y-2 mt-4">
+          {MESSAGES.map((msg, i) => (
+            <div key={i} className="flex items-center gap-3 text-sm text-gray-600"
+              style={{ animation: "fadeIn 0.4s ease forwards", animationDelay: `${i * 0.8}s`, opacity: 0 }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-sky-400 flex-shrink-0" />
+              {msg}
+            </div>
+          ))}
+        </div>
+      </div>
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+    </div>
+  );
+}
+
+== ARCHIVO 4: src/app/dental/reporte/[id]/page.tsx ==
+
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { DentalMapReport } from "@/lib/dental/types";
+import { calculateDentalScore, generateFallbackDentalReport } from "@/lib/dental/types";
+
+const SEVERITY_COLOR: Record<string, string> = { normal: "#0F6E56", leve: "#BA7517", moderado: "#D85A30", severo: "#A32D2D" };
+const SEVERITY_LABEL: Record<string, string> = { normal: "Normal", leve: "Leve", moderado: "Moderado", severo: "Severo" };
+
+export default function DentalReportePage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const [report, setReport] = useState<DentalMapReport | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("dental_report");
+    if (raw) { try { setReport(JSON.parse(raw)); } catch { setReport(generateFallbackDentalReport()); } }
+    else if (params.id === "demo") { setReport(generateFallbackDentalReport()); }
+    setLoading(false);
+  }, [params.id]);
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-4xl animate-pulse">🦷</div></div>;
+  if (!report) return (
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <div className="text-center">
+        <p className="text-gray-500 mb-4">Reporte no encontrado</p>
+        <button onClick={() => router.push("/dental/quiz")} className="px-6 py-3 bg-sky-500 text-white rounded-xl font-medium">Iniciar analisis</button>
+      </div>
+    </div>
+  );
+
+  const answers = (() => { try { return JSON.parse(sessionStorage.getItem("dental_answers") ?? "{}"); } catch { return {}; } })();
+  const scoreResult = calculateDentalScore(answers);
+  const score = report.summary.overallScore;
+  const urgencyColors: Record<string, string> = { alta: "#D85A30", media: "#BA7517", baja: "#0F6E56" };
+  const urgencyColor = urgencyColors[report.summary.urgencyLevel] ?? "#BA7517";
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+        <div>
+          <span className="text-xs font-medium tracking-widest text-sky-500">PERFECTO DENTAL</span>
+          <p className="text-sm text-gray-500">Reporte de salud bucal AI</p>
+        </div>
+        <button onClick={() => router.push("/agendar-consulta")}
+          className="px-4 py-2 bg-sky-500 text-white text-sm font-semibold rounded-xl hover:bg-sky-600 transition-colors">
+          Agendar consulta
+        </button>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Score dental</h2>
+            <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: urgencyColor + "18", color: urgencyColor }}>
+              Urgencia {report.summary.urgencyLevel}
+            </span>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="relative w-24 h-24 flex-shrink-0">
+              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#F1EFE8" strokeWidth="10" />
+                <circle cx="50" cy="50" r="40" fill="none" stroke={score >= 70 ? "#0F6E56" : score >= 45 ? "#BA7517" : "#D85A30"}
+                  strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(score / 100) * 251} 251`} />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-bold text-gray-900">{score}</span>
+                <span className="text-xs text-gray-400">/ 100</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-base font-medium text-gray-900 mb-1">{report.summary.mainFinding}</p>
+              <p className="text-sm text-gray-500">{scoreResult.cta}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Hallazgos clinicos</h2>
+          <div className="space-y-3">
+            {Object.values(report.findings).map((finding) => (
+              <div key={finding.label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{finding.label}</p>
+                  <p className="text-xs text-gray-400">{finding.description}</p>
+                </div>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0 ml-3"
+                  style={{ background: SEVERITY_COLOR[finding.severity] + "18", color: SEVERITY_COLOR[finding.severity] }}>
+                  {SEVERITY_LABEL[finding.severity]}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Analisis por zona</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {Object.values(report.zones).map((zone) => (
+              <div key={zone.label} className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-medium text-gray-600">{zone.label}</p>
+                  <span className="text-sm font-bold" style={{ color: zone.score >= 8 ? "#0F6E56" : zone.score >= 5 ? "#BA7517" : "#D85A30" }}>
+                    {zone.score}/10
+                  </span>
+                </div>
+                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full"
+                    style={{ width: `${zone.score * 10}%`, background: zone.score >= 8 ? "#1D9E75" : zone.score >= 5 ? "#EF9F27" : "#D85A30" }} />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">{zone.notes}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Plan de accion</h2>
+          {report.recommendations.immediate.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2">Prioritario</p>
+              {report.recommendations.immediate.map((r) => (
+                <div key={r} className="flex gap-2 mb-1"><span className="text-red-400 flex-shrink-0">●</span><p className="text-sm text-gray-700">{r}</p></div>
+              ))}
+            </div>
+          )}
+          {report.recommendations.shortTerm.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Proximos 1-3 meses</p>
+              {report.recommendations.shortTerm.map((r) => (
+                <div key={r} className="flex gap-2 mb-1"><span className="text-amber-400 flex-shrink-0">●</span><p className="text-sm text-gray-700">{r}</p></div>
+              ))}
+            </div>
+          )}
+          {report.recommendations.longTerm.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide mb-2">Mantenimiento</p>
+              {report.recommendations.longTerm.map((r) => (
+                <div key={r} className="flex gap-2 mb-1"><span className="text-teal-400 flex-shrink-0">●</span><p className="text-sm text-gray-700">{r}</p></div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl p-6 text-white" style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #0F6E56 100%)" }}>
+          <h3 className="text-lg font-semibold mb-2">{report.nextStep}</h3>
+          <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.8)" }}>
+            Un dentista de Perfecto Labs revisara tu reporte y te contactara para confirmar tu consulta.
+          </p>
+          <button onClick={() => router.push("/agendar-consulta")}
+            className="w-full py-3 bg-white text-sky-600 font-semibold rounded-xl hover:bg-sky-50 transition-colors">
+            Agendar mi consulta
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-400 text-center px-4 pb-4">
+          Este analisis es orientativo y no reemplaza un diagnostico clinico profesional. Generado con inteligencia artificial — Perfecto Labs.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+== ARCHIVO 5: src/app/dental-care/page.tsx ==
+
+import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dental Care — Analisis de salud bucal AI | Perfecto Labs",
+  description: "Responde 8 preguntas, sube una foto y recibe un diagnostico dental preliminar generado por inteligencia artificial.",
+};
+
+export default function DentalCareLandingPage() {
+  return (
+    <main className="min-h-screen bg-white">
+      <section className="bg-gradient-to-b from-sky-50 to-white pt-16 pb-12 px-6">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-sky-100 text-sky-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+            🦷 Dental Care — Perfecto Labs
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight mb-4">
+            Tu salud dental analizada por IA en 60 segundos
+          </h1>
+          <p className="text-lg text-gray-500 mb-8 max-w-xl mx-auto">
+            Responde 8 preguntas, sube una foto de tu boca y recibe un reporte personalizado. Sin turnos. Sin esperas.
+          </p>
+          <Link href="/dental/quiz" className="inline-flex items-center gap-2 px-8 py-4 bg-sky-500 text-white font-bold rounded-xl text-lg hover:bg-sky-600 transition-colors shadow-sm">
+            Analizar mi salud dental <span className="text-xl">→</span>
+          </Link>
+          <p className="mt-3 text-sm text-gray-400">Gratis · Sin crear cuenta · El dentista te contacta en 24h</p>
+        </div>
+      </section>
+
+      <section className="py-16 px-6 border-b border-gray-100">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">Como funciona</h2>
+          <div className="grid sm:grid-cols-4 gap-6">
+            {[
+              { num: "1", emoji: "📝", label: "Quiz de 8 preguntas sobre tu salud bucal" },
+              { num: "2", emoji: "📸", label: "Sube una foto de tu boca" },
+              { num: "3", emoji: "🔬", label: "La IA analiza zona por zona" },
+              { num: "4", emoji: "👨‍⚕️", label: "Un dentista revisa tu reporte" },
+            ].map((step) => (
+              <div key={step.num} className="text-center">
+                <div className="w-10 h-10 rounded-full bg-sky-100 text-sky-600 font-bold text-base flex items-center justify-center mx-auto mb-3">{step.num}</div>
+                <div className="text-2xl mb-2">{step.emoji}</div>
+                <p className="text-sm text-gray-600">{step.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 px-6 bg-sky-500 text-white text-center">
+        <h2 className="text-3xl font-bold mb-3">Cuando fue tu ultima revision dental?</h2>
+        <p className="mb-8 max-w-lg mx-auto" style={{ color: "rgba(255,255,255,0.85)" }}>
+          El 60% de los problemas dentales son asintomaticos en etapa temprana. Un analisis rapido puede ahorrarte mucho despues.
+        </p>
+        <Link href="/dental/quiz" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-sky-600 font-bold rounded-xl text-lg hover:bg-sky-50 transition-colors">
+          Comenzar analisis gratuito →
+        </Link>
+      </section>
+    </main>
+  );
+}
+
+== FIN ==
+
+Cuando termines, corre: npx tsc --noEmit
+Responde con: "Prompt 2 listo. X errores encontrados."
