@@ -188,7 +188,7 @@ export async function GET(
         </div>
 
         {/* Next step */}
-        <div style={{ margin: "10px 32px", padding: "14px 18px", borderRadius: 12, background: "linear-gradient(135deg, #0EA5E9 0%, #0F6E56 100%)", display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ margin: "10px 32px", padding: "14px 18px", borderRadius: 12, backgroundImage: "linear-gradient(135deg, #0EA5E9 0%, #0F6E56 100%)", display: "flex", flexDirection: "column", gap: 5 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{analysis.nextStep.title}</span>
           <span style={{ fontSize: 10, color: "rgba(255,255,255,0.85)", lineHeight: 1.4 }}>{analysis.nextStep.description}</span>
           <div style={{ display: "flex", marginTop: 5 }}>

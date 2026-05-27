@@ -57,6 +57,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
   const [report, setReport] = useState<DentalMapReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [infographicExpanded, setInfographicExpanded] = useState(false);
+  const [infographicState, setInfographicState] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const showInfographic = params.id !== "demo";
 
   useEffect(() => {
@@ -101,7 +102,12 @@ export default function DentalReportePage({ params }: { params: { id: string } }
         {showInfographic && (
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <button
-              onClick={() => setInfographicExpanded((v) => !v)}
+              onClick={() => {
+                setInfographicExpanded((v) => {
+                  if (!v) setInfographicState("loading");
+                  return !v;
+                });
+              }}
               className="w-full flex items-center justify-between px-5 py-4 text-left"
             >
               <div>
@@ -114,12 +120,20 @@ export default function DentalReportePage({ params }: { params: { id: string } }
             </button>
             {infographicExpanded && (
               <div className="px-4 pb-4">
+                {infographicState === "loading" && (
+                  <div className="flex items-center justify-center py-10 text-sm text-gray-400">Generando infografía…</div>
+                )}
+                {infographicState === "error" && (
+                  <div className="flex items-center justify-center py-6 text-sm text-red-400">No se pudo cargar la infografía.</div>
+                )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`/api/dental/infographic/${params.id}`}
                   alt="Infografía dental visual"
-                  className="w-full rounded-xl shadow-sm"
+                  className={`w-full rounded-xl shadow-sm ${infographicState === "ok" ? "" : "hidden"}`}
                   style={{ maxWidth: 794 }}
+                  onLoad={() => setInfographicState("ok")}
+                  onError={() => setInfographicState("error")}
                 />
               </div>
             )}
