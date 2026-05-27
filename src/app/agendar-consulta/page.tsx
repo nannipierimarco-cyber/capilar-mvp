@@ -7,6 +7,9 @@ import {
   resolveCalendlyHref,
 } from "@/lib/calendly";
 import { type DoctorProfile, type MedicalReview, type Patient, type Intake, type Order } from "@/lib/types";
+import { APPOINTMENT_VERTICALS, isValidVertical } from "@/lib/appointmentVerticals";
+import { AppointmentBookingForm } from "./AppointmentBookingForm";
+import { VerticalSelector } from "./VerticalSelector";
 
 function getAdminDb() {
   return createClient(
@@ -18,9 +21,64 @@ function getAdminDb() {
 export default async function AgendarConsultaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order_id?: string; intake_id?: string; patient_id?: string }>;
+  searchParams: Promise<{ order_id?: string; intake_id?: string; patient_id?: string; vertical?: string; reportId?: string }>;
 }) {
-  const { order_id, intake_id, patient_id } = await searchParams;
+  const { order_id, intake_id, patient_id, vertical, reportId } = await searchParams;
+
+  // Vertical-specific flow: no Supabase params present — render contextual booking form or selector
+  const hasSupabaseParams = Boolean(order_id ?? intake_id ?? patient_id);
+  if (!hasSupabaseParams) {
+    if (isValidVertical(vertical)) {
+      const config = APPOINTMENT_VERTICALS[vertical];
+      return (
+        <div className="flex flex-col min-h-screen bg-white">
+          <Header />
+          <main className="flex-1 mx-auto w-full max-w-lg px-4 py-14">
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
+              <p className="mt-3 text-muted-foreground leading-relaxed text-sm max-w-sm mx-auto">
+                {config.subtitle}
+              </p>
+            </div>
+            <div className="bg-white border border-border rounded-2xl shadow-sm p-6">
+              <AppointmentBookingForm config={config} vertical={vertical} reportId={reportId} />
+            </div>
+            <div className="mt-8 text-center">
+              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+                ← Volver al inicio
+              </Link>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
+    // No vertical: show selector
+    return (
+      <div className="flex flex-col min-h-screen bg-white">
+        <Header />
+        <main className="flex-1 mx-auto w-full max-w-lg px-4 py-14">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold tracking-tight">Agenda tu consulta</h1>
+            <p className="mt-3 text-muted-foreground leading-relaxed text-sm max-w-sm mx-auto">
+              Selecciona el tipo de consulta que necesitas.
+            </p>
+          </div>
+          <div className="bg-white border border-border rounded-2xl shadow-sm p-6">
+            <VerticalSelector />
+          </div>
+          <div className="mt-8 text-center">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+              ← Volver al inicio
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const db = getAdminDb();
 
   let order: Order | null = null;

@@ -42,7 +42,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
           <span className="text-xs font-medium tracking-widest text-sky-500">PERFECTO DENTAL</span>
           <p className="text-sm text-gray-500">Reporte de salud bucal AI</p>
         </div>
-        <button onClick={() => router.push("/agendar-consulta")}
+        <button onClick={() => router.push(`/agendar-consulta?vertical=dental&source=dental_report&reportId=${params.id}`)}
           className="px-4 py-2 bg-sky-500 text-white text-sm font-semibold rounded-xl hover:bg-sky-600 transition-colors">
           Agendar consulta
         </button>
@@ -147,7 +147,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
           <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.8)" }}>
             Un dentista de Perfecto Labs revisara tu reporte y te contactara para confirmar tu consulta.
           </p>
-          <button onClick={() => router.push("/agendar-consulta")}
+          <button onClick={() => router.push(`/agendar-consulta?vertical=dental&source=dental_report&reportId=${params.id}`)}
             className="w-full py-3 bg-white text-sky-600 font-semibold rounded-xl hover:bg-sky-50 transition-colors">
             Agendar mi consulta
           </button>
