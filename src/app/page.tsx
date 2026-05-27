@@ -80,7 +80,7 @@ function HeroSection() {
           </p>
 
           {/* Category cards */}
-          <div className="mx-auto mt-10 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
             <CategoryCard
               href="#hair-care"
               label="Hair Care"
@@ -93,6 +93,13 @@ function HeroSection() {
               label="Skin Care"
               imageSrc="/skin-care-category-card.png"
               imageAlt="Mujer sonriente con pelo rubio, skincare y bienestar"
+              imagePosition="object-top"
+            />
+            <CategoryCard
+              href="#dental-care"
+              label="Dental Care"
+              imageSrc="/dental-care-category-hero.png"
+              imageAlt="Sonrisa saludable, cuidado dental"
               imagePosition="object-top"
             />
           </div>
