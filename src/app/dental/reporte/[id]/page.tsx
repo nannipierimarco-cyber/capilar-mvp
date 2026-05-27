@@ -56,6 +56,8 @@ export default function DentalReportePage({ params }: { params: { id: string } }
   const router = useRouter();
   const [report, setReport] = useState<DentalMapReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [infographicExpanded, setInfographicExpanded] = useState(false);
+  const showInfographic = params.id !== "demo";
 
   useEffect(() => {
     const raw = sessionStorage.getItem("dental_report");
@@ -94,6 +96,35 @@ export default function DentalReportePage({ params }: { params: { id: string } }
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+
+        {/* Infografía premium */}
+        {showInfographic && (
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <button
+              onClick={() => setInfographicExpanded((v) => !v)}
+              className="w-full flex items-center justify-between px-5 py-4 text-left"
+            >
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Infografía visual dental</p>
+                <p className="text-xs text-gray-400 mt-0.5">Resumen visual generado por IA</p>
+              </div>
+              <span className="text-sky-500 text-xs font-semibold">
+                {infographicExpanded ? "Ocultar ↑" : "Ver infografía ↓"}
+              </span>
+            </button>
+            {infographicExpanded && (
+              <div className="px-4 pb-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/dental/infographic/${params.id}`}
+                  alt="Infografía dental visual"
+                  className="w-full rounded-xl shadow-sm"
+                  style={{ maxWidth: 794 }}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Score visual */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">

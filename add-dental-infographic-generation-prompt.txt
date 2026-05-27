@@ -1,0 +1,115 @@
+﻿Actúa como senior full-stack engineer en Next.js App Router, TypeScript, Supabase Storage y OpenAI Image Generation API.
+
+Contexto:
+Tengo un flujo dental en Perfecto Labs.
+El usuario sube fotos dentales, completa un quiz y recibe un reporte en:
+/dental/reporte/[id]
+
+Problema:
+El reporte web actual es demasiado genérico. Yo tengo un prompt visual que, cuando lo uso en ChatGPT, genera una infografía premium perfecta.
+Quiero replicar ese resultado dentro de mi app.
+
+Objetivo:
+Agregar generación de una infografía dental visual premium como imagen PNG, usando el prompt visual original del usuario, y mostrarla en la página del reporte dental.
+
+Importante:
+No eliminar el análisis JSON actual todavía.
+No romper el flujo dental existente.
+No tocar HubSpot.
+No tocar workflows.
+No tocar appointments.
+No tocar .env.local.
+No tocar .claude/settings.local.json.
+
+Tareas:
+
+1. Auditar el flujo dental actual:
+- Endpoint que recibe fotos dentales
+- Dónde se guardan fotos en Supabase
+- Dónde se genera el análisis dental
+- Dónde se guarda el reporte dental
+- Página /dental/reporte/[id]
+- Si la tabla dental_patients o equivalente tiene campo para guardar image report URL
+
+2. Crear un prompt centralizado:
+src/lib/dental/dentalInfographicPrompt.ts
+
+Debe exportar:
+- DENTAL_INFOGRAPHIC_PROMPT_VERSION = "dental_infographic_v1_2026_05_27"
+- buildDentalInfographicPrompt()
+
+El prompt debe usar exactamente el enfoque visual del prompt original:
+- Infografía visual premium
+- Análisis IA Dental y de Sonrisa
+- Formato vertical tipo A4
+- Fondo crema/off-white
+- Bordes suaves
+- Acentos dorados
+- Branding Perfecto Labs
+- Fotos dentales visibles
+- Callouts visuales
+- Línea media dental
+- Simetría de sonrisa
+- Color dental aparente
+- Exposición gingival
+- Alineación frontal
+- Mapa visual de alineación dental
+- Score visual dental
+- Dashboard visual
+- Footer con disclaimers
+
+Debe mantener restricciones:
+- No diagnóstico definitivo
+- No plan de tratamiento
+- No tratamiento recomendado
+- No presupuesto final
+- No ortodoncia recomendada
+- No blanqueamiento recomendado
+- No carillas recomendadas
+- No implantes recomendados
+- No cirugía recomendada
+- No medicamentos
+- No promesas de resultado
+- No antes/después falso
+
+3. Crear endpoint server-side:
+src/app/api/dental/infographic/route.ts
+
+Debe:
+- Recibir patientId/reportId
+- Buscar las fotos asociadas al reporte
+- Llamar a OpenAI Image Generation API con el prompt visual
+- Generar una imagen vertical tipo A4
+- Guardar la imagen en Supabase Storage
+- Guardar la URL en Supabase asociada al reporte/paciente
+- Devolver { success: true, infographicUrl }
+
+4. Si la API actual de OpenAI no está configurada para image generation:
+- No romper build.
+- Dejar error claro.
+- Usar OPENAI_API_KEY desde env.
+- No imprimir tokens.
+- No hardcodear keys.
+
+5. Actualizar /dental/reporte/[id]:
+- Si existe infographicUrl, mostrarla arriba del reporte como imagen premium.
+- Si no existe, mostrar botón interno o auto-generar según el patrón actual del flujo.
+- No quitar las cards actuales todavía.
+- CTA "Agendar evaluación dental" debe seguir mandando a:
+  /agendar-consulta?vertical=dental&source=dental_report
+
+6. Consistencia:
+- Si ya existe infographicUrl, no regenerar cada vez.
+- Esto evita que la misma foto produzca resultados diferentes en cada refresh.
+- Solo regenerar si se fuerza explícitamente.
+
+7. Ejecutar:
+npm run build
+
+Entrega:
+1. Archivos auditados.
+2. Si las fotos están disponibles para generar imagen.
+3. Archivos creados/modificados.
+4. Variables env necesarias.
+5. Resultado del build.
+6. Cómo probar localmente.
