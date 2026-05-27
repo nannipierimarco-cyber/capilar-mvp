@@ -31,6 +31,10 @@ async function findContactByEmail(token: string, email: string): Promise<string 
       limit: 1,
     }),
   });
+  if (!res.ok) {
+    const errBody = await res.json();
+    throw new Error(`[hubspot] findContactByEmail failed: ${JSON.stringify(errBody)}`);
+  }
   const data = await res.json() as { results?: { id: string }[] };
   return data.results?.[0]?.id ?? null;
 }
@@ -119,6 +123,9 @@ export async function syncHubSpotContact(input: SyncLeadInput): Promise<{ contac
   // fuente and vertical not sent — requires paid HubSpot plan to create custom properties
 
   try {
+    if (Object.keys(customProps).length === 0) {
+      return { contactId };
+    }
     await patchContact(token, contactId, customProps);
     console.log(`[hubspot] custom properties synced for contact: ${contactId}`);
   } catch (err) {

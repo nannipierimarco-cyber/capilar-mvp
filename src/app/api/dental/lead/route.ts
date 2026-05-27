@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
+import { syncHubSpotContact } from "@/lib/hubspot/client";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -22,11 +23,15 @@ export async function POST(req: NextRequest) {
     });
     if (error) console.error("[dental/lead] Supabase error:", error);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/hubspot/sync-lead`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: lead.email, firstName: lead.nombre.split(" ")[0], lastName: lead.nombre.split(" ").slice(1).join(" "), phone: lead.telefono, source: "dental_funnel" }),
+      await syncHubSpotContact({
+        email: lead.email,
+        nombre: lead.nombre,
+        whatsapp: lead.telefono,
+        leadStage: "lead",
       });
-    } catch { /* silencioso */ }
+    } catch (err) {
+      console.error("[dental/lead] HubSpot sync failed:", err);
+    }
     return NextResponse.json({ id, success: true });
   } catch (err) {
     console.error("[dental/lead] Error:", err);
