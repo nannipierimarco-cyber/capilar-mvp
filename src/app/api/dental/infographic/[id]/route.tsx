@@ -114,7 +114,7 @@ export async function GET(
                 strokeLinecap="round" strokeDasharray={`${dashArr} 251`}
                 transform="rotate(-90 50 50)" />
             </svg>
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <span style={{ fontSize: 26, fontWeight: 800, color: D, lineHeight: 1 }}>{score}</span>
               <span style={{ fontSize: 9, color: M }}>/100</span>
             </div>
