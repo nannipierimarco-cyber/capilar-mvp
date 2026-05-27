@@ -89,6 +89,7 @@ export async function GET(
   const findings = analysis.visualFindings.slice(0, 5);
   const zones    = analysis.zoneAnalysis.slice(0, 5);
 
+  try {
   return new ImageResponse(
     (
       <div style={{ width: 794, height: 1200, backgroundColor: C, fontFamily: "system-ui, sans-serif", display: "flex", flexDirection: "column" }}>
@@ -212,4 +213,8 @@ export async function GET(
     ),
     { width: 794, height: 1200 }
   );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return new Response(`DENTAL_INFOGRAPHIC_ERROR: ${msg}`, { status: 500, headers: { "content-type": "text/plain" } });
+  }
 }
