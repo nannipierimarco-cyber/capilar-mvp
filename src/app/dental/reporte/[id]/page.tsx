@@ -1,11 +1,56 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { DentalMapReport } from "@/lib/dental/types";
+import type { DentalMapReport, VisualLevel, VisualRiskLevel, DashboardLevel } from "@/lib/dental/types";
 import { calculateDentalScore, generateFallbackDentalReport } from "@/lib/dental/types";
 
-const SEVERITY_COLOR: Record<string, string> = { normal: "#0F6E56", leve: "#BA7517", moderado: "#D85A30", severo: "#A32D2D" };
-const SEVERITY_LABEL: Record<string, string> = { normal: "Normal", leve: "Leve", moderado: "Moderado", severo: "Severo" };
+const VISUAL_LEVEL_COLOR: Record<VisualLevel, string> = {
+  favorable: "#0F6E56",
+  mild_attention: "#BA7517",
+  moderate_attention: "#D85A30",
+  review_suggested: "#0EA5E9",
+};
+
+const VISUAL_LEVEL_LABEL: Record<VisualLevel, string> = {
+  favorable: "Favorable",
+  mild_attention: "Leve atención",
+  moderate_attention: "A revisar",
+  review_suggested: "Evaluación sugerida",
+};
+
+const RISK_COLOR: Record<VisualRiskLevel, string> = {
+  low: "#0F6E56",
+  medium: "#BA7517",
+  high: "#D85A30",
+};
+
+const RISK_LABEL: Record<VisualRiskLevel, string> = {
+  low: "Riesgo visual bajo",
+  medium: "Riesgo visual medio",
+  high: "Prioridad visual alta",
+};
+
+const DASHBOARD_LABEL: Record<DashboardLevel, string> = {
+  low: "A revisar",
+  medium: "Moderado",
+  high: "Favorable",
+};
+
+const DASHBOARD_COLOR: Record<DashboardLevel, string> = {
+  low: "#D85A30",
+  medium: "#BA7517",
+  high: "#0F6E56",
+};
+
+const DASHBOARD_KEYS: { key: keyof DentalMapReport["visualDashboard"]; label: string }[] = [
+  { key: "alignment", label: "Alineación aparente" },
+  { key: "smileAesthetics", label: "Estética de sonrisa" },
+  { key: "symmetry", label: "Simetría" },
+  { key: "apparentColor", label: "Color aparente" },
+  { key: "visibleBite", label: "Mordida visible" },
+  { key: "gums", label: "Encías" },
+  { key: "generalVisualState", label: "Estado visual general" },
+];
 
 export default function DentalReportePage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -24,23 +69,23 @@ export default function DentalReportePage({ params }: { params: { id: string } }
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="text-center">
         <p className="text-gray-500 mb-4">Reporte no encontrado</p>
-        <button onClick={() => router.push("/dental/quiz")} className="px-6 py-3 bg-sky-500 text-white rounded-xl font-medium">Iniciar analisis</button>
+        <button onClick={() => router.push("/dental/quiz")} className="px-6 py-3 bg-sky-500 text-white rounded-xl font-medium">Iniciar análisis</button>
       </div>
     </div>
   );
 
   const answers = (() => { try { return JSON.parse(sessionStorage.getItem("dental_answers") ?? "{}"); } catch { return {}; } })();
   const scoreResult = calculateDentalScore(answers);
-  const score = report.summary.overallScore;
-  const urgencyColors: Record<string, string> = { alta: "#D85A30", media: "#BA7517", baja: "#0F6E56" };
-  const urgencyColor = urgencyColors[report.summary.urgencyLevel] ?? "#BA7517";
+  const score = report.summary.visualScore;
+  const riskColor = RISK_COLOR[report.summary.visualRiskLevel] ?? "#BA7517";
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
         <div>
           <span className="text-xs font-medium tracking-widest text-sky-500">PERFECTO DENTAL</span>
-          <p className="text-sm text-gray-500">Reporte de salud bucal AI</p>
+          <p className="text-sm text-gray-500">Evaluación visual preliminar</p>
         </div>
         <button onClick={() => router.push(`/agendar-consulta?vertical=dental&source=dental_report&reportId=${params.id}`)}
           className="px-4 py-2 bg-sky-500 text-white text-sm font-semibold rounded-xl hover:bg-sky-600 transition-colors">
@@ -49,11 +94,13 @@ export default function DentalReportePage({ params }: { params: { id: string } }
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+
+        {/* Score visual */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Score dental</h2>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: urgencyColor + "18", color: urgencyColor }}>
-              Urgencia {report.summary.urgencyLevel}
+            <h2 className="text-lg font-semibold text-gray-900">Evaluación visual</h2>
+            <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ background: riskColor + "18", color: riskColor }}>
+              {RISK_LABEL[report.summary.visualRiskLevel]}
             </span>
           </div>
           <div className="flex items-center gap-6">
@@ -69,35 +116,37 @@ export default function DentalReportePage({ params }: { params: { id: string } }
               </div>
             </div>
             <div>
-              <p className="text-base font-medium text-gray-900 mb-1">{report.summary.mainFinding}</p>
-              <p className="text-sm text-gray-500">{scoreResult.cta}</p>
+              <p className="text-base font-medium text-gray-900 mb-1">{report.summary.headline}</p>
+              <p className="text-sm text-gray-500">{report.summary.subheadline}</p>
             </div>
           </div>
         </div>
 
+        {/* Señales visuales */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Hallazgos clinicos</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Señales visuales</h2>
           <div className="space-y-3">
-            {Object.values(report.findings).map((finding) => (
-              <div key={finding.label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+            {report.visualFindings.map((finding) => (
+              <div key={finding.key} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                 <div>
                   <p className="text-sm font-medium text-gray-800">{finding.label}</p>
                   <p className="text-xs text-gray-400">{finding.description}</p>
                 </div>
                 <span className="text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0 ml-3"
-                  style={{ background: SEVERITY_COLOR[finding.severity] + "18", color: SEVERITY_COLOR[finding.severity] }}>
-                  {SEVERITY_LABEL[finding.severity]}
+                  style={{ background: VISUAL_LEVEL_COLOR[finding.visualLevel] + "18", color: VISUAL_LEVEL_COLOR[finding.visualLevel] }}>
+                  {VISUAL_LEVEL_LABEL[finding.visualLevel]}
                 </span>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Análisis por zona */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Analisis por zona</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Análisis por zona</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {Object.values(report.zones).map((zone) => (
-              <div key={zone.label} className="bg-gray-50 rounded-xl p-4">
+            {report.zoneAnalysis.map((zone) => (
+              <div key={zone.zone} className="bg-gray-50 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-medium text-gray-600">{zone.label}</p>
                   <span className="text-sm font-bold" style={{ color: zone.score >= 8 ? "#0F6E56" : zone.score >= 5 ? "#BA7517" : "#D85A30" }}>
@@ -108,53 +157,46 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                   <div className="h-full rounded-full"
                     style={{ width: `${zone.score * 10}%`, background: zone.score >= 8 ? "#1D9E75" : zone.score >= 5 ? "#EF9F27" : "#D85A30" }} />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{zone.notes}</p>
+                <p className="text-xs text-gray-400 mt-1">{zone.description}</p>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Dashboard visual */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Plan de accion</h2>
-          {report.recommendations.immediate.length > 0 && (
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2">Prioritario</p>
-              {report.recommendations.immediate.map((r) => (
-                <div key={r} className="flex gap-2 mb-1"><span className="text-red-400 flex-shrink-0">●</span><p className="text-sm text-gray-700">{r}</p></div>
-              ))}
-            </div>
-          )}
-          {report.recommendations.shortTerm.length > 0 && (
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Proximos 1-3 meses</p>
-              {report.recommendations.shortTerm.map((r) => (
-                <div key={r} className="flex gap-2 mb-1"><span className="text-amber-400 flex-shrink-0">●</span><p className="text-sm text-gray-700">{r}</p></div>
-              ))}
-            </div>
-          )}
-          {report.recommendations.longTerm.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide mb-2">Mantenimiento</p>
-              {report.recommendations.longTerm.map((r) => (
-                <div key={r} className="flex gap-2 mb-1"><span className="text-teal-400 flex-shrink-0">●</span><p className="text-sm text-gray-700">{r}</p></div>
-              ))}
-            </div>
-          )}
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Dashboard visual</h2>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {DASHBOARD_KEYS.map(({ key, label }) => {
+              const level = report.visualDashboard[key];
+              return (
+                <div key={key} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs">
+                  <span className="text-gray-500">{label}</span>
+                  <span className="font-semibold px-1.5 py-0.5 rounded-full"
+                    style={{ background: DASHBOARD_COLOR[level] + "18", color: DASHBOARD_COLOR[level] }}>
+                    {DASHBOARD_LABEL[level]}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
+        {/* Próximo paso sugerido */}
         <div className="rounded-2xl p-6 text-white" style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #0F6E56 100%)" }}>
-          <h3 className="text-lg font-semibold mb-2">{report.nextStep}</h3>
-          <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.8)" }}>
-            Un dentista de Perfecto Labs revisara tu reporte y te contactara para confirmar tu consulta.
+          <h3 className="text-lg font-semibold mb-2">{report.nextStep.title}</h3>
+          <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.85)" }}>
+            {report.nextStep.description}
           </p>
           <button onClick={() => router.push(`/agendar-consulta?vertical=dental&source=dental_report&reportId=${params.id}`)}
             className="w-full py-3 bg-white text-sky-600 font-semibold rounded-xl hover:bg-sky-50 transition-colors">
-            Agendar mi consulta
+            {report.nextStep.ctaLabel}
           </button>
         </div>
 
+        {/* Disclaimer */}
         <p className="text-xs text-gray-400 text-center px-4 pb-4">
-          Este analisis es orientativo y no reemplaza un diagnostico clinico profesional. Generado con inteligencia artificial — Perfecto Labs.
+          {report.disclaimer}
         </p>
       </div>
     </div>

@@ -19,57 +19,56 @@ export interface DentalLead {
   email: string;
 }
 
-export interface DentalMapReport {
-  brandLine: "PERFECTO";
-  summary: {
-    title: string;
-    mainFinding: string;
-    overallScore: number;
-    urgencyLevel: "alta" | "media" | "baja";
-    confidence: "Alta" | "Media" | "Baja";
-  };
-  zones: {
-    frontal: ZoneAssessment;
-    lateral_izq: ZoneAssessment;
-    lateral_der: ZoneAssessment;
-    superior: ZoneAssessment;
-    inferior: ZoneAssessment;
-  };
-  findings: {
-    staining: FindingDetail;
-    calculus: FindingDetail;
-    gumHealth: FindingDetail;
-    alignment: FindingDetail;
-    erosion: FindingDetail;
-    cariesRisk: FindingDetail;
-  };
-  riskFactors: string[];
-  recommendations: {
-    immediate: string[];
-    shortTerm: string[];
-    longTerm: string[];
-  };
-  treatmentInterest: {
-    whitening: boolean;
-    orthodontics: boolean;
-    periodontal: boolean;
-    restoration: boolean;
-    preventive: boolean;
-  };
-  nextStep: string;
-}
+// ─── New visual-first schema (dental_visual_v1_2026_05_27) ────────────────────
 
-interface ZoneAssessment {
-  label: string;
-  score: number;
-  notes: string;
-}
+export type VisualLevel = "favorable" | "mild_attention" | "moderate_attention" | "review_suggested";
+export type VisualRiskLevel = "low" | "medium" | "high";
+export type DashboardLevel = "low" | "medium" | "high";
 
-interface FindingDetail {
+export interface VisualFinding {
+  key: "alignment" | "color" | "gum_visibility" | "spacing" | "crowding" | "bite_visible" | "wear" | "general";
   label: string;
-  severity: "normal" | "leve" | "moderado" | "severo";
+  visualLevel: VisualLevel;
   description: string;
 }
+
+export interface ZoneAnalysis {
+  zone: "front_smile" | "front_bite" | "right_side" | "left_side" | "upper_arch" | "lower_arch";
+  score: number;
+  label: string;
+  description: string;
+}
+
+export interface VisualDashboard {
+  alignment: DashboardLevel;
+  smileAesthetics: DashboardLevel;
+  symmetry: DashboardLevel;
+  apparentColor: DashboardLevel;
+  visibleBite: DashboardLevel;
+  gums: DashboardLevel;
+  generalVisualState: DashboardLevel;
+}
+
+export interface DentalMapReport {
+  promptVersion: string;
+  summary: {
+    visualScore: number;
+    visualRiskLevel: VisualRiskLevel;
+    headline: string;
+    subheadline: string;
+  };
+  visualFindings: VisualFinding[];
+  zoneAnalysis: ZoneAnalysis[];
+  visualDashboard: VisualDashboard;
+  nextStep: {
+    title: string;
+    description: string;
+    ctaLabel: string;
+  };
+  disclaimer: string;
+}
+
+// ─── Quiz scoring (independent of AI report) ─────────────────────────────────
 
 export interface DentalScoreResult {
   score: number;
@@ -110,44 +109,53 @@ export function calculateDentalScore(answers: DentalQuizAnswers): DentalScoreRes
   let color: string;
   let cta: string;
   if (urgency >= 50 || score >= 60) {
-    category = "correctivo_urgente"; label = "Atencion prioritaria"; color = "#D85A30";
-    cta = "Tu boca necesita atencion pronto. Agenda con nuestro dentista esta semana.";
+    category = "correctivo_urgente"; label = "Revision prioritaria"; color = "#D85A30";
+    cta = "Hay señales visuales que vale la pena revisar con un profesional pronto.";
   } else if (score >= 30) {
     category = "correctivo_leve"; label = "Revision recomendada"; color = "#BA7517";
-    cta = "Hay algunos puntos a revisar. Un dentista puede ayudarte antes de que avancen.";
+    cta = "Hay algunos aspectos a evaluar. Un profesional puede orientarte.";
   } else {
     category = "preventivo"; label = "Mantenimiento preventivo"; color = "#0F6E56";
-    cta = "Tu salud bucal parece estar bien. Manten el ritmo con una revision preventiva.";
+    cta = "Tu evaluación visual se ve favorable. Mantén revisiones periódicas.";
   }
   return { score, urgencyScore: urgency, paymentPropensity: payment, category, label, color, cta };
 }
 
 export function generateFallbackDentalReport(): DentalMapReport {
   return {
-    brandLine: "PERFECTO",
-    summary: { title: "Analisis Dental AI", mainFinding: "Acumulacion de sarro en zona interproximal", overallScore: 62, urgencyLevel: "media", confidence: "Media" },
-    zones: {
-      frontal: { label: "Frontal", score: 6, notes: "Manchas superficiales visibles" },
-      lateral_izq: { label: "Lateral izq.", score: 7, notes: "Dentro de parametros" },
-      lateral_der: { label: "Lateral der.", score: 7, notes: "Dentro de parametros" },
-      superior: { label: "Arcada superior", score: 6, notes: "Sarro leve en molares" },
-      inferior: { label: "Arcada inferior", score: 5, notes: "Mayor acumulacion de sarro" },
+    promptVersion: "dental_visual_v1_2026_05_27",
+    summary: {
+      visualScore: 65,
+      visualRiskLevel: "medium",
+      headline: "Evaluación visual completada",
+      subheadline: "Se identificaron algunas zonas que podrían beneficiarse de una evaluación presencial.",
     },
-    findings: {
-      staining: { label: "Manchas", severity: "leve", description: "Decoloracion superficial moderada" },
-      calculus: { label: "Sarro", severity: "moderado", description: "Acumulacion en zona inferior" },
-      gumHealth: { label: "Encias", severity: "leve", description: "Leve inflamacion marginal" },
-      alignment: { label: "Alineacion", severity: "normal", description: "Alineacion dentro de parametros" },
-      erosion: { label: "Desgaste", severity: "leve", description: "Desgaste incisal leve" },
-      cariesRisk: { label: "Caries", severity: "leve", description: "Riesgo bajo-moderado" },
+    visualFindings: [
+      { key: "color", label: "Color aparente", visualLevel: "mild_attention", description: "Se observa tonalidad que podría revisarse en evaluación presencial." },
+      { key: "alignment", label: "Alineación aparente", visualLevel: "moderate_attention", description: "Hay aspectos de alineación aparente que vale la pena evaluar." },
+      { key: "gum_visibility", label: "Encías visibles", visualLevel: "mild_attention", description: "Las encías se ven con algunas señales visuales a revisar." },
+      { key: "spacing", label: "Espaciado", visualLevel: "favorable", description: "El espaciado entre piezas se ve dentro de rangos visuales normales." },
+    ],
+    zoneAnalysis: [
+      { zone: "front_smile", score: 7, label: "Sonrisa frontal", description: "Aspecto general con algunas áreas de atención visual." },
+      { zone: "front_bite", score: 6, label: "Mordida frontal", description: "La mordida visible tiene aspectos a revisar." },
+      { zone: "upper_arch", score: 7, label: "Arcada superior", description: "Arcada superior con señales visuales leves." },
+      { zone: "lower_arch", score: 6, label: "Arcada inferior", description: "Arcada inferior con algunas zonas a evaluar." },
+    ],
+    visualDashboard: {
+      alignment: "medium",
+      smileAesthetics: "medium",
+      symmetry: "high",
+      apparentColor: "medium",
+      visibleBite: "medium",
+      gums: "medium",
+      generalVisualState: "medium",
     },
-    riskFactors: ["Higiene interproximal insuficiente", "Acidez frecuente", "Largo tiempo sin control"],
-    recommendations: {
-      immediate: ["Limpieza profesional (profilaxis)"],
-      shortTerm: ["Control y revision de puntos de sarro", "Evaluacion periodontal"],
-      longTerm: ["Mantenimiento semestral", "Uso de hilo dental diario"],
+    nextStep: {
+      title: "Evaluación dental presencial",
+      description: "Una evaluación con un profesional permitirá revisar en detalle las zonas identificadas.",
+      ctaLabel: "Agendar evaluación dental",
     },
-    treatmentInterest: { whitening: true, orthodontics: false, periodontal: true, restoration: false, preventive: true },
-    nextStep: "Agenda tu consulta dental para una evaluacion completa y limpieza profesional.",
+    disclaimer: "Esta evaluación es visual y preliminar. No constituye diagnóstico médico ni reemplaza la valoración de un profesional de la salud dental.",
   };
 }

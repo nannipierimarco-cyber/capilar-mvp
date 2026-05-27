@@ -6,6 +6,20 @@ import type { DentalMapReport } from "@/lib/dental/types";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+function isValidReport(obj: unknown): obj is DentalMapReport {
+  if (!obj || typeof obj !== "object") return false;
+  const r = obj as Record<string, unknown>;
+  return (
+    typeof r.promptVersion === "string" &&
+    typeof r.summary === "object" && r.summary !== null &&
+    Array.isArray(r.visualFindings) &&
+    Array.isArray(r.zoneAnalysis) &&
+    typeof r.visualDashboard === "object" &&
+    typeof r.nextStep === "object" &&
+    typeof r.disclaimer === "string"
+  );
+}
+
 export async function POST(req: NextRequest) {
   const fallback = generateFallbackDentalReport();
   try {
@@ -36,6 +50,7 @@ export async function POST(req: NextRequest) {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({
         model: "gpt-4o",
+        temperature: 0,
         max_tokens: 1500,
         response_format: { type: "json_object" },
         messages: [
@@ -46,15 +61,24 @@ export async function POST(req: NextRequest) {
       signal: AbortSignal.timeout(50_000),
     });
 
-    if (!aiResponse.ok) return NextResponse.json({ analysis: fallback, isFallback: true });
+    if (!aiResponse.ok) {
+      console.error("[ai/dental-map] OpenAI error:", aiResponse.status);
+      return NextResponse.json({ analysis: fallback, isFallback: true });
+    }
     const aiData = (await aiResponse.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const rawContent = aiData.choices?.[0]?.message?.content;
     if (!rawContent) return NextResponse.json({ analysis: fallback, isFallback: true });
 
-    let analysis: DentalMapReport;
-    try { analysis = JSON.parse(rawContent) as DentalMapReport; }
+    let parsed: unknown;
+    try { parsed = JSON.parse(rawContent); }
     catch { return NextResponse.json({ analysis: fallback, isFallback: true }); }
-    return NextResponse.json({ analysis, isFallback: false });
+
+    if (!isValidReport(parsed)) {
+      console.error("[ai/dental-map] Response did not match expected schema — using fallback");
+      return NextResponse.json({ analysis: fallback, isFallback: true });
+    }
+
+    return NextResponse.json({ analysis: parsed, isFallback: false });
   } catch (err) {
     console.error("[ai/dental-map]", err);
     return NextResponse.json({ analysis: fallback, isFallback: true });

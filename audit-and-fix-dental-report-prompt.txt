@@ -1,0 +1,223 @@
+﻿Actúa como senior full-stack engineer en Next.js App Router, TypeScript, OpenAI/Vision API y diseño de productos healthtech.
+
+Contexto:
+Estoy trabajando en Perfecto Labs.
+Tengo un flujo dental donde el usuario sube fotos, completa un quiz y recibe un reporte en una URL como:
+https://perfectolabs.cl/dental/reporte/GIcfvmC4Kix_
+
+Problema:
+El reporte dental está siendo inconsistente. Subo las mismas fotos varias veces y los resultados cambian.
+Además, el reporte actual NO parece estar usando el último prompt que definí.
+
+Último prompt esperado:
+El reporte debe ser una evaluación visual preliminar dental, no diagnóstica, con estética premium, visual-first, tipo infografía. Debe evitar:
+- Plan de tratamiento
+- Tratamiento recomendado
+- Presupuesto final
+- Diagnóstico médico definitivo
+- Ortodoncia recomendada
+- Blanqueamiento recomendado
+- Carillas recomendadas
+- Implantes recomendados
+- Cirugía recomendada
+- Medicamentos
+- Recomendaciones clínicas específicas
+- Rutina dental detallada
+- Productos dentales recomendados
+- Promesas de resultado
+- Antes y después falso
+
+Problema observado:
+El reporte actual muestra cosas como:
+- "Hallazgos clínicos"
+- "Plan de acción"
+- "Visita urgente al dentista"
+- "Blanqueamiento dental"
+- "Evaluación y corrección de alineación"
+Esto contradice el prompt esperado.
+
+Objetivo:
+Auditar y corregir el pipeline completo del reporte dental para que:
+1. Sepamos exactamente qué prompt se está usando.
+2. El prompt actual sea reemplazado por una versión estable y productizable.
+3. El output sea consistente cuando se suben las mismas fotos.
+4. El reporte no incluya tratamiento recomendado ni plan clínico.
+5. El reporte tenga lenguaje visual/preliminar, no diagnóstico.
+6. La UI actual puede mantenerse por ahora, pero el contenido debe ser consistente y alineado con el prompt.
+
+Tareas:
+
+1. Auditar archivos del flujo dental:
+   Buscar en todo el repo:
+   - dental
+   - reporte
+   - report
+   - analysis
+   - analyze
+   - OpenAI
+   - openai
+   - prompt
+   - overallScore
+   - urgencyLevel
+   - actionPlan
+   - findings
+   - zones
+   - Plan de acción
+   - Hallazgos clínicos
+   - Blanqueamiento dental
+   - Visita urgente
+
+2. Identificar:
+   - Qué endpoint genera el análisis dental.
+   - Qué modelo se usa.
+   - Qué prompt exacto se usa.
+   - Qué schema o estructura espera la UI.
+   - Dónde se guarda el análisis en Supabase.
+   - Dónde se renderiza la página /dental/reporte/[id].
+
+3. Reportar antes de modificar:
+   Entregar un resumen:
+   A. Archivo del prompt actual
+   B. Prompt actual encontrado
+   C. Endpoint que lo llama
+   D. Modelo usado
+   E. Temperatura usada
+   F. Estructura JSON esperada
+   G. Por qué el resultado puede variar
+   H. Qué partes contradicen el prompt esperado
+
+4. Después corregir:
+   Crear un archivo centralizado si no existe:
+   src/lib/dental/dentalAnalysisPrompt.ts
+
+   Debe exportar:
+   - DENTAL_ANALYSIS_PROMPT_VERSION = "dental_visual_v1_2026_05_27"
+   - buildDentalAnalysisPrompt()
+
+5. El nuevo prompt NO debe pedir "crear una infografía" como si fuera imagen.
+   Debe pedir un JSON estructurado estable para que la UI lo renderice.
+   Debe decir:
+   - Evaluación visual preliminar
+   - No diagnóstico
+   - No plan de tratamiento
+   - No recomendaciones clínicas específicas
+   - No urgencia médica definitiva
+   - No mencionar tratamientos específicos como blanqueamiento, ortodoncia, carillas, implantes, cirugía
+   - Usar lenguaje de "zona a revisar", "señal visual", "posible", "aparente", "requiere evaluación profesional"
+   - Mantener tono no alarmista
+
+6. Crear schema estricto de salida:
+   El modelo debe devolver SOLO JSON válido con esta forma:
+
+   {
+     "promptVersion": "dental_visual_v1_2026_05_27",
+     "summary": {
+       "visualScore": number,
+       "visualRiskLevel": "low" | "medium" | "high",
+       "headline": string,
+       "subheadline": string
+     },
+     "visualFindings": [
+       {
+         "key": "alignment" | "color" | "gum_visibility" | "spacing" | "crowding" | "bite_visible" | "wear" | "general",
+         "label": string,
+         "visualLevel": "favorable" | "mild_attention" | "moderate_attention" | "review_suggested",
+         "description": string
+       }
+     ],
+     "zoneAnalysis": [
+       {
+         "zone": "front_smile" | "front_bite" | "right_side" | "left_side" | "upper_arch" | "lower_arch",
+         "score": number,
+         "label": string,
+         "description": string
+       }
+     ],
+     "visualDashboard": {
+       "alignment": "low" | "medium" | "high",
+       "smileAesthetics": "low" | "medium" | "high",
+       "symmetry": "low" | "medium" | "high",
+       "apparentColor": "low" | "medium" | "high",
+       "visibleBite": "low" | "medium" | "high",
+       "gums": "low" | "medium" | "high",
+       "generalVisualState": "low" | "medium" | "high"
+     },
+     "nextStep": {
+       "title": string,
+       "description": string,
+       "ctaLabel": "Agendar evaluación dental"
+     },
+     "disclaimer": string
+   }
+
+7. Hacer el output más determinístico:
+   - Usar temperature: 0 o el valor mínimo permitido.
+   - Si el SDK/modelo permite seed, usar seed fijo para tests.
+   - Evitar pedir creatividad.
+   - Usar enums cerrados.
+   - Limitar ranges: scores 0-100 y zone scores 0-10.
+   - Validar JSON parseado.
+   - Si falta un campo, usar fallback estable.
+   - No permitir que el modelo agregue campos fuera del schema.
+
+8. Reducir inconsistencias por fotos iguales:
+   Implementar o proponer caching por hash de imágenes:
+   - Calcular hash de las fotos subidas o usar URLs + tamaños como key.
+   - Si ya existe análisis para el mismo set de fotos y mismas respuestas, reutilizar análisis.
+   - Si todavía no se implementa caching completo, dejar TODO claro y no romper flujo.
+
+9. UI:
+   - No rediseñar toda la UI todavía.
+   - Cambiar labels peligrosos:
+     "Hallazgos clínicos" → "Señales visuales"
+     "Plan de acción" → "Próximo paso sugerido"
+     "Urgencia alta" → "Prioridad visual alta"
+   - Eliminar textos que parezcan tratamiento:
+     "Blanqueamiento dental"
+     "Evaluación y corrección de alineación"
+     "Visita urgente al dentista"
+   - Reemplazar por:
+     "Revisión visual profesional"
+     "Evaluación dental presencial"
+     "Revisión de alineación aparente"
+     "Revisión de color aparente"
+
+10. Crear test/debug:
+   Crear script:
+   scripts/audit-dental-report-prompt.ts
+
+   Debe:
+   - Imprimir qué archivos contienen prompts dentales.
+   - Imprimir DENTAL_ANALYSIS_PROMPT_VERSION si existe.
+   - No llamar OpenAI.
+   - No imprimir tokens.
+   - No tocar .env.local.
+
+11. Agregar script npm:
+   "dental:audit-prompt": "tsx scripts/audit-dental-report-prompt.ts"
+
+12. Ejecutar:
+   npm run build
+
+Reglas:
+- No tocar HubSpot.
+- No tocar workflows.
+- No tocar endpoint de appointments.
+- No tocar .env.local.
+- No tocar .claude/settings.local.json.
+- No modificar el flujo capilar.
+- No modificar el flujo skin.
+- No hacer cambios grandes de diseño.
+- No inventar tratamientos clínicos.
+- No hacer claims diagnósticos.
+- No cambiar estructura de DB sin avisar.
+
+Entrega:
+1. Archivos auditados.
+2. Prompt actual encontrado.
+3. Si estaba o no usando el último prompt.
+4. Bugs encontrados.
+5. Cambios aplicados.
+6. Resultado de npm run build.
+7. Comando para correr auditoría:
+   npm run dental:audit-prompt

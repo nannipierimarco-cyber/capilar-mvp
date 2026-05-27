@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "hubspot:setup-appointments": "tsx scripts/setup-hubspot-appointment-properties.ts"
+    "hubspot:setup-appointments": "tsx scripts/setup-hubspot-appointment-properties.ts",
+    "dental:audit-prompt": "tsx scripts/audit-dental-report-prompt.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
