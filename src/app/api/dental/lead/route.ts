@@ -8,15 +8,19 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { lead, answers, analysis } = body as {
+    const { lead, answers, analysis, photoPaths } = body as {
       lead: { nombre: string; telefono: string; email: string };
       answers: Record<string, string>;
       analysis: Record<string, unknown>;
+      photoPaths?: { frontal?: string; abierta?: string };
     };
     const id = nanoid(12);
+    const analysisWithPhotos = photoPaths
+      ? { ...analysis, _photos: photoPaths }
+      : analysis;
     const { error } = await supabase.from("dental_patients").insert({
       id, nombre: lead.nombre, telefono: lead.telefono, email: lead.email,
-      answers, analysis,
+      answers, analysis: analysisWithPhotos,
       overall_score: (analysis?.summary as Record<string, unknown>)?.overallScore ?? null,
       urgency_level: (analysis?.summary as Record<string, unknown>)?.urgencyLevel ?? null,
       status: "lead", created_at: new Date().toISOString(),

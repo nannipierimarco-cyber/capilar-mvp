@@ -32,17 +32,18 @@ export default function DentalAnalizandoPage() {
       let analysis = null;
       let isFallback = true;
 
+      const toBlob = (dataUrl: string): Blob => {
+        const [header, data] = dataUrl.split(",");
+        const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+        const binary = atob(data);
+        const arr = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+        return new Blob([arr], { type: mime });
+      };
+
       if (photoFrontalData) {
         const formData = new FormData();
         formData.append("answers", JSON.stringify(answers));
-        const toBlob = (dataUrl: string): Blob => {
-          const [header, data] = dataUrl.split(",");
-          const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
-          const binary = atob(data);
-          const arr = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-          return new Blob([arr], { type: mime });
-        };
         formData.append("photoFrontal", toBlob(photoFrontalData), "frontal.jpg");
         if (photoAbiertaData) formData.append("photoAbierta", toBlob(photoAbiertaData), "abierta.jpg");
         const aiRes = await fetch("/api/ai/dental-map", { method: "POST", body: formData });
@@ -55,9 +56,26 @@ export default function DentalAnalizandoPage() {
         isFallback = true;
       }
 
+      // Upload photos to Supabase Storage so infographic can use them
+      let photoPaths: { frontal?: string; abierta?: string } = {};
+      if (photoFrontalData) {
+        try {
+          const uploadForm = new FormData();
+          uploadForm.append("photoFrontal", toBlob(photoFrontalData), "frontal.jpg");
+          if (photoAbiertaData) uploadForm.append("photoAbierta", toBlob(photoAbiertaData), "abierta.jpg");
+          const uploadRes = await fetch("/api/dental/upload-photos", { method: "POST", body: uploadForm });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            photoPaths = uploadData.paths ?? {};
+          }
+        } catch (uploadErr) {
+          console.error("[dental/analizando] photo upload failed:", uploadErr);
+        }
+      }
+
       const leadRes = await fetch("/api/dental/lead", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead, answers, analysis }),
+        body: JSON.stringify({ lead, answers, analysis, photoPaths }),
       });
       let reportId = "demo";
       if (leadRes.ok) { const leadData = await leadRes.json(); reportId = leadData.id ?? "demo"; }
