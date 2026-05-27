@@ -1,0 +1,152 @@
+﻿Actúa como senior product engineer en Next.js App Router, TypeScript y UX de funnels médicos/healthtech.
+
+Contexto del producto:
+Perfecto Labs tiene 3 flujos principales:
+1. Hair Care
+2. Skin Care
+3. Dental Care
+
+Problema actual:
+En el flujo dental, el usuario completa el quiz dental, recibe su reporte en una URL como:
+https://perfectolabs.cl/dental/reporte/GIcfvmC4Kix_
+
+En esa página hay un botón "Agendar mi consulta".
+Actualmente ese botón manda a:
+https://perfectolabs.cl/agendar-consulta
+
+Problema:
+La página /agendar-consulta es genérica. Si el usuario viene desde Dental Care, no debería ver opciones de Hair Care ni Skin Care.
+Necesitamos preservar el contexto del flujo.
+
+Objetivo:
+Separar la experiencia de agendamiento por vertical:
+- dental
+- hair
+- skin
+
+Decisión de implementación:
+Usar query param por ahora para minimizar riesgo:
+- /agendar-consulta?vertical=dental
+- /agendar-consulta?vertical=hair
+- /agendar-consulta?vertical=skin
+
+Tareas:
+
+1. Auditar rutas existentes:
+   - Buscar página de agendamiento actual:
+     src/app/agendar-consulta/page.tsx
+     o rutas equivalentes.
+   - Buscar el botón "Agendar mi consulta" dentro del reporte dental:
+     src/app/dental/reporte/[id]/page.tsx
+     o componentes relacionados.
+   - Buscar otros CTAs de agendamiento en Hair Care y Skin Care.
+
+2. Modificar el CTA del reporte dental:
+   - El botón "Agendar mi consulta" debe mandar a:
+     /agendar-consulta?vertical=dental&source=dental_report
+   - Si existe reportId/patientId disponible en la ruta, agregarlo como query param:
+     /agendar-consulta?vertical=dental&source=dental_report&reportId=...
+   - No modificar el diseño del reporte dental por ahora.
+   - No cambiar el contenido del reporte.
+
+3. Convertir /agendar-consulta en una página contextual:
+   - Leer searchParams.vertical.
+   - Validar valores permitidos:
+     dental | hair | skin
+   - Si vertical=dental:
+     Mostrar solo opciones y copy de Dental Care.
+   - Si vertical=hair:
+     Mostrar solo opciones y copy de Hair Care.
+   - Si vertical=skin:
+     Mostrar solo opciones y copy de Skin Care.
+   - Si no hay vertical:
+     Mostrar selector inicial de vertical.
+
+4. Crear configuración centralizada:
+   Crear algo como:
+   src/lib/appointmentVerticals.ts
+
+   Debe exportar un config por vertical:
+   dental:
+     title: "Agenda tu evaluación dental"
+     subtitle: "Revisemos tu caso y definamos la mejor ruta de tratamiento."
+     serviceDefault: "Evaluación dental"
+     services:
+       - "Evaluación dental"
+       - "Ortodoncia / alineadores"
+       - "Estética dental"
+       - "Implantes / rehabilitación"
+       - "Limpieza / diagnóstico"
+     hubspotService: "Evaluación dental"
+     hubspotChannel: "website_dental"
+
+   hair:
+     title: "Agenda tu evaluación capilar"
+     subtitle: "Revisemos tu caso y definamos tu ruta capilar."
+     serviceDefault: "Evaluación capilar"
+     services:
+       - "Evaluación capilar"
+       - "PRP / mesoterapia"
+       - "Trasplante capilar"
+       - "Seguimiento capilar"
+     hubspotService: "Evaluación capilar"
+     hubspotChannel: "website_hair"
+
+   skin:
+     title: "Agenda tu evaluación dermatológica"
+     subtitle: "Revisemos tu piel y definamos próximos pasos."
+     serviceDefault: "Evaluación dermatológica"
+     services:
+       - "Evaluación dermatológica"
+       - "Acné"
+       - "Manchas"
+       - "Anti-aging"
+       - "Rutina personalizada"
+     hubspotService: "Evaluación dermatológica"
+     hubspotChannel: "website_skin"
+
+5. Ajustar el submit de agendamiento:
+   - Cuando se cree una cita, llamar al endpoint existente:
+     POST /api/appointments/scheduled
+   - Enviar service según la vertical.
+   - Enviar channel según la vertical.
+   - Para Dental debe mandar:
+     service: "Evaluación dental"
+     channel: "website_dental"
+   - No mandar "Evaluación capilar" si vertical=dental.
+   - Mantener compatibilidad con el endpoint existente.
+
+6. UX:
+   - En vertical dental, el título debe decir claramente:
+     "Agenda tu evaluación dental"
+   - El usuario no debe ver opciones de pelo o piel.
+   - En vertical hair, no debe ver dental o skin.
+   - En vertical skin, no debe ver dental o hair.
+   - Si entra sin vertical, mostrar 3 cards para elegir:
+     Hair Care, Skin Care, Dental Care.
+
+7. Seguridad y scope:
+   - No tocar HubSpot client salvo que sea estrictamente necesario.
+   - No tocar workflows.
+   - No tocar properties de HubSpot.
+   - No tocar .env.local.
+   - No tocar .claude/settings.local.json.
+   - No modificar el reporte dental salvo el href del botón.
+   - No romper Score Capilar.
+   - No romper Dental quiz.
+   - No romper Skin flow.
+
+8. Ejecutar:
+   npm run build
+
+Entrega:
+1. Archivos encontrados.
+2. Archivos modificados.
+3. Diff resumido.
+4. Resultado de build.
+5. URLs locales para probar:
+   - /agendar-consulta?vertical=dental
+   - /agendar-consulta?vertical=hair
+   - /agendar-consulta?vertical=skin
+   - /agendar-consulta
+   - /dental/reporte/[id]

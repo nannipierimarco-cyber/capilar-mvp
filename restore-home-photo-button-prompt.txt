@@ -1,0 +1,38 @@
+﻿Actúa como senior frontend engineer en Next.js App Router, TypeScript y Tailwind.
+
+Contexto:
+En la homepage existía un botón/card con foto que fue eliminado o desapareció en algún deployment.
+Probablemente estaba en src/app/page.tsx.
+Hay una imagen local sin trackear que probablemente corresponde a ese botón:
+public/dental-care-category-hero.png
+
+Objetivo:
+Restaurar el botón/card con foto en la home page, sin tocar nada de HubSpot ni backend.
+
+Tareas:
+1. Revisar src/app/page.tsx.
+2. Revisar si existe un componente CategoryCard o similar.
+3. Revisar el historial de git de src/app/page.tsx para identificar si antes había un card/botón dental, odontología, sonrisa, evaluación dental, o similar.
+4. Restaurar el botón/card eliminado en la sección de categorías de la home.
+5. Usar la imagen:
+   /dental-care-category-hero.png
+6. Asegurar que el archivo public/dental-care-category-hero.png quede agregado al commit si la home lo usa.
+7. El card debe verse consistente con los otros cards de la home.
+8. No tocar HubSpot.
+9. No tocar src/lib/hubspot.
+10. No tocar rutas API.
+11. No tocar .env.local.
+12. No tocar .claude/settings.local.json.
+13. Ejecutar npm run build.
+
+Criterio de aceptación:
+- La home vuelve a mostrar el botón/card con foto.
+- El card usa public/dental-care-category-hero.png.
+- El build pasa.
+- Solo se modifican archivos relacionados con la home y la imagen pública.
+
+Entrega:
+1. Qué encontró en el historial.
+2. Archivos modificados.
+3. Diff resumido.
+4. Resultado de npm run build.
