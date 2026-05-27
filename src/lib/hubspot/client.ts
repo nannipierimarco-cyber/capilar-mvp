@@ -72,6 +72,20 @@ async function createContact(
   return data.id;
 }
 
+export interface SyncAppointmentInput {
+  email: string;
+  appointmentStatus?: string;
+  appointmentDatetime?: string;
+  clinicName?: string;
+  clinicAddress?: string;
+  doctorName?: string;
+  service?: string;
+  channel?: string;
+  confirmationUrl?: string;
+  cancelUrl?: string;
+  rescheduleUrl?: string;
+}
+
 // Custom properties required in HubSpot portal (CRM → Properties → Contact properties → Create property):
 //
 //  Internal name              | Label                      | Field type
@@ -131,6 +145,43 @@ export async function syncHubSpotContact(input: SyncLeadInput): Promise<{ contac
   } catch (err) {
     console.error("[hubspot] custom properties failed (standard fields already saved). Create the missing properties in HubSpot portal. Error:", err);
   }
+
+  return { contactId };
+}
+
+export async function syncHubSpotAppointment(input: SyncAppointmentInput): Promise<{ contactId: string }> {
+  if (!input.email) throw new Error("[hubspot] syncHubSpotAppointment: email is required");
+  const token = getToken();
+
+  const existingId = await findContactByEmail(token, input.email);
+  let contactId: string;
+  if (existingId) {
+    await patchContact(token, existingId, { email: input.email });
+    contactId = existingId;
+  } else {
+    contactId = await createContact(token, { email: input.email });
+  }
+  console.log(`[hubspot] contact upserted for appointment: ${contactId}`);
+
+  const appointmentProps: Record<string, string> = {};
+  if (input.appointmentStatus) appointmentProps.appointment_status = input.appointmentStatus;
+  if (input.appointmentDatetime) appointmentProps.appointment_datetime = input.appointmentDatetime;
+  if (input.clinicName) appointmentProps.appointment_clinic_name = input.clinicName;
+  if (input.clinicAddress) appointmentProps.appointment_clinic_address = input.clinicAddress;
+  if (input.doctorName) appointmentProps.appointment_doctor_name = input.doctorName;
+  if (input.service) appointmentProps.appointment_service = input.service;
+  if (input.channel) appointmentProps.appointment_channel = input.channel;
+  if (input.confirmationUrl) appointmentProps.appointment_confirmation_url = input.confirmationUrl;
+  if (input.cancelUrl) appointmentProps.appointment_cancel_url = input.cancelUrl;
+  if (input.rescheduleUrl) appointmentProps.appointment_reschedule_url = input.rescheduleUrl;
+  appointmentProps.last_appointment_synced_at = new Date().toISOString();
+
+  if (Object.keys(appointmentProps).length <= 1) {
+    return { contactId };
+  }
+
+  await patchContact(token, contactId, appointmentProps);
+  console.log(`[hubspot] appointment synced for contact: ${contactId}`);
 
   return { contactId };
 }
