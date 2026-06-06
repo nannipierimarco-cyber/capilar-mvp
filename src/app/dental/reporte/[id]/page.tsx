@@ -213,6 +213,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
       // Unlock the gate before navigating
       sessionStorage.setItem("dental_lead_id", reportId);
       sessionStorage.setItem("dental_analysis_id", reportId);
+      sessionStorage.setItem("dental_lead_email", leadForm.email);
       sessionStorage.setItem("dental_report_locked", "false");
       sessionStorage.setItem("dental_report_unlocked", "true");
       router.replace(`/dental/reporte/${reportId}`);
@@ -249,7 +250,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
   const score = report.summary.visualScore;
   const riskLevel = report.summary.visualRiskLevel;
   const riskColor = RISK_COLOR[riskLevel] ?? "#BA7517";
-  const agendarHref = `/agendar-consulta?vertical=dental&source=dental_report&reportId=${params.id}`;
+  const agendarHref = `/dental/agendar/${params.id}`;
   const hasAITreatments = (report.treatmentOptions?.length ?? 0) > 0;
   const aiTreatments: TreatmentOptionAI[] = report.treatmentOptions ?? [];
   const fallbackCards = deriveTreatmentCards(answers, report);
