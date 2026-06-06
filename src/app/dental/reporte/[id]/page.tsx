@@ -77,8 +77,6 @@ function deriveTreatmentCards(answers: Record<string, string>, report: DentalMap
   return TREATMENT_ORDER.filter((id) => ids.has(id)).map((id) => TREATMENT_CATALOG[id]).slice(0, 4);
 }
 
-// ── Rangos y factores estáticos (fallback) ───────────────────────────────────
-
 const PRICE_REFERENCE = [
   { label: "Limpieza / evaluación", range: "$30.000 – $80.000" },
   { label: "Blanqueamiento", range: "$80.000 – $250.000" },
@@ -103,6 +101,8 @@ const COST_FACTORS_STATIC = [
 
 export default function DentalReportePage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const isTemp = params.id === "temp";
+
   const [report, setReport] = useState<DentalMapReport | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [photoFrontalSrc, setPhotoFrontalSrc] = useState<string | null>(null);
@@ -110,16 +110,39 @@ export default function DentalReportePage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true);
   const [infographicExpanded, setInfographicExpanded] = useState(false);
   const [infographicState, setInfographicState] = useState<"idle" | "loading" | "ok" | "error">("idle");
-  const showInfographic = params.id !== "demo";
+
+  // Gated lead form state
+  const [leadForm, setLeadForm] = useState({ nombre: "", email: "", telefono: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const showInfographic = !isTemp && params.id !== "demo";
 
   useEffect(() => {
-    // Load photos from sessionStorage (available on first visit only)
+    // Load photos from sessionStorage (first visit only)
     const frontal = sessionStorage.getItem("dental_photo_frontal");
     const abierta = sessionStorage.getItem("dental_photo_abierta");
     if (frontal) setPhotoFrontalSrc(frontal);
     if (abierta) setPhotoAbiertaSrc(abierta);
 
-    // Load report
+    if (isTemp) {
+      // Gated flow: load report from sessionStorage
+      const raw = sessionStorage.getItem("dental_report");
+      if (!raw) {
+        // No report in sessionStorage → send back to quiz
+        router.replace("/dental/quiz");
+        return;
+      }
+      try { setReport(JSON.parse(raw)); } catch { setReport(generateFallbackDentalReport()); }
+      try {
+        const ans = sessionStorage.getItem("dental_answers");
+        if (ans) setAnswers(JSON.parse(ans));
+      } catch { /* ignore */ }
+      setLoading(false);
+      return;
+    }
+
+    // Normal flow: try sessionStorage first, then Supabase
     const raw = sessionStorage.getItem("dental_report");
     if (raw) {
       try { setReport(JSON.parse(raw)); } catch { setReport(generateFallbackDentalReport()); }
@@ -143,7 +166,37 @@ export default function DentalReportePage({ params }: { params: { id: string } }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [params.id, isTemp, router]);
+
+  async function handleLeadSubmit() {
+    if (!leadForm.nombre || !leadForm.email || !leadForm.telefono) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const analysis = JSON.parse(sessionStorage.getItem("dental_report") ?? "{}");
+      const savedAnswers = JSON.parse(sessionStorage.getItem("dental_answers") ?? "{}");
+      const photoPaths = JSON.parse(sessionStorage.getItem("dental_photo_paths") ?? "{}");
+      const res = await fetch("/api/dental/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lead: { nombre: leadForm.nombre, email: leadForm.email, telefono: leadForm.telefono },
+          answers: savedAnswers,
+          analysis,
+          photoPaths,
+        }),
+      });
+      if (!res.ok) throw new Error("Error guardando lead");
+      const data = await res.json();
+      const reportId: string = data.id ?? "demo";
+      sessionStorage.setItem("dental_lead_id", reportId);
+      sessionStorage.setItem("dental_analysis_id", reportId);
+      router.replace(`/dental/reporte/${reportId}`);
+    } catch {
+      setSubmitError("Hubo un problema. Intenta de nuevo.");
+      setIsSubmitting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -176,8 +229,147 @@ export default function DentalReportePage({ params }: { params: { id: string } }
   const hasAITreatments = (report.treatmentOptions?.length ?? 0) > 0;
   const aiTreatments: TreatmentOptionAI[] = report.treatmentOptions ?? [];
   const fallbackCards = deriveTreatmentCards(answers, report);
+  const treatmentCount = hasAITreatments ? aiTreatments.length : fallbackCards.length;
   const costDrivers: CostDriver[] | null = (report.costDrivers?.length ?? 0) > 0 ? report.costDrivers! : null;
   const photoDisclaimer = report.photoQualityDisclaimer ?? "La orientación se basa en las fotos recibidas. La iluminación, el ángulo, el foco y la calidad de cámara pueden afectar la lectura visual y los resultados.";
+  const canSubmitLead = leadForm.nombre.length > 1 && leadForm.email.includes("@") && leadForm.telefono.length > 7;
+
+  // ── Vista bloqueada (gated) ──────────────────────────────────────────────
+
+  if (isTemp) {
+    return (
+      <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+        {/* Teaser borroso detrás del modal */}
+        <div className="pointer-events-none select-none" aria-hidden>
+          {/* Header */}
+          <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+            <span className="text-xs font-semibold tracking-widest text-[#0EA5E9]">PERFECTO DENTAL</span>
+          </div>
+          <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+            {/* Fotos (visibles) */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h2 className="text-base font-semibold text-gray-900 mb-1">Fotos analizadas</h2>
+              <p className="text-xs text-gray-400 mb-4 leading-relaxed">{photoDisclaimer}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">Foto frontal</p>
+                  {photoFrontalSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photoFrontalSrc} alt="Foto frontal" className="w-full h-36 object-cover rounded-xl border border-gray-100" />
+                  ) : (
+                    <div className="w-full h-36 rounded-xl bg-gray-100 flex items-center justify-center">
+                      <p className="text-xs text-gray-400 text-center px-3">No disponible</p>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">Boca abierta</p>
+                  {photoAbiertaSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photoAbiertaSrc} alt="Boca abierta" className="w-full h-36 object-cover rounded-xl border border-gray-100" />
+                  ) : (
+                    <div className="w-full h-36 rounded-xl bg-gray-100 flex items-center justify-center">
+                      <p className="text-xs text-gray-400 text-center px-3">Segunda foto no subida</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            {/* Teaser borroso */}
+            <div className="blur-md opacity-60">
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <div className="flex items-center gap-5">
+                  <div className="relative w-20 h-20 flex-shrink-0">
+                    <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="#F1EFE8" strokeWidth="10" />
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="#0EA5E9" strokeWidth="10" strokeLinecap="round"
+                        strokeDasharray={`${(score / 100) * 251} 251`} />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-xl font-bold text-gray-900">{score}</span>
+                      <span className="text-[9px] text-gray-400">/ 100</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full" style={{ background: riskColor + "18", color: riskColor }}>
+                      {RISK_LABEL[riskLevel]}
+                    </span>
+                    <p className="text-xs text-gray-400 mt-1">{treatmentCount} posibles tratamientos identificados</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 mt-5">
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-12 bg-gray-100 rounded-xl" />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-white/60 to-white pointer-events-none" />
+
+        {/* Modal bloqueante */}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-[#0EA5E9] to-[#0284C7] px-6 pt-6 pb-5 text-white text-center">
+              <div className="text-3xl mb-2">🦷</div>
+              <h2 className="text-lg font-semibold mb-1">Tu pre-cotización dental está lista</h2>
+              <p className="text-sm" style={{ color: "rgba(255,255,255,0.88)" }}>
+                Generamos una orientación inicial con posibles tratamientos y rangos referenciales de precio.
+              </p>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-xs text-gray-500 text-center mb-4 leading-relaxed">
+                Déjanos tu email y WhatsApp para mostrarte el reporte completo y enviarte una copia.
+              </p>
+              <div className="space-y-3 mb-4">
+                <input
+                  type="text"
+                  placeholder="Nombre completo"
+                  value={leadForm.nombre}
+                  onChange={(e) => setLeadForm((p) => ({ ...p, nombre: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#0EA5E9]"
+                />
+                <input
+                  type="email"
+                  placeholder="tucorreo@email.com"
+                  value={leadForm.email}
+                  onChange={(e) => setLeadForm((p) => ({ ...p, email: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#0EA5E9]"
+                />
+                <input
+                  type="tel"
+                  placeholder="+56 9 1234 5678"
+                  value={leadForm.telefono}
+                  onChange={(e) => setLeadForm((p) => ({ ...p, telefono: e.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#0EA5E9]"
+                />
+              </div>
+              {submitError && (
+                <p className="text-xs text-red-500 text-center mb-3">{submitError}</p>
+              )}
+              <button
+                onClick={handleLeadSubmit}
+                disabled={!canSubmitLead || isSubmitting}
+                className="w-full py-4 rounded-xl bg-[#0EA5E9] text-white font-semibold text-base disabled:opacity-40 hover:bg-[#0284C7] transition-colors"
+              >
+                {isSubmitting ? "Guardando…" : "Ver mi reporte"}
+              </button>
+              <p className="text-[11px] text-gray-400 text-center mt-3 leading-relaxed">
+                Tu información se usa para enviarte el reporte y ayudarte a agendar una evaluación si decides avanzar.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Vista completa (reporte desbloqueado) ────────────────────────────────
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -207,16 +399,10 @@ export default function DentalReportePage({ params }: { params: { id: string } }
               <p className="text-xs font-medium text-gray-500 mb-1.5">Foto frontal</p>
               {photoFrontalSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photoFrontalSrc}
-                  alt="Foto frontal"
-                  className="w-full h-36 object-cover rounded-xl border border-gray-100"
-                />
+                <img src={photoFrontalSrc} alt="Foto frontal" className="w-full h-36 object-cover rounded-xl border border-gray-100" />
               ) : (
                 <div className="w-full h-36 rounded-xl border border-dashed border-gray-200 flex items-center justify-center bg-gray-50">
-                  <p className="text-xs text-gray-400 text-center px-3 leading-relaxed">
-                    No disponible en este dispositivo
-                  </p>
+                  <p className="text-xs text-gray-400 text-center px-3 leading-relaxed">No disponible en este dispositivo</p>
                 </div>
               )}
             </div>
@@ -224,16 +410,10 @@ export default function DentalReportePage({ params }: { params: { id: string } }
               <p className="text-xs font-medium text-gray-500 mb-1.5">Boca abierta</p>
               {photoAbiertaSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photoAbiertaSrc}
-                  alt="Boca abierta"
-                  className="w-full h-36 object-cover rounded-xl border border-gray-100"
-                />
+                <img src={photoAbiertaSrc} alt="Boca abierta" className="w-full h-36 object-cover rounded-xl border border-gray-100" />
               ) : (
                 <div className="w-full h-36 rounded-xl border border-dashed border-gray-200 flex items-center justify-center bg-gray-50">
-                  <p className="text-xs text-gray-400 text-center px-3 leading-relaxed">
-                    Segunda foto no subida
-                  </p>
+                  <p className="text-xs text-gray-400 text-center px-3 leading-relaxed">Segunda foto no subida</p>
                 </div>
               )}
             </div>
@@ -268,10 +448,8 @@ export default function DentalReportePage({ params }: { params: { id: string } }
               </div>
             </div>
             <div className="space-y-1.5">
-              <span
-                className="inline-block text-xs font-semibold px-3 py-1 rounded-full"
-                style={{ background: riskColor + "18", color: riskColor }}
-              >
+              <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full"
+                style={{ background: riskColor + "18", color: riskColor }}>
                 {RISK_LABEL[riskLevel]}
               </span>
               <p className="text-xs text-gray-400 leading-relaxed">
@@ -285,12 +463,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
         {showInfographic && (
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <button
-              onClick={() => {
-                setInfographicExpanded((v) => {
-                  if (!v) setInfographicState("loading");
-                  return !v;
-                });
-              }}
+              onClick={() => { setInfographicExpanded((v) => { if (!v) setInfographicState("loading"); return !v; }); }}
               className="w-full flex items-center justify-between px-5 py-4 text-left"
             >
               <div>
@@ -304,14 +477,10 @@ export default function DentalReportePage({ params }: { params: { id: string } }
             {infographicExpanded && (
               <div className="px-4 pb-4">
                 {infographicState === "loading" && (
-                  <div className="flex items-center justify-center py-10 text-sm text-gray-400">
-                    Generando infografía…
-                  </div>
+                  <div className="flex items-center justify-center py-10 text-sm text-gray-400">Generando infografía…</div>
                 )}
                 {infographicState === "error" && (
-                  <div className="flex items-center justify-center py-6 text-sm text-red-400">
-                    No se pudo cargar la infografía.
-                  </div>
+                  <div className="flex items-center justify-center py-6 text-sm text-red-400">No se pudo cargar la infografía.</div>
                 )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -334,29 +503,19 @@ export default function DentalReportePage({ params }: { params: { id: string } }
             <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-xl p-4 mb-4">
               <p className="text-sm text-gray-700 leading-relaxed">{report.preliminaryInterpretation.description}</p>
               {report.preliminaryInterpretation.confidenceNote && (
-                <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                  {report.preliminaryInterpretation.confidenceNote}
-                </p>
+                <p className="text-xs text-gray-400 mt-2 leading-relaxed">{report.preliminaryInterpretation.confidenceNote}</p>
               )}
             </div>
           )}
           <div className="space-y-3">
             {report.visualFindings.map((finding) => (
-              <div
-                key={finding.key}
-                className="flex items-start justify-between gap-3 py-2 border-b border-gray-50 last:border-0"
-              >
+              <div key={finding.key} className="flex items-start justify-between gap-3 py-2 border-b border-gray-50 last:border-0">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-800">{finding.label}</p>
                   <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{finding.description}</p>
                 </div>
-                <span
-                  className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 whitespace-nowrap"
-                  style={{
-                    background: VISUAL_LEVEL_COLOR[finding.visualLevel] + "18",
-                    color: VISUAL_LEVEL_COLOR[finding.visualLevel],
-                  }}
-                >
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 whitespace-nowrap"
+                  style={{ background: VISUAL_LEVEL_COLOR[finding.visualLevel] + "18", color: VISUAL_LEVEL_COLOR[finding.visualLevel] }}>
                   {VISUAL_LEVEL_LABEL[finding.visualLevel]}
                 </span>
               </div>
@@ -370,21 +529,14 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                   <div key={zone.zone}>
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs font-medium text-gray-600">{zone.label}</p>
-                      <span
-                        className="text-xs font-bold"
-                        style={{ color: zone.score >= 8 ? "#0F6E56" : zone.score >= 5 ? "#BA7517" : "#D85A30" }}
-                      >
+                      <span className="text-xs font-bold"
+                        style={{ color: zone.score >= 8 ? "#0F6E56" : zone.score >= 5 ? "#BA7517" : "#D85A30" }}>
                         {zone.score}/10
                       </span>
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${zone.score * 10}%`,
-                          background: zone.score >= 8 ? "#1D9E75" : zone.score >= 5 ? "#EF9F27" : "#D85A30",
-                        }}
-                      />
+                      <div className="h-full rounded-full transition-all"
+                        style={{ width: `${zone.score * 10}%`, background: zone.score >= 8 ? "#1D9E75" : zone.score >= 5 ? "#EF9F27" : "#D85A30" }} />
                     </div>
                   </div>
                 ))}
@@ -408,10 +560,8 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                       <span className="text-xl">{TREATMENT_ICON[t.key] ?? "🦷"}</span>
                       <p className="text-sm font-semibold text-gray-900">{t.label}</p>
                     </div>
-                    <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 capitalize"
-                      style={{ background: (COMPLEXITY_COLOR[t.complexity] ?? "#BA7517") + "18", color: COMPLEXITY_COLOR[t.complexity] ?? "#BA7517" }}
-                    >
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 capitalize"
+                      style={{ background: (COMPLEXITY_COLOR[t.complexity] ?? "#BA7517") + "18", color: COMPLEXITY_COLOR[t.complexity] ?? "#BA7517" }}>
                       {COMPLEXITY_LABEL[t.complexity] ?? t.complexity}
                     </span>
                   </div>
@@ -424,13 +574,10 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                   </div>
                   {t.whatDentistMustConfirm && (
                     <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
-                      <span className="font-medium text-gray-500">El dentista debe confirmar: </span>
-                      {t.whatDentistMustConfirm}
+                      <span className="font-medium text-gray-500">El dentista debe confirmar: </span>{t.whatDentistMustConfirm}
                     </p>
                   )}
-                  {t.disclaimer && (
-                    <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">{t.disclaimer}</p>
-                  )}
+                  {t.disclaimer && <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">{t.disclaimer}</p>}
                 </div>
               ))
             ) : fallbackCards.length > 0 ? (
@@ -441,10 +588,8 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                       <span className="text-xl">{t.icon}</span>
                       <p className="text-sm font-semibold text-gray-900">{t.title}</p>
                     </div>
-                    <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 capitalize"
-                      style={{ background: PRICE_LEVEL_COLOR[t.priceLevel] + "18", color: PRICE_LEVEL_COLOR[t.priceLevel] }}
-                    >
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 capitalize"
+                      style={{ background: PRICE_LEVEL_COLOR[t.priceLevel] + "18", color: PRICE_LEVEL_COLOR[t.priceLevel] }}>
                       {t.priceLevel}
                     </span>
                   </div>
@@ -456,8 +601,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                     </div>
                   </div>
                   <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
-                    <span className="font-medium text-gray-500">El rango puede variar según: </span>
-                    {t.costFactor}
+                    <span className="font-medium text-gray-500">El rango puede variar según: </span>{t.costFactor}
                   </p>
                 </div>
               ))
@@ -484,10 +628,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
               ? report.priceSummary.ranges.map((r) => ({ label: r.label, range: r.range }))
               : PRICE_REFERENCE
             ).map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0"
-              >
+              <div key={item.label} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                 <span className="text-sm text-gray-700">{item.label}</span>
                 <span className="text-sm font-semibold text-gray-900 text-right ml-4 flex-shrink-0">{item.range}</span>
               </div>
@@ -519,10 +660,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
         </div>
 
         {/* ── CTA principal ─────────────────────────────────────────────── */}
-        <div
-          className="rounded-2xl p-6 text-white"
-          style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)" }}
-        >
+        <div className="rounded-2xl p-6 text-white" style={{ background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)" }}>
           <h3 className="text-lg font-semibold mb-2">
             {report.consultationCTA?.title ?? "Confirma tu presupuesto con un dentista"}
           </h3>

@@ -22,11 +22,9 @@ export default function DentalAnalizandoPage() {
 
   async function analyze() {
     const answersRaw = sessionStorage.getItem("dental_answers");
-    const leadRaw = sessionStorage.getItem("dental_lead");
     const photoFrontalData = sessionStorage.getItem("dental_photo_frontal");
     const photoAbiertaData = sessionStorage.getItem("dental_photo_abierta");
     const answers = answersRaw ? JSON.parse(answersRaw) : {};
-    const lead = leadRaw ? JSON.parse(leadRaw) : {};
 
     try {
       let analysis = null;
@@ -73,20 +71,14 @@ export default function DentalAnalizandoPage() {
         }
       }
 
-      const leadRes = await fetch("/api/dental/lead", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead, answers, analysis, photoPaths }),
-      });
-      let reportId = "demo";
-      if (leadRes.ok) { const leadData = await leadRes.json(); reportId = leadData.id ?? "demo"; }
-
+      // Save analysis + context — lead will be captured in the gated report screen
       sessionStorage.setItem("dental_report", JSON.stringify(analysis));
-      sessionStorage.setItem("dental_analysis_id", reportId);
       sessionStorage.setItem("dental_is_fallback", String(isFallback));
-      router.replace(`/dental/reporte/${reportId}`);
+      sessionStorage.setItem("dental_photo_paths", JSON.stringify(photoPaths));
+      router.replace("/dental/reporte/temp");
     } catch (err) {
       console.error("[dental/analizando] Error:", err);
-      router.replace("/dental/reporte/demo");
+      router.replace("/dental/reporte/temp");
     }
   }
 
