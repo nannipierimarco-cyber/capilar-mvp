@@ -232,6 +232,7 @@ export interface DoctorProfile {
   full_name: string;
   email: string;
   specialty: string | null;
+  vertical: "dental" | "hair" | "skin" | null;
   license_number: string | null;
   calendly_url: string | null;
   calendly_event_type_uri: string | null;

@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 
 const MESSAGES = [
   "Analizando estructura dental...",
-  "Evaluando estado de encias...",
-  "Detectando acumulacion de sarro...",
-  "Revisando alineacion y color...",
-  "Generando reporte personalizado...",
+  "Evaluando estado de encías...",
+  "Detectando acumulación de sarro...",
+  "Revisando alineación y color...",
+  "Generando orientación personalizada...",
 ];
 
 export default function DentalAnalizandoPage() {
@@ -95,12 +95,12 @@ export default function DentalAnalizandoPage() {
       <div className="flex flex-col items-center gap-6 max-w-sm text-center">
         <div className="text-6xl animate-bounce">🦷</div>
         <h2 className="text-2xl font-semibold text-gray-900">Analizando tu salud dental</h2>
-        <p className="text-base text-gray-500">Nuestra IA esta revisando tus fotos y respuestas. Esto toma unos segundos...</p>
+        <p className="text-base text-gray-500">Nuestra IA está revisando tus fotos y respuestas. Esto toma unos segundos...</p>
         <div className="w-full space-y-2 mt-4">
           {MESSAGES.map((msg, i) => (
             <div key={i} className="flex items-center gap-3 text-sm text-gray-600"
               style={{ animation: "fadeIn 0.4s ease forwards", animationDelay: `${i * 0.8}s`, opacity: 0 }}>
-              <div className="w-1.5 h-1.5 rounded-full bg-[#3D8B6E] flex-shrink-0" />
+              <div className="w-1.5 h-1.5 rounded-full bg-[#0EA5E9] flex-shrink-0" />
               {msg}
             </div>
           ))}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "crypto";
+import { syncHubSpotAppointment } from "@/lib/hubspot/client";
 
 // Webhook subscription setup:
 // Create the webhook in Calendly → https://calendly.com/integrations/webhooks
@@ -87,12 +88,13 @@ async function handleInviteeCreated(db: SupabaseClient<any>, data: Record<string
   const inviteeUri = invitee?.uri as string | undefined;
   const eventUri = scheduledEvent?.uri as string | undefined;
   const startTime = scheduledEvent?.start_time as string | undefined;
+  const cancelUrl = invitee?.cancel_url as string | undefined;
+  const rescheduleUrl = invitee?.reschedule_url as string | undefined;
 
   // TODO Phase 2 — extract intake_id or order_id from UTM params for reliable matching
   // const tracking = invitee?.tracking as Record<string, unknown> | undefined;
   // const utmContent = tracking?.utm_content as string | undefined;
 
-  // Build a human-readable event URL from the URI
   const eventUrlSlug = eventUri ? eventUri.split("/").pop() : undefined;
   const eventUrl = eventUrlSlug
     ? `https://app.calendly.com/scheduled_events/${eventUrlSlug}`
@@ -102,6 +104,11 @@ async function handleInviteeCreated(db: SupabaseClient<any>, data: Record<string
 
   if (!inviteeEmail) return;
 
+  // Collect vertical and doctor name from Supabase before syncing to HubSpot.
+  // These are optional — HubSpot sync fires regardless.
+  let appointmentVertical: string | undefined;
+  let doctorName: string | undefined;
+
   const { data: patient } = await db
     .from("patients")
     .select("id")
@@ -110,38 +117,64 @@ async function handleInviteeCreated(db: SupabaseClient<any>, data: Record<string
 
   if (!patient) {
     console.log("[calendly-webhook] no patient found for email:", inviteeEmail);
-    return;
-  }
-
-  const { data: review } = await db
-    .from("medical_reviews")
-    .select("id, status")
-    .eq("patient_id", patient.id)
-    .in("status", ["pending_assignment", "pending_booking", "pending_review"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!review) {
-    console.log("[calendly-webhook] no open review for patient:", patient.id);
-    return;
-  }
-
-  const { error } = await db.from("medical_reviews").update({
-    status: "consultation_booked",
-    consultation_scheduled_at: startTime ?? null,
-    calendly_event_url: eventUrl ?? null,
-    calendly_event_uri: eventUri ?? null,
-    calendly_invitee_uri: inviteeUri ?? null,
-    calendly_invitee_email: inviteeEmail,
-    updated_at: new Date().toISOString(),
-  }).eq("id", review.id);
-
-  if (error) {
-    console.error("[calendly-webhook] update failed:", error);
   } else {
-    console.log("[calendly-webhook] review", review.id, "→ consultation_booked");
+    const { data: review } = await db
+      .from("medical_reviews")
+      .select("id, status, doctor_id")
+      .eq("patient_id", patient.id)
+      .in("status", ["pending_assignment", "pending_booking", "pending_review"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!review) {
+      console.log("[calendly-webhook] no open review for patient:", patient.id);
+    } else {
+      // Fetch doctor to get vertical for HubSpot
+      if (review.doctor_id) {
+        const { data: doc } = await db
+          .from("doctor_profiles")
+          .select("full_name, vertical")
+          .eq("id", review.doctor_id)
+          .maybeSingle();
+        const d = doc as { full_name: string; vertical: string | null } | null;
+        appointmentVertical = d?.vertical ?? undefined;
+        doctorName = d?.full_name ?? undefined;
+      }
+
+      const { error } = await db.from("medical_reviews").update({
+        status: "consultation_booked",
+        consultation_scheduled_at: startTime ?? null,
+        calendly_event_url: eventUrl ?? null,
+        calendly_event_uri: eventUri ?? null,
+        calendly_invitee_uri: inviteeUri ?? null,
+        calendly_invitee_email: inviteeEmail,
+        updated_at: new Date().toISOString(),
+      }).eq("id", review.id);
+
+      if (error) {
+        console.error("[calendly-webhook] update failed:", error);
+      } else {
+        console.log("[calendly-webhook] review", review.id, "→ consultation_booked", { appointmentVertical });
+      }
+    }
   }
+
+  // P0: Sync to HubSpot at the end — includes vertical when resolvable from doctor profile.
+  // Non-blocking: must not fail the webhook response.
+  void syncHubSpotAppointment({
+    email: inviteeEmail,
+    appointmentStatus: "scheduled",
+    appointmentDatetime: startTime,
+    vertical: appointmentVertical,
+    doctorName,
+    channel: "calendly",
+    confirmationUrl: eventUrl,
+    cancelUrl,
+    rescheduleUrl,
+  }).catch((hsErr: unknown) => {
+    console.error("[calendly-webhook] HubSpot sync failed (non-blocking):", hsErr);
+  });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

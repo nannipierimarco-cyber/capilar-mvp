@@ -7,6 +7,7 @@ interface FormState {
   email: string;
   temporary_password: string;
   specialty: string;
+  vertical: "dental" | "hair" | "skin" | "";
   license_number: string;
   calendly_url: string;
   availability_notes: string;
@@ -18,6 +19,7 @@ const EMPTY: FormState = {
   email: "",
   temporary_password: "",
   specialty: "",
+  vertical: "",
   license_number: "",
   calendly_url: "",
   availability_notes: "",
@@ -138,6 +140,25 @@ export default function CreateDoctorForm() {
           </div>
 
           <div className="space-y-1">
+            <label className="text-sm font-medium text-foreground" htmlFor="vertical">
+              Vertical <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="vertical"
+              name="vertical"
+              required
+              value={form.vertical}
+              onChange={(e) => setForm((prev) => ({ ...prev, vertical: e.target.value as FormState["vertical"] }))}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="" disabled>Selecciona vertical</option>
+              <option value="dental">Dental</option>
+              <option value="hair">Hair Care</option>
+              <option value="skin">Skin Care</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
             <label className="text-sm font-medium text-foreground" htmlFor="specialty">
               Especialidad
             </label>
@@ -147,7 +168,7 @@ export default function CreateDoctorForm() {
               type="text"
               value={form.specialty}
               onChange={handleChange}
-              placeholder="Dermatología"
+              placeholder="Odontología / Dermatología"
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>

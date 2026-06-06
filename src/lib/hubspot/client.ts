@@ -76,6 +76,7 @@ export interface SyncAppointmentInput {
   email: string;
   appointmentStatus?: string;
   appointmentDatetime?: string;
+  vertical?: string;
   clinicName?: string;
   clinicAddress?: string;
   doctorName?: string;
@@ -165,7 +166,12 @@ export async function syncHubSpotAppointment(input: SyncAppointmentInput): Promi
 
   const appointmentProps: Record<string, string> = {};
   if (input.appointmentStatus) appointmentProps.appointment_status = input.appointmentStatus;
-  if (input.appointmentDatetime) appointmentProps.appointment_datetime = input.appointmentDatetime;
+  if (input.appointmentDatetime) {
+    // HubSpot datetime properties require epoch milliseconds as a string
+    const ms = new Date(input.appointmentDatetime).getTime();
+    if (!isNaN(ms)) appointmentProps.appointment_datetime = String(ms);
+  }
+  if (input.vertical) appointmentProps.appointment_vertical = input.vertical;
   if (input.clinicName) appointmentProps.appointment_clinic_name = input.clinicName;
   if (input.clinicAddress) appointmentProps.appointment_clinic_address = input.clinicAddress;
   if (input.doctorName) appointmentProps.appointment_doctor_name = input.doctorName;
@@ -174,7 +180,8 @@ export async function syncHubSpotAppointment(input: SyncAppointmentInput): Promi
   if (input.confirmationUrl) appointmentProps.appointment_confirmation_url = input.confirmationUrl;
   if (input.cancelUrl) appointmentProps.appointment_cancel_url = input.cancelUrl;
   if (input.rescheduleUrl) appointmentProps.appointment_reschedule_url = input.rescheduleUrl;
-  appointmentProps.last_appointment_synced_at = new Date().toISOString();
+  appointmentProps.last_appointment_synced_at = String(Date.now());
+  appointmentProps.last_appointment_event = new Date().toISOString();
 
   if (Object.keys(appointmentProps).length <= 1) {
     return { contactId };

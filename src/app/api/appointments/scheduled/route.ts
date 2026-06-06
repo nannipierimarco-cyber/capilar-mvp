@@ -16,15 +16,11 @@ export async function POST(req: NextRequest) {
   if (!email || typeof email !== "string" || !EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "email is required and must be valid" }, { status: 400 });
   }
-  if (!appointmentDatetime || typeof appointmentDatetime !== "string") {
-    return NextResponse.json({ error: "appointmentDatetime is required" }, { status: 400 });
-  }
-
   try {
     const result = await syncHubSpotAppointment({
       email,
       appointmentStatus: typeof body.appointmentStatus === "string" ? body.appointmentStatus : undefined,
-      appointmentDatetime,
+      appointmentDatetime: typeof appointmentDatetime === "string" ? appointmentDatetime : undefined,
       clinicName: typeof body.clinicName === "string" ? body.clinicName : undefined,
       clinicAddress: typeof body.clinicAddress === "string" ? body.clinicAddress : undefined,
       doctorName: typeof body.doctorName === "string" ? body.doctorName : undefined,

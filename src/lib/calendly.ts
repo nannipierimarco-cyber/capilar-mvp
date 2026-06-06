@@ -23,12 +23,14 @@ export function getDefaultCalendlyUrl(): string | null {
   return url || null;
 }
 
-/** Assigns first available doctor with Calendly when intake has no medical review yet. */
+/** Assigns first available doctor with Calendly when intake has no medical review yet.
+ *  Pass `vertical` to restrict assignment to doctors of that specialty (dental/hair/skin). */
 export async function ensureMedicalReviewBooking(
   db: SupabaseClient,
   intakeId: string,
   patientId: string,
-  existingReview: MedicalReview | null
+  existingReview: MedicalReview | null,
+  vertical?: string
 ): Promise<{ review: MedicalReview | null; doctor: DoctorProfile | null }> {
   if (existingReview?.doctor_id) {
     const { data } = await db
@@ -46,24 +48,24 @@ export async function ensureMedicalReviewBooking(
 
   const preferredId = process.env.DEFAULT_DOCTOR_ID?.trim();
   if (preferredId) {
-    const { data } = await db
-      .from("doctor_profiles")
-      .select("*")
-      .eq("id", preferredId)
-      .eq("is_active", true)
-      .maybeSingle();
+    // Only use the preferred doctor if their vertical matches (or no vertical filter)
+    let q = db.from("doctor_profiles").select("*").eq("id", preferredId).eq("is_active", true);
+    if (vertical) q = q.eq("vertical", vertical);
+    const { data } = await q.maybeSingle();
     doctor = data as DoctorProfile | null;
   }
 
   if (!doctor?.calendly_url) {
-    const { data } = await db
+    // Pick first active doctor with a Calendly URL, filtered by vertical when provided
+    let q = db
       .from("doctor_profiles")
       .select("*")
       .eq("is_active", true)
       .not("calendly_url", "is", null)
       .order("full_name")
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (vertical) q = q.eq("vertical", vertical);
+    const { data } = await q.maybeSingle();
     doctor = data as DoctorProfile | null;
   }
 

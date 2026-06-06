@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     email,
     temporary_password,
     specialty,
+    vertical,
     license_number,
     calendly_url,
     availability_notes,
@@ -33,6 +34,14 @@ export async function POST(req: NextRequest) {
   if (!full_name?.trim() || !email?.trim() || !temporary_password?.trim()) {
     return NextResponse.json(
       { error: "Nombre completo, email y contraseña temporal son obligatorios." },
+      { status: 400 }
+    );
+  }
+
+  const validVerticals = ["dental", "hair", "skin"];
+  if (!vertical || !validVerticals.includes(vertical)) {
+    return NextResponse.json(
+      { error: "Vertical es obligatorio (dental, hair o skin)." },
       { status: 400 }
     );
   }
@@ -88,6 +97,7 @@ export async function POST(req: NextRequest) {
     full_name: full_name.trim(),
     email: email.trim(),
     specialty: specialty?.trim() || null,
+    vertical: vertical as "dental" | "hair" | "skin",
     license_number: license_number?.trim() || null,
     calendly_url: calendly_url?.trim() || null,
     availability_notes: availability_notes?.trim() || null,

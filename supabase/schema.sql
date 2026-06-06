@@ -279,3 +279,10 @@ alter table public.medical_reviews
   add column if not exists calendly_event_uri text,
   add column if not exists calendly_invitee_uri text,
   add column if not exists calendly_invitee_email text;
+
+-- ============================================================
+-- Vertical per doctor (P0 — HubSpot appointment automation)
+-- Run on existing databases:
+-- ============================================================
+alter table public.doctor_profiles
+  add column if not exists vertical text check (vertical in ('dental', 'hair', 'skin'));

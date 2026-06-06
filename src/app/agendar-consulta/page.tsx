@@ -9,6 +9,7 @@ import {
 import { type DoctorProfile, type MedicalReview, type Patient, type Intake, type Order } from "@/lib/types";
 import { APPOINTMENT_VERTICALS, isValidVertical } from "@/lib/appointmentVerticals";
 import { AppointmentBookingForm } from "./AppointmentBookingForm";
+import { CalendlyEmbedBooking } from "./CalendlyEmbedBooking";
 import { VerticalSelector } from "./VerticalSelector";
 
 function getAdminDb() {
@@ -30,6 +31,25 @@ export default async function AgendarConsultaPage({
   if (!hasSupabaseParams) {
     if (isValidVertical(vertical)) {
       const config = APPOINTMENT_VERTICALS[vertical];
+
+      // Find first active doctor for this vertical with a Calendly URL
+      const db = getAdminDb();
+      const { data: verticalDoctorRow } = await db
+        .from("doctor_profiles")
+        .select("id, full_name, calendly_url")
+        .eq("is_active", true)
+        .eq("vertical", vertical)
+        .not("calendly_url", "is", null)
+        .order("full_name")
+        .limit(1)
+        .maybeSingle();
+
+      const verticalDoctor = verticalDoctorRow as {
+        id: string;
+        full_name: string;
+        calendly_url: string;
+      } | null;
+
       return (
         <div className="flex flex-col min-h-screen bg-white">
           <Header />
@@ -41,7 +61,17 @@ export default async function AgendarConsultaPage({
               </p>
             </div>
             <div className="bg-white border border-border rounded-2xl shadow-sm p-6">
-              <AppointmentBookingForm config={config} vertical={vertical} reportId={reportId} />
+              {verticalDoctor ? (
+                <CalendlyEmbedBooking
+                  vertical={vertical}
+                  calendlyUrl={verticalDoctor.calendly_url}
+                  doctorId={verticalDoctor.id}
+                  doctorName={verticalDoctor.full_name}
+                  reportId={reportId}
+                />
+              ) : (
+                <AppointmentBookingForm config={config} vertical={vertical} reportId={reportId} />
+              )}
             </div>
             <div className="mt-8 text-center">
               <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
@@ -131,7 +161,8 @@ export default async function AgendarConsultaPage({
       db,
       resolvedIntakeId,
       resolvedPatientId,
-      review
+      review,
+      isValidVertical(vertical) ? vertical : undefined
     );
     review = booking.review;
     doctor = booking.doctor;

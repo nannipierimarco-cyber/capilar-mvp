@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
-import { syncHubSpotContact } from "@/lib/hubspot/client";
+import { syncHubSpotContact, syncHubSpotAppointment } from "@/lib/hubspot/client";
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -21,8 +21,12 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.from("dental_patients").insert({
       id, nombre: lead.nombre, telefono: lead.telefono, email: lead.email,
       answers, analysis: analysisWithPhotos,
-      overall_score: (analysis?.summary as Record<string, unknown>)?.overallScore ?? null,
-      urgency_level: (analysis?.summary as Record<string, unknown>)?.urgencyLevel ?? null,
+      overall_score: (analysis?.summary as Record<string, unknown>)?.visualScore ?? null,
+      urgency_level: (() => {
+        const raw = (analysis?.summary as Record<string, unknown>)?.visualRiskLevel;
+        const map: Record<string, string> = { low: "baja", medium: "media", high: "alta" };
+        return typeof raw === "string" ? (map[raw] ?? null) : null;
+      })(),
       status: "lead", created_at: new Date().toISOString(),
     });
     if (error) console.error("[dental/lead] Supabase error:", error);
@@ -34,7 +38,17 @@ export async function POST(req: NextRequest) {
         leadStage: "lead",
       });
     } catch (err) {
-      console.error("[dental/lead] HubSpot sync failed:", err);
+      console.error("[dental/lead] HubSpot contact sync failed:", err);
+    }
+    try {
+      await syncHubSpotAppointment({
+        email: lead.email,
+        vertical: "dental",
+        service: "dental",
+        channel: "dental_report",
+      });
+    } catch (err) {
+      console.error("[dental/lead] HubSpot dental vertical sync failed:", err);
     }
     return NextResponse.json({ id, success: true });
   } catch (err) {

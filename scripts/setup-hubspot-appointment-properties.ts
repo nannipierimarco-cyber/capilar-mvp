@@ -45,6 +45,17 @@ const PROPERTIES: PropertyDefinition[] = [
     fieldType: "date",
     groupName: GROUP_NAME,
   },
+  // Vertical that originated the appointment — used to branch workflows per specialty
+  {
+    name: "appointment_vertical",
+    label: "Vertical de cita",
+    type: "enumeration",
+    fieldType: "select",
+    groupName: GROUP_NAME,
+    options: ["dental", "hair", "skin"].map(
+      (v, i) => ({ label: v, value: v, displayOrder: i, hidden: false })
+    ),
+  },
   {
     name: "appointment_clinic_name",
     label: "Clínica de cita",
@@ -74,14 +85,24 @@ const PROPERTIES: PropertyDefinition[] = [
     groupName: GROUP_NAME,
   },
   {
+    // Values must match all channels used in code: website_dental/hair/skin from
+    // appointmentVerticals.ts, and "calendly" from the Calendly webhook.
     name: "appointment_channel",
     label: "Canal de agendamiento",
     type: "enumeration",
     fieldType: "select",
     groupName: GROUP_NAME,
-    options: ["website", "whatsapp", "hubspot_meetings", "clinic_manual", "admin", "calendly", "other"].map(
-      (v, i) => ({ label: v, value: v, displayOrder: i, hidden: false })
-    ),
+    options: [
+      "website_dental",
+      "website_hair",
+      "website_skin",
+      "calendly",
+      "whatsapp",
+      "hubspot_meetings",
+      "clinic_manual",
+      "admin",
+      "other",
+    ].map((v, i) => ({ label: v, value: v, displayOrder: i, hidden: false })),
   },
   {
     name: "appointment_confirmation_url",
@@ -109,6 +130,15 @@ const PROPERTIES: PropertyDefinition[] = [
     label: "Última sincronización de cita",
     type: "datetime",
     fieldType: "date",
+    groupName: GROUP_NAME,
+  },
+  // Used in P1 to force re-enrollment when the same contact reschedules.
+  // Set to a new value (e.g. ISO timestamp) each time an appointment event fires.
+  {
+    name: "last_appointment_event",
+    label: "Último evento de cita",
+    type: "string",
+    fieldType: "text",
     groupName: GROUP_NAME,
   },
 ];

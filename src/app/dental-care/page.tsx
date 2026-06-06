@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { LinkButton } from "@/components/ui/link-button";
-import { Card, CardContent } from "@/components/ui/card";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { ValuePropMarquee } from "@/components/ValuePropMarquee";
 
 export const metadata: Metadata = {
-  title: "Dental Care — Análisis de salud bucal AI | Perfecto Labs",
-  description: "Responde 8 preguntas, sube una foto y recibe un reporte dental personalizado generado por inteligencia artificial.",
+  title: "Pre-cotización dental online | Perfecto Labs",
+  description: "Sube fotos de tus dientes, responde unas preguntas rápidas y recibe una orientación inicial con posibles tratamientos y rangos referenciales de precio. Sin turnos ni esperas.",
 };
 
 export default function DentalCarePage() {
@@ -18,11 +17,10 @@ export default function DentalCarePage() {
       <main className="flex-1">
         <HeroSection />
         <ProblemSection />
+        <SolutionSection />
         <HowItWorksSection />
-        <AIReportSection />
-        <UseCasesSection />
-        <DifferentiatorSection />
-        <MedicalTrustSection />
+        <ReportSection />
+        <DisclaimerSection />
         <FinalCTA />
       </main>
       <Footer />
@@ -32,73 +30,116 @@ export default function DentalCarePage() {
 
 function HeroSection() {
   return (
-    <section className="bg-[#E8F4F0] py-16 md:py-24">
+    <section className="bg-[#F0F9FF] py-16 md:py-24">
       <div className="mx-auto max-w-2xl px-4 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2D7A5F]">
-          Dental Care — Perfecto Labs
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0EA5E9]">
+          Perfecto Labs — Dental
         </p>
-        <h1 className="mt-4 text-4xl font-bold leading-[1.06] tracking-[-0.03em] text-[#1A4A38] md:text-5xl">
-          Tu salud dental analizada por IA.{" "}
-          <span className="text-[#2D7A5F]">En 60 segundos.</span>
+        <h1 className="mt-4 text-4xl font-bold leading-[1.06] tracking-[-0.03em] text-[#0C4A6E] md:text-5xl">
+          Recibe una pre-cotización dental online{" "}
+          <span className="text-[#0EA5E9]">en menos de 1 minuto</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-gray-600">
-          Responde 8 preguntas, sube una foto de tu boca y recibe un reporte dental
-          personalizado. Sin turnos. Sin esperas.
+          Sube fotos de tus dientes, responde unas preguntas rápidas y recibe una orientación
+          inicial con posibles tratamientos y rangos referenciales de precio.
         </p>
-        <div className="mt-8">
+        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <LinkButton
             href="/dental/quiz"
             size="lg"
-            className="h-12 rounded-full border-0 bg-[#2D7A5F] px-8 text-base font-semibold text-white hover:bg-[#3D8B6E]"
+            className="h-12 rounded-full border-0 bg-[#0EA5E9] px-8 text-base font-semibold text-white hover:bg-[#0284C7]"
           >
-            Analizar mi salud dental
+            Obtener mi pre-cotización dental
           </LinkButton>
+          <a
+            href="#como-funciona"
+            className="text-sm font-medium text-[#0EA5E9] hover:text-[#0284C7] underline-offset-4 hover:underline transition-colors"
+          >
+            Ver cómo funciona
+          </a>
         </div>
-        <p className="mt-3 text-sm text-gray-400">Gratis · Sin crear cuenta · El dentista te contacta en 24h</p>
+        <p className="mt-4 text-sm text-gray-400">
+          Gratis · Sin crear cuenta · El presupuesto final se confirma con evaluación clínica
+        </p>
       </div>
     </section>
   );
 }
 
 function ProblemSection() {
-  const painPoints = [
-    {
-      icon: "😬",
-      title: "Sin historial dental claro",
-      desc: "Cada consulta parte de cero. No tienes registro de qué tratamientos tuviste, qué recomendó cada dentista ni cómo evolucionó tu boca.",
-    },
-    {
-      icon: "🗓️",
-      title: "Turnos que se aplazan",
-      desc: "El 60% de las personas posterga su revisión dental por falta de tiempo. Los problemas pequeños se vuelven costosos.",
-    },
+  const problems = [
     {
       icon: "💸",
-      title: "Tratamientos sin contexto",
-      desc: "Gastas en blanqueamientos, productos y consultas sin entender qué tiene realmente tu boca y qué necesita primero.",
+      text: "No sabes si necesitas algo simple o un tratamiento más caro.",
+    },
+    {
+      icon: "❓",
+      text: "No sabes si tu caso puede requerir ortodoncia, carillas, implantes, blanqueamiento o una evaluación más profunda.",
+    },
+    {
+      icon: "😟",
+      text: "No quieres llegar a una consulta sin una idea previa de precio.",
+    },
+    {
+      icon: "🤔",
+      text: "No quieres sentir que te están vendiendo algo que no entiendes.",
     },
   ];
 
   return (
     <section className="bg-white py-16 md:py-20">
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            El problema con la salud dental hoy
+      <div className="mx-auto max-w-3xl px-4">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+            Ir al dentista sin saber cuánto puede costar genera incertidumbre
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            La mayoría de las personas no sabe cómo está su boca hasta que hay dolor. Y para entonces, el costo ya es mayor.
+        </div>
+        <div className="space-y-4">
+          {problems.map((p) => (
+            <div
+              key={p.text}
+              className="flex items-start gap-4 rounded-2xl border border-[#BAE6FD] bg-[#F0F9FF] px-5 py-4"
+            >
+              <span className="text-2xl leading-none mt-0.5 flex-shrink-0">{p.icon}</span>
+              <p className="text-sm leading-relaxed text-gray-700">{p.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SolutionSection() {
+  const deliverables = [
+    { icon: "🗂️", label: "Posibles caminos de tratamiento" },
+    { icon: "💰", label: "Rangos referenciales de precio" },
+    { icon: "⚖️", label: "Factores que pueden cambiar el costo" },
+    { icon: "➡️", label: "Próximo paso recomendado" },
+    { icon: "📅", label: "Opción de agendar para confirmar presupuesto" },
+  ];
+
+  return (
+    <section className="bg-[#F0F9FF] py-16 md:py-20">
+      <div className="mx-auto max-w-3xl px-4">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-[#0C4A6E] md:text-4xl">
+            Primero entiende tus opciones. Después decides si agendar.
+          </h2>
+          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-gray-600">
+            Perfecto Labs te entrega una orientación inicial basada en tus fotos y respuestas,
+            para que llegues a tu consulta con contexto — no con incertidumbre.
           </p>
         </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {painPoints.map((point) => (
-            <Card key={point.title} className="border-border shadow-none">
-              <CardContent className="pt-6">
-                <span className="text-3xl">{point.icon}</span>
-                <h3 className="mt-3 font-semibold">{point.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{point.desc}</p>
-              </CardContent>
-            </Card>
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          {deliverables.map((d) => (
+            <div
+              key={d.label}
+              className="flex items-center gap-3 rounded-2xl border border-[#BAE6FD] bg-white px-4 py-3.5"
+            >
+              <span className="text-xl flex-shrink-0">{d.icon}</span>
+              <span className="text-sm font-medium text-gray-800">{d.label}</span>
+            </div>
           ))}
         </div>
       </div>
@@ -110,41 +151,115 @@ function HowItWorksSection() {
   const steps = [
     {
       number: "01",
-      title: "Quiz clínico de 8 preguntas",
-      desc: "Dolor, sensibilidad, color, encías, historial médico. En menos de 2 minutos.",
+      title: "Cuéntanos qué quieres mejorar",
+      desc: "Responde unas preguntas rápidas sobre tu situación dental y lo que más te preocupa.",
     },
     {
       number: "02",
-      title: "Sube una foto de tu boca",
-      desc: "Una foto frontal de tu sonrisa. La IA analiza zona por zona con precisión clínica.",
+      title: "Sube fotos de tus dientes",
+      desc: "Una foto frontal y una de perfil. Buena luz, sin filtros. En menos de un minuto.",
     },
     {
       number: "03",
-      title: "Reporte AI personalizado",
-      desc: "Score dental, hallazgos por zona, factores de riesgo y plan de acción con prioridades.",
+      title: "Recibe tu orientación inicial y rangos de precio",
+      desc: "Posibles tratamientos, rangos referenciales de costo y tu próximo paso recomendado.",
+    },
+  ];
+
+  return (
+    <section id="como-funciona" className="bg-white py-16 md:py-20">
+      <div className="mx-auto max-w-5xl px-4">
+        <div className="mb-12 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+            Cómo funciona
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+            Tres pasos para tener claridad sobre tu situación dental sin salir de casa.
+          </p>
+        </div>
+        <div className="grid gap-5 md:grid-cols-3">
+          {steps.map((step) => (
+            <div
+              key={step.number}
+              className="rounded-2xl border border-[#BAE6FD] bg-[#F0F9FF] p-6"
+            >
+              <span className="text-4xl font-bold leading-none text-[#0EA5E9]/30">
+                {step.number}
+              </span>
+              <h3 className="mt-3 text-sm font-semibold leading-snug text-[#0C4A6E]">
+                {step.title}
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-gray-500">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReportSection() {
+  const cards = [
+    {
+      icon: "🦷",
+      title: "Posibles tratamientos a evaluar",
+      desc: "Identificamos qué tipos de intervención podrían ser relevantes para tu caso.",
     },
     {
-      number: "04",
-      title: "Un dentista revisa tu caso",
-      desc: "Te conectamos con un dentista Perfecto Labs que revisa tu reporte y te contacta en 24h.",
+      icon: "💰",
+      title: "Rango de precio referencial",
+      desc: "Estimados orientativos basados en el mercado. El presupuesto final lo confirma el profesional.",
+    },
+    {
+      icon: "🔴",
+      title: "Nivel de prioridad",
+      desc: "Una idea de qué tan urgente puede ser actuar según lo observado en tus fotos y respuestas.",
+    },
+    {
+      icon: "⚖️",
+      title: "Qué puede cambiar el costo",
+      desc: "Factores como materiales, complejidad, radiografías o criterio clínico que afectan el precio real.",
+    },
+    {
+      icon: "➡️",
+      title: "Próximo paso recomendado",
+      desc: "Si tienes sentido agendar evaluación, qué especialidad buscar o qué preguntar en consulta.",
     },
   ];
 
   return (
-    <section className="bg-[#E8F4F0]/40 py-16 md:py-20">
+    <section className="bg-[#F0F9FF] py-16 md:py-20">
       <div className="mx-auto max-w-5xl px-4">
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Cómo funciona</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-[#0C4A6E] md:text-4xl">
+            Qué incluye tu orientación inicial
+          </h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-            Cuatro pasos para tener un análisis dental real sin salir de tu casa.
+            No es un diagnóstico. Es un punto de partida con información real para que llegues
+            preparado a tu consulta.
           </p>
         </div>
-        <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-4">
-          {steps.map((step) => (
-            <div key={step.number} className="rounded-2xl bg-white p-6 shadow-none border border-border">
-              <span className="text-4xl font-bold leading-none text-[#2D7A5F]/35">{step.number}</span>
-              <h3 className="mt-3 font-semibold text-sm leading-snug">{step.title}</h3>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{step.desc}</p>
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {cards.slice(0, 3).map((card) => (
+            <div
+              key={card.title}
+              className="rounded-2xl border border-[#BAE6FD] bg-white p-6 shadow-none"
+            >
+              <span className="text-3xl">{card.icon}</span>
+              <h3 className="mt-3 text-sm font-semibold text-gray-900">{card.title}</h3>
+              <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{card.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {cards.slice(3).map((card) => (
+            <div
+              key={card.title}
+              className="rounded-2xl border border-[#BAE6FD] bg-white p-6 shadow-none"
+            >
+              <span className="text-3xl">{card.icon}</span>
+              <h3 className="mt-3 text-sm font-semibold text-gray-900">{card.title}</h3>
+              <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{card.desc}</p>
             </div>
           ))}
         </div>
@@ -153,174 +268,17 @@ function HowItWorksSection() {
   );
 }
 
-function AIReportSection() {
-  const findings = [
-    { label: "Manchas", status: "Leve", color: "#BA7517" },
-    { label: "Sarro", status: "Moderado", color: "#D85A30" },
-    { label: "Encias", status: "Leve", color: "#BA7517" },
-    { label: "Alineacion", status: "Normal", color: "#2D7A5F" },
-    { label: "Desgaste", status: "Leve", color: "#BA7517" },
-    { label: "Caries", status: "Leve", color: "#BA7517" },
-  ];
-
+function DisclaimerSection() {
   return (
-    <section className="bg-white py-16 md:py-20">
-      <div className="mx-auto max-w-4xl px-4">
-        <div className="overflow-hidden rounded-2xl border border-[#D1EDE4]">
-          <div className="bg-[#2D7A5F] px-8 py-8 md:py-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90">
-              Ejemplo de reporte
-            </p>
-            <h2 className="mt-2 text-3xl font-bold text-white md:text-4xl">
-              Reporte de salud bucal AI
-            </h2>
-            <p className="mt-3 max-w-lg text-white/90 leading-relaxed">
-              Análisis visual zona por zona con score global, hallazgos clínicos y plan de acción priorizado.
-            </p>
-          </div>
-          <div className="bg-[#E8F4F0] px-8 py-8">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="relative w-16 h-16 flex-shrink-0">
-                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#D1EDE4" strokeWidth="10" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#3D8B6E" strokeWidth="10" strokeLinecap="round" strokeDasharray="151 251" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xl font-bold text-gray-900">62</span>
-                  <span className="text-[8px] text-gray-400">/100</span>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Acumulacion de sarro en zona inferior</p>
-                <p className="text-xs text-gray-500 mt-0.5">Se recomienda limpieza profesional</p>
-                <span className="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#BA7517]/10 text-[#BA7517]">
-                  Urgencia media
-                </span>
-              </div>
-            </div>
-            <p className="mb-3 text-sm font-medium text-gray-700">Hallazgos por zona:</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {findings.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center justify-between rounded-xl border border-[#D1EDE4] bg-white px-4 py-2.5"
-                >
-                  <span className="text-xs text-gray-600">{item.label}</span>
-                  <span
-                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: item.color + "18", color: item.color }}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-6 rounded-xl border border-[#D1EDE4] bg-white px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-              <strong className="font-medium text-foreground">Aviso:</strong> El reporte es orientativo
-              y no reemplaza un diagnóstico clínico profesional. Un dentista revisará tu caso antes de
-              cualquier intervención.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function UseCasesSection() {
-  const cases = [
-    { icon: "🦷", title: "Revisión preventiva", desc: "No fuiste al dentista en más de un año y quieres saber cómo está tu boca." },
-    { icon: "😬", title: "Blanqueamiento", desc: "Quieres mejorar el color de tus dientes y saber si eres buen candidato." },
-    { icon: "🩸", title: "Encías sensibles", desc: "Sangrado al cepillarte o sensación de inflamación que no sabes cómo interpretar." },
-    { icon: "🧊", title: "Sensibilidad dental", desc: "Dolor con el frío, calor o dulces que no has evaluado con un profesional." },
-    { icon: "⚡", title: "Dolor o molestia", desc: "Algo te molesta pero no es urgencia. Quieres entender qué puede ser antes de ir." },
-    { icon: "📋", title: "Segunda opinión", desc: "Un dentista te dijo que necesitas tratamiento y quieres un análisis independiente." },
-  ];
-
-  return (
-    <section className="bg-[#E8F4F0]/40 py-16 md:py-20">
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">¿Para qué tipo de caso?</h2>
-          <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-            El análisis está diseñado para distintas preocupaciones dentales, desde preventivas hasta correctivas.
+    <section className="bg-white py-10 md:py-14">
+      <div className="mx-auto max-w-2xl px-4">
+        <div className="rounded-2xl border border-gray-100 bg-gray-50 px-6 py-5">
+          <p className="text-xs leading-relaxed text-gray-500">
+            <span className="font-semibold text-gray-700">Aviso importante: </span>
+            La orientación entregada por Perfecto Labs no reemplaza una evaluación odontológica. Los
+            precios son rangos referenciales y pueden variar según radiografías, diagnóstico clínico,
+            materiales, complejidad y criterio profesional.
           </p>
-        </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-          {cases.map((c) => (
-            <Card key={c.title} className="border-border shadow-none">
-              <CardContent className="pt-5 pb-5">
-                <span className="text-2xl">{c.icon}</span>
-                <p className="mt-2 font-medium text-sm">{c.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{c.desc}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function DifferentiatorSection() {
-  return (
-    <section className="bg-[oklch(0.22_0.012_75)] py-16 md:py-20">
-      <div className="mx-auto max-w-3xl px-4 text-center">
-        <h2 className="text-3xl font-bold text-white md:text-4xl">
-          Tu boca tiene historia.{" "}
-          <span className="text-[#3D8B6E]">Ahora tienes el análisis para entenderla.</span>
-        </h2>
-        <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/70">
-          En lugar de esperar a que haya dolor, entiende hoy el estado real de tu boca. Score,
-          hallazgos y próximos pasos en un solo reporte.
-        </p>
-        <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          {[
-            { label: "Score dental global", icon: "📊" },
-            { label: "Análisis por zona", icon: "🔬" },
-            { label: "Plan de acción claro", icon: "📋" },
-          ].map((item) => (
-            <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6">
-              <span className="text-3xl">{item.icon}</span>
-              <p className="mt-3 text-sm font-semibold text-white">{item.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MedicalTrustSection() {
-  const bullets = [
-    "La IA no diagnostica",
-    "La IA no prescribe tratamientos",
-    "Un dentista valida tu caso",
-    "Tus fotos y datos se tratan con privacidad",
-  ];
-
-  return (
-    <section className="bg-white py-16 md:py-20">
-      <div className="mx-auto max-w-3xl px-4">
-        <div className="overflow-hidden rounded-2xl border border-border">
-          <div className="border-b border-border px-8 py-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Compromiso
-            </p>
-            <h2 className="mt-1 text-2xl font-bold">Siempre con validación profesional</h2>
-          </div>
-          <div className="px-8 py-6">
-            <ul className="space-y-3">
-              {bullets.map((b) => (
-                <li key={b} className="flex items-center gap-3 text-sm">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E8F4F0] text-[10px] font-bold text-[#2D7A5F]">
-                    ✓
-                  </span>
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
       </div>
     </section>
@@ -329,24 +287,24 @@ function MedicalTrustSection() {
 
 function FinalCTA() {
   return (
-    <section className="bg-[#E8F4F0] py-16 md:py-20">
+    <section className="bg-[#0EA5E9] py-16 md:py-20">
       <div className="mx-auto max-w-xl px-4 text-center">
-        <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-          Empieza con tu análisis dental gratuito
+        <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+          Obtén claridad antes de agendar
         </h2>
-        <p className="mx-auto mt-4 max-w-md text-muted-foreground leading-relaxed">
-          Responde 8 preguntas, sube una foto y recibe un reporte personalizado. Un dentista
-          revisa tu caso y te contacta en 24h.
+        <p className="mx-auto mt-4 max-w-md text-white/80 leading-relaxed">
+          Sube tus fotos, responde unas preguntas rápidas y recibe orientación inicial con rangos
+          de precio. Sin compromisos.
         </p>
         <LinkButton
           href="/dental/quiz"
           size="lg"
-          className="mt-8 h-12 rounded-full border-0 bg-[#2D7A5F] px-10 text-base font-semibold text-white hover:bg-[#3D8B6E]"
+          className="mt-8 h-12 rounded-full border-0 bg-white px-10 text-base font-semibold text-[#0284C7] hover:bg-sky-50"
         >
-          Analizar mi salud dental
+          Empezar mi pre-cotización
         </LinkButton>
-        <p className="mt-4 text-xs text-muted-foreground">
-          El análisis es orientativo. El diagnóstico y tratamiento son definidos solo por profesionales habilitados.
+        <p className="mt-4 text-xs text-white/60">
+          El presupuesto final se confirma con evaluación clínica profesional.
         </p>
       </div>
     </section>
