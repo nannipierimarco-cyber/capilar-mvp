@@ -75,9 +75,17 @@ export default function DentalAnalizandoPage() {
       sessionStorage.setItem("dental_report", JSON.stringify(analysis));
       sessionStorage.setItem("dental_is_fallback", String(isFallback));
       sessionStorage.setItem("dental_photo_paths", JSON.stringify(photoPaths));
+      // Reinforce lock in case funnel flags were cleared somehow
+      sessionStorage.setItem("dental_report_locked", "true");
+      sessionStorage.setItem("dental_report_unlocked", "false");
+      console.log("[dental gated] analysis ready, redirecting to temp");
       router.replace("/dental/reporte/temp");
     } catch (err) {
       console.error("[dental/analizando] Error:", err);
+      // Keep locked even on error so gate shows if report exists in sessionStorage
+      sessionStorage.setItem("dental_report_locked", "true");
+      sessionStorage.setItem("dental_report_unlocked", "false");
+      console.log("[dental gated] analysis error, redirecting to temp");
       router.replace("/dental/reporte/temp");
     }
   }

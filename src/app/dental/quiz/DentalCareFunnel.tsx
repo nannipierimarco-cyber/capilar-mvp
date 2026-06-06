@@ -95,17 +95,22 @@ export default function DentalCareFunnel() {
         readFileAsDataURL(photoFrontal),
         photoAbierta ? readFileAsDataURL(photoAbierta) : Promise.resolve(null),
       ]);
-      // Clear stale data from any previous attempt
+      // Clear ALL stale data from any previous attempt
       sessionStorage.removeItem("dental_lead");
       sessionStorage.removeItem("dental_lead_id");
       sessionStorage.removeItem("dental_report");
       sessionStorage.removeItem("dental_analysis_id");
       sessionStorage.removeItem("dental_photo_paths");
+      sessionStorage.removeItem("dental_report_unlocked");
+      sessionStorage.removeItem("dental_report_locked");
       // Save fresh data
       sessionStorage.setItem("dental_answers", JSON.stringify(answers));
       sessionStorage.setItem("dental_photo_frontal", frontalData);
       if (abiertaData) sessionStorage.setItem("dental_photo_abierta", abiertaData);
       else sessionStorage.removeItem("dental_photo_abierta");
+      // Explicitly lock — gate reads this flag, not just the URL id
+      sessionStorage.setItem("dental_report_locked", "true");
+      sessionStorage.setItem("dental_report_unlocked", "false");
       router.push("/dental/analizando");
     } catch {
       setIsAnalyzing(false);

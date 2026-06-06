@@ -111,12 +111,19 @@ export default function DentalReportePage({ params }: { params: { id: string } }
   const [infographicExpanded, setInfographicExpanded] = useState(false);
   const [infographicState, setInfographicState] = useState<"idle" | "loading" | "ok" | "error">("idle");
 
+  // Gate flags — read from sessionStorage to resist stale data and URL bypasses
+  const [sessionLocked, setSessionLocked] = useState(false);
+  const [sessionUnlocked, setSessionUnlocked] = useState(false);
+  const [hasLeadId, setHasLeadId] = useState(false);
+
   // Gated lead form state
   const [leadForm, setLeadForm] = useState({ nombre: "", email: "", telefono: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const showInfographic = !isTemp && params.id !== "demo";
+  // Gate is open if: URL is "temp" OR sessionStorage explicitly locked and not yet unlocked
+  const showGate = isTemp || (sessionLocked && !sessionUnlocked && !hasLeadId);
+  const showInfographic = !showGate && params.id !== "demo";
 
   useEffect(() => {
     // Load photos from sessionStorage (first visit only)
@@ -124,6 +131,20 @@ export default function DentalReportePage({ params }: { params: { id: string } }
     const abierta = sessionStorage.getItem("dental_photo_abierta");
     if (frontal) setPhotoFrontalSrc(frontal);
     if (abierta) setPhotoAbiertaSrc(abierta);
+
+    // Read gate flags — these drive showGate, not just the URL id
+    const locked = sessionStorage.getItem("dental_report_locked") === "true";
+    const unlocked = sessionStorage.getItem("dental_report_unlocked") === "true";
+    const leadId = sessionStorage.getItem("dental_lead_id");
+    setSessionLocked(locked);
+    setSessionUnlocked(unlocked);
+    setHasLeadId(Boolean(leadId));
+
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[dental reporte] gate debug", {
+        id: params.id, isTemp, locked, unlocked, hasLeadId: Boolean(leadId),
+      });
+    }
 
     if (isTemp) {
       // Gated flow: load report from sessionStorage
@@ -189,8 +210,11 @@ export default function DentalReportePage({ params }: { params: { id: string } }
       if (!res.ok) throw new Error("Error guardando lead");
       const data = await res.json();
       const reportId: string = data.id ?? "demo";
+      // Unlock the gate before navigating
       sessionStorage.setItem("dental_lead_id", reportId);
       sessionStorage.setItem("dental_analysis_id", reportId);
+      sessionStorage.setItem("dental_report_locked", "false");
+      sessionStorage.setItem("dental_report_unlocked", "true");
       router.replace(`/dental/reporte/${reportId}`);
     } catch {
       setSubmitError("Hubo un problema. Intenta de nuevo.");
@@ -236,7 +260,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
 
   // ── Vista bloqueada (gated) ──────────────────────────────────────────────
 
-  if (isTemp) {
+  if (showGate) {
     return (
       <div className="min-h-screen bg-gray-50 relative overflow-hidden">
         {/* Teaser borroso detrás del modal */}
