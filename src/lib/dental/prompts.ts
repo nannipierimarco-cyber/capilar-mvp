@@ -3,15 +3,12 @@ import { DENTAL_ANALYSIS_SYSTEM_PROMPT, buildDentalAnalysisPrompt } from "./dent
 export { DENTAL_ANALYSIS_SYSTEM_PROMPT as DENTAL_MAP_SYSTEM_PROMPT };
 
 export function buildDentalUserPrompt(answers: Record<string, string>): string {
+  const photoCount = answers._photoCount ?? "1 o más fotos";
   const patientContext = [
-    `Motivo: ${answers.motivoPrincipal ?? "no especificado"}`,
-    `Dolor reciente: ${answers.dolorReciente ?? "no especificado"}`,
-    `Ultima visita: ${answers.ultimaVisita ?? "no especificado"}`,
-    `Encias sangran: ${answers.enciasNgran ?? "no especificado"}`,
-    `Sensibilidad: ${answers.sensibilidad ?? "no especificado"}`,
-    `Color dientes: ${answers.colorDientes ?? "no especificado"}`,
-    `Interes tratamiento: ${answers.interesTratamiento ?? "no especificado"}`,
-    `Historial medico: ${answers.historialMedico ?? "no especificado"}`,
-  ].join(", ");
+    `Problema principal declarado: ${answers.queQuieresResolver ?? answers.motivoPrincipal ?? "no especificado"}`,
+    `Prioridad del paciente: ${answers.prioridadUsuario ?? answers.interesTratamiento ?? "no especificado"}`,
+    `Fotos recibidas: ${photoCount}`,
+    `Objetivo del análisis: generar orientación inicial, posibles tratamientos a evaluar y rangos referenciales de precio`,
+  ].join(". ");
   return buildDentalAnalysisPrompt(patientContext);
 }

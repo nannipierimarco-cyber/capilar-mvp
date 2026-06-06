@@ -54,8 +54,10 @@ export default function DentalCareFunnel() {
   const [photoAbiertaPreview, setPhotoAbiertaPreview] = useState<string | null>(null);
   const [lead, setLead] = useState<DentalLead>({ nombre: "", telefono: "", email: "" });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const frontalRef = useRef<HTMLInputElement>(null);
-  const abiertaRef = useRef<HTMLInputElement>(null);
+  const frontalCameraRef = useRef<HTMLInputElement>(null);
+  const frontalGalleryRef = useRef<HTMLInputElement>(null);
+  const abiertaCameraRef = useRef<HTMLInputElement>(null);
+  const abiertaGalleryRef = useRef<HTMLInputElement>(null);
 
   const TOTAL_STAGES = 4; // 2 quiz + foto + datos
   const progressPct =
@@ -187,40 +189,52 @@ export default function DentalCareFunnel() {
           </p>
 
           {/* Foto frontal */}
-          <div className="w-full mb-4">
+          <div className="w-full mb-5">
             <p className="text-sm font-medium text-gray-700 mb-2">
               Foto frontal <span className="text-red-400">*</span>
             </p>
-            <div
-              onClick={() => frontalRef.current?.click()}
-              className={`w-full h-44 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
-                photoFrontalPreview
-                  ? "border-[#0EA5E9] bg-[#F0F9FF]"
-                  : "border-gray-200 hover:border-[#0EA5E9]"
-              }`}
-            >
-              {photoFrontalPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photoFrontalPreview}
-                  alt="Frontal"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <>
-                  <span className="text-3xl mb-2">😁</span>
-                  <p className="text-sm text-gray-500">Sonrisa de frente</p>
-                  <p className="text-xs text-gray-400 mt-1">Toca para subir foto</p>
-                </>
-              )}
-            </div>
-            <input
-              ref={frontalRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "frontal")}
-            />
+            {photoFrontalPreview ? (
+              <div className="relative w-full h-44 rounded-xl overflow-hidden border border-[#0EA5E9]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photoFrontalPreview} alt="Frontal" className="h-full w-full object-cover" />
+                <button
+                  onClick={() => { setPhotoFrontal(null); setPhotoFrontalPreview(null); }}
+                  className="absolute top-2 right-2 bg-white text-gray-600 text-xs px-2.5 py-1 rounded-lg shadow font-medium"
+                >
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="w-full h-32 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center bg-gray-50">
+                  <span className="text-2xl mb-1">😁</span>
+                  <p className="text-xs text-gray-400">Sonrisa de frente · buena luz</p>
+                </div>
+                <p className="text-xs text-gray-400 text-center">
+                  Puedes tomar una foto ahora o subir una desde tu galería.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => frontalCameraRef.current?.click()}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#0EA5E9] bg-[#F0F9FF] text-[#0284C7] text-sm font-medium"
+                  >
+                    📷 Tomar foto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => frontalGalleryRef.current?.click()}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-medium"
+                  >
+                    🖼️ Galería
+                  </button>
+                </div>
+              </div>
+            )}
+            <input ref={frontalCameraRef} type="file" accept="image/*" capture="environment" className="hidden"
+              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "frontal")} />
+            <input ref={frontalGalleryRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "frontal")} />
           </div>
 
           {/* Foto boca abierta */}
@@ -229,36 +243,48 @@ export default function DentalCareFunnel() {
               Boca abierta{" "}
               <span className="text-gray-400 font-normal">(opcional, recomendada)</span>
             </p>
-            <div
-              onClick={() => abiertaRef.current?.click()}
-              className={`w-full h-44 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all ${
-                photoAbiertaPreview
-                  ? "border-[#0EA5E9] bg-[#F0F9FF]"
-                  : "border-gray-200 hover:border-[#0EA5E9]"
-              }`}
-            >
-              {photoAbiertaPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photoAbiertaPreview}
-                  alt="Abierta"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <>
-                  <span className="text-3xl mb-2">🦷</span>
-                  <p className="text-sm text-gray-500">Boca abierta amplia</p>
-                  <p className="text-xs text-gray-400 mt-1">Toca para subir foto</p>
-                </>
-              )}
-            </div>
-            <input
-              ref={abiertaRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "abierta")}
-            />
+            {photoAbiertaPreview ? (
+              <div className="relative w-full h-44 rounded-xl overflow-hidden border border-[#0EA5E9]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photoAbiertaPreview} alt="Abierta" className="h-full w-full object-cover" />
+                <button
+                  onClick={() => { setPhotoAbierta(null); setPhotoAbiertaPreview(null); }}
+                  className="absolute top-2 right-2 bg-white text-gray-600 text-xs px-2.5 py-1 rounded-lg shadow font-medium"
+                >
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="w-full h-32 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center bg-gray-50">
+                  <span className="text-2xl mb-1">🦷</span>
+                  <p className="text-xs text-gray-400">Boca abierta amplia · buena luz</p>
+                </div>
+                <p className="text-xs text-gray-400 text-center">
+                  Mientras mejor sea la iluminación, más útil será la orientación.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => abiertaCameraRef.current?.click()}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#0EA5E9] bg-[#F0F9FF] text-[#0284C7] text-sm font-medium"
+                  >
+                    📷 Tomar foto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => abiertaGalleryRef.current?.click()}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-medium"
+                  >
+                    🖼️ Galería
+                  </button>
+                </div>
+              </div>
+            )}
+            <input ref={abiertaCameraRef} type="file" accept="image/*" capture="environment" className="hidden"
+              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "abierta")} />
+            <input ref={abiertaGalleryRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "abierta")} />
           </div>
 
           <button

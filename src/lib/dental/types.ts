@@ -49,6 +49,41 @@ export interface VisualDashboard {
   generalVisualState: DashboardLevel;
 }
 
+// ─── v2 schema additions (dental_precotizacion_v2) ───────────────────────────
+
+export type TreatmentKey = "cleaning" | "whitening" | "orthodontics" | "veneers" | "implant" | "restoration" | "crown" | "gums" | "other";
+export type ComplexityLevel = "low" | "medium" | "high";
+
+export interface TreatmentOptionAI {
+  key: TreatmentKey;
+  label: string;
+  whyItMayApply: string;
+  whatDentistMustConfirm: string;
+  estimatedPriceRangeCLP: { min: number; max: number; label: string };
+  complexity: ComplexityLevel;
+  priority: ComplexityLevel;
+  disclaimer: string;
+}
+
+export interface PreliminaryInterpretation {
+  headline: string;
+  description: string;
+  confidenceNote: string;
+}
+
+export interface PriceSummary {
+  headline: string;
+  description: string;
+  ranges: Array<{ label: string; range: string; whenItApplies: string }>;
+}
+
+export interface CostDriver {
+  factor: string;
+  description: string;
+}
+
+// ─── Core report type ─────────────────────────────────────────────────────────
+
 export interface DentalMapReport {
   promptVersion: string;
   summary: {
@@ -66,6 +101,14 @@ export interface DentalMapReport {
     ctaLabel: string;
   };
   disclaimer: string;
+  // v2 optional fields
+  patientGoal?: { mainConcern: string; priority: string };
+  preliminaryInterpretation?: PreliminaryInterpretation;
+  treatmentOptions?: TreatmentOptionAI[];
+  priceSummary?: PriceSummary;
+  costDrivers?: CostDriver[];
+  consultationCTA?: { title: string; description: string; ctaLabel: string };
+  photoQualityDisclaimer?: string;
 }
 
 // ─── Quiz scoring (independent of AI report) ─────────────────────────────────
