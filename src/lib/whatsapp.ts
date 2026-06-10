@@ -125,3 +125,50 @@ function maskPhone(phone: string): string {
 export function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, "");
 }
+
+/**
+ * Sends a text message via WhatsApp Cloud API and returns a result object.
+ * Use this when you need to know whether the message actually succeeded.
+ */
+export async function sendWhatsAppTextResult(
+  to: string,
+  message: string
+): Promise<{ ok: boolean; error?: string }> {
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  if (!accessToken || !phoneNumberId) {
+    const msg = "Missing WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID";
+    console.warn("[WhatsApp]", msg);
+    return { ok: false, error: msg };
+  }
+
+  try {
+    const res = await fetch(apiBase(), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "text",
+        text: { body: message, preview_url: true },
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("[WhatsApp] sendWhatsAppTextResult failed:", res.status, errText);
+      return { ok: false, error: `HTTP ${res.status}: ${errText.slice(0, 300)}` };
+    }
+
+    console.log("[WhatsApp] message sent to", maskPhone(to));
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[WhatsApp] sendWhatsAppTextResult network error:", err);
+    return { ok: false, error: msg };
+  }
+}
