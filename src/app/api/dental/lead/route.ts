@@ -3,9 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 import { syncHubSpotContact, syncHubSpotAppointment } from "@/lib/hubspot/client";
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-
 export async function POST(req: NextRequest) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   try {
     const body = await req.json();
     const { lead, answers, analysis, photoPaths } = body as {

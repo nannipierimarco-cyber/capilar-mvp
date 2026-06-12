@@ -26,7 +26,7 @@ export type VisualRiskLevel = "low" | "medium" | "high";
 export type DashboardLevel = "low" | "medium" | "high";
 
 export interface VisualFinding {
-  key: "alignment" | "color" | "gum_visibility" | "spacing" | "crowding" | "bite_visible" | "wear" | "general";
+  key: "alignment" | "color" | "gum_visibility" | "spacing" | "crowding" | "bite_visible" | "wear" | "general" | "missing_teeth";
   label: string;
   visualLevel: VisualLevel;
   description: string;
@@ -51,8 +51,10 @@ export interface VisualDashboard {
 
 // ─── v2 schema additions (dental_precotizacion_v2) ───────────────────────────
 
-export type TreatmentKey = "cleaning" | "whitening" | "orthodontics" | "veneers" | "implant" | "restoration" | "crown" | "gums" | "other";
+export type TreatmentKey = "cleaning" | "whitening" | "orthodontics" | "veneers" | "implant" | "restoration" | "crown" | "gums" | "other" | "replace_missing_teeth";
 export type ComplexityLevel = "low" | "medium" | "high";
+
+export type PricingType = "per_tooth" | "per_arch" | "full_treatment" | "per_session" | "per_case";
 
 export interface TreatmentOptionAI {
   key: TreatmentKey;
@@ -63,6 +65,21 @@ export interface TreatmentOptionAI {
   complexity: ComplexityLevel;
   priority: ComplexityLevel;
   disclaimer: string;
+  // v3 optional additions
+  patientCategory?: string;
+  pricingType?: PricingType;
+  estimatedUnits?: string;
+  rangePerUnitCLP?: { min: number; max: number; label: string };
+  estimatedTotalRangeCLP?: { min: number; max: number; label: string };
+  unitExplanation?: string;
+}
+
+export interface PatientPriority {
+  category: string;
+  description: string;
+  treatmentKeys: TreatmentKey[];
+  estimatedRangeLabel?: string;
+  urgencyNote?: string;
 }
 
 export interface PreliminaryInterpretation {
@@ -109,6 +126,9 @@ export interface DentalMapReport {
   costDrivers?: CostDriver[];
   consultationCTA?: { title: string; description: string; ctaLabel: string };
   photoQualityDisclaimer?: string;
+  // v3 optional fields
+  patientPriorities?: PatientPriority[];
+  caseSummary?: string;
 }
 
 // ─── Quiz scoring (independent of AI report) ─────────────────────────────────

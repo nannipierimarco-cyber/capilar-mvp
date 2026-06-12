@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   DentalMapReport, VisualLevel, VisualRiskLevel,
-  TreatmentOptionAI, CostDriver,
+  TreatmentOptionAI, CostDriver, PatientPriority,
 } from "@/lib/dental/types";
 import { generateFallbackDentalReport } from "@/lib/dental/types";
 
@@ -32,6 +32,7 @@ const COMPLEXITY_LABEL: Record<string, string> = {
 const TREATMENT_ICON: Record<string, string> = {
   cleaning: "🪥", whitening: "✨", orthodontics: "📐", veneers: "💎",
   implant: "🔩", restoration: "🔧", crown: "👑", gums: "🩸", other: "🦷",
+  replace_missing_teeth: "🦷",
 };
 
 // ── Catálogo de tratamientos (fallback client-side) ──────────────────────────
@@ -108,22 +109,20 @@ export default function DentalReportePage({ params }: { params: { id: string } }
   const [photoFrontalSrc, setPhotoFrontalSrc] = useState<string | null>(null);
   const [photoAbiertaSrc, setPhotoAbiertaSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [infographicExpanded, setInfographicExpanded] = useState(false);
-  const [infographicState, setInfographicState] = useState<"idle" | "loading" | "ok" | "error">("idle");
 
   // Gate flags — read from sessionStorage to resist stale data and URL bypasses
   const [sessionLocked, setSessionLocked] = useState(false);
   const [sessionUnlocked, setSessionUnlocked] = useState(false);
   const [hasLeadId, setHasLeadId] = useState(false);
+  const [storedLeadId, setStoredLeadId] = useState<string | null>(null);
 
   // Gated lead form state
-  const [leadForm, setLeadForm] = useState({ nombre: "", email: "", telefono: "" });
+  const [leadForm, setLeadForm] = useState({ email: "", telefonoDigits: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Gate is open if: URL is "temp" OR sessionStorage explicitly locked and not yet unlocked
   const showGate = isTemp || (sessionLocked && !sessionUnlocked && !hasLeadId);
-  const showInfographic = !showGate && params.id !== "demo";
 
   useEffect(() => {
     // Load photos from sessionStorage (first visit only)
@@ -139,6 +138,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
     setSessionLocked(locked);
     setSessionUnlocked(unlocked);
     setHasLeadId(Boolean(leadId));
+    setStoredLeadId(leadId);
 
     if (process.env.NODE_ENV !== "production") {
       console.log("[dental reporte] gate debug", {
@@ -190,7 +190,8 @@ export default function DentalReportePage({ params }: { params: { id: string } }
   }, [params.id, isTemp, router]);
 
   async function handleLeadSubmit() {
-    if (!leadForm.nombre || !leadForm.email || !leadForm.telefono) return;
+    if (!leadForm.email || leadForm.telefonoDigits.length !== 8) return;
+    const telefono = `+56 9 ${leadForm.telefonoDigits}`;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -201,7 +202,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lead: { nombre: leadForm.nombre, email: leadForm.email, telefono: leadForm.telefono },
+          lead: { nombre: "", email: leadForm.email, telefono },
           answers: savedAnswers,
           analysis,
           photoPaths,
@@ -250,14 +251,19 @@ export default function DentalReportePage({ params }: { params: { id: string } }
   const score = report.summary.visualScore;
   const riskLevel = report.summary.visualRiskLevel;
   const riskColor = RISK_COLOR[riskLevel] ?? "#BA7517";
-  const agendarHref = `/dental/agendar/${params.id}`;
+  const agendarId =
+    storedLeadId ??
+    (params.id && params.id !== "temp" && params.id !== "demo" && params.id !== "undefined"
+      ? params.id
+      : null);
+  const agendarHref = `/dental/agendar/${agendarId ?? "agendar"}`;
   const hasAITreatments = (report.treatmentOptions?.length ?? 0) > 0;
   const aiTreatments: TreatmentOptionAI[] = report.treatmentOptions ?? [];
   const fallbackCards = deriveTreatmentCards(answers, report);
   const treatmentCount = hasAITreatments ? aiTreatments.length : fallbackCards.length;
   const costDrivers: CostDriver[] | null = (report.costDrivers?.length ?? 0) > 0 ? report.costDrivers! : null;
   const photoDisclaimer = report.photoQualityDisclaimer ?? "La orientación se basa en las fotos recibidas. La iluminación, el ángulo, el foco y la calidad de cámara pueden afectar la lectura visual y los resultados.";
-  const canSubmitLead = leadForm.nombre.length > 1 && leadForm.email.includes("@") && leadForm.telefono.length > 7;
+  const canSubmitLead = leadForm.email.includes("@") && leadForm.telefonoDigits.length === 8;
 
   // ── Vista bloqueada (gated) ──────────────────────────────────────────────
 
@@ -349,16 +355,9 @@ export default function DentalReportePage({ params }: { params: { id: string } }
             </div>
             <div className="px-6 py-5">
               <p className="text-xs text-gray-500 text-center mb-4 leading-relaxed">
-                Déjanos tu email y WhatsApp para mostrarte el reporte completo y enviarte una copia.
+                Déjanos tu email y WhatsApp para ver tu reporte gratis y enviarte una copia.
               </p>
               <div className="space-y-3 mb-4">
-                <input
-                  type="text"
-                  placeholder="Nombre completo"
-                  value={leadForm.nombre}
-                  onChange={(e) => setLeadForm((p) => ({ ...p, nombre: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#0EA5E9]"
-                />
                 <input
                   type="email"
                   placeholder="tucorreo@email.com"
@@ -366,13 +365,28 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                   onChange={(e) => setLeadForm((p) => ({ ...p, email: e.target.value }))}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#0EA5E9]"
                 />
-                <input
-                  type="tel"
-                  placeholder="+56 9 1234 5678"
-                  value={leadForm.telefono}
-                  onChange={(e) => setLeadForm((p) => ({ ...p, telefono: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#0EA5E9]"
-                />
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1.5">WhatsApp</label>
+                  <div className="flex gap-2 items-stretch">
+                    <span className="shrink-0 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 text-base flex items-center">
+                      +56 9
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="12345678"
+                      maxLength={8}
+                      value={leadForm.telefonoDigits}
+                      onChange={(e) =>
+                        setLeadForm((p) => ({
+                          ...p,
+                          telefonoDigits: e.target.value.replace(/\D/g, "").slice(0, 8),
+                        }))
+                      }
+                      className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#0EA5E9]"
+                    />
+                  </div>
+                </div>
               </div>
               {submitError && (
                 <p className="text-xs text-red-500 text-center mb-3">{submitError}</p>
@@ -382,7 +396,7 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                 disabled={!canSubmitLead || isSubmitting}
                 className="w-full py-4 rounded-xl bg-[#0EA5E9] text-white font-semibold text-base disabled:opacity-40 hover:bg-[#0284C7] transition-colors"
               >
-                {isSubmitting ? "Guardando…" : "Ver mi reporte"}
+                {isSubmitting ? "Guardando…" : "Ver reporte gratis"}
               </button>
               <p className="text-[11px] text-gray-400 text-center mt-3 leading-relaxed">
                 Tu información se usa para enviarte el reporte y ayudarte a agendar una evaluación si decides avanzar.
@@ -484,40 +498,32 @@ export default function DentalReportePage({ params }: { params: { id: string } }
           </div>
         </div>
 
-        {/* ── Infografía (collapsible) ───────────────────────────────────── */}
-        {showInfographic && (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <button
-              onClick={() => { setInfographicExpanded((v) => { if (!v) setInfographicState("loading"); return !v; }); }}
-              className="w-full flex items-center justify-between px-5 py-4 text-left"
-            >
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Infografía visual dental</p>
-                <p className="text-xs text-gray-400 mt-0.5">Resumen visual generado por IA</p>
-              </div>
-              <span className="text-[#0EA5E9] text-xs font-semibold">
-                {infographicExpanded ? "Ocultar ↑" : "Ver infografía ↓"}
-              </span>
-            </button>
-            {infographicExpanded && (
-              <div className="px-4 pb-4">
-                {infographicState === "loading" && (
-                  <div className="flex items-center justify-center py-10 text-sm text-gray-400">Generando infografía…</div>
-                )}
-                {infographicState === "error" && (
-                  <div className="flex items-center justify-center py-6 text-sm text-red-400">No se pudo cargar la infografía.</div>
-                )}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/api/dental/infographic/${params.id}`}
-                  alt="Infografía dental visual"
-                  className={`w-full rounded-xl shadow-sm ${infographicState === "ok" ? "" : "hidden"}`}
-                  style={{ maxWidth: 794 }}
-                  onLoad={() => setInfographicState("ok")}
-                  onError={() => setInfographicState("error")}
-                />
-              </div>
-            )}
+        {/* ── Prioridades principales v3 ────────────────────────────────── */}
+        {(report.patientPriorities?.length ?? 0) > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-1">Posibles prioridades a revisar</h2>
+            <p className="text-xs text-gray-400 mb-4 leading-relaxed">
+              Basado en tus fotos y lo que declaraste, estas serían las áreas a evaluar con un profesional.
+            </p>
+            <div className="space-y-3">
+              {(report.patientPriorities as PatientPriority[]).map((priority, i) => (
+                <div key={i} className="rounded-xl border border-[#BAE6FD] bg-[#F0F9FF] p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-sm font-bold text-[#0EA5E9] flex-shrink-0 mt-0.5 w-4">{i + 1}.</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{priority.category}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed mt-1">{priority.description}</p>
+                      {priority.estimatedRangeLabel && (
+                        <p className="text-xs mt-2">
+                          <span className="text-gray-400">Rango referencial: </span>
+                          <span className="font-semibold text-gray-700">{priority.estimatedRangeLabel}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -583,7 +589,12 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{TREATMENT_ICON[t.key] ?? "🦷"}</span>
-                      <p className="text-sm font-semibold text-gray-900">{t.label}</p>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{t.label}</p>
+                        {t.patientCategory && (
+                          <p className="text-[10px] text-[#0284C7] font-medium mt-0.5">{t.patientCategory}</p>
+                        )}
+                      </div>
                     </div>
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 capitalize"
                       style={{ background: (COMPLEXITY_COLOR[t.complexity] ?? "#BA7517") + "18", color: COMPLEXITY_COLOR[t.complexity] ?? "#BA7517" }}>
@@ -591,11 +602,25 @@ export default function DentalReportePage({ params }: { params: { id: string } }
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 leading-relaxed mb-3">{t.whyItMayApply}</p>
-                  <div className="flex items-center justify-between pt-2.5 border-t border-[#BAE6FD]">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Rango referencial</p>
-                      <p className="text-sm font-bold text-gray-900 mt-0.5">{t.estimatedPriceRangeCLP.label}</p>
-                    </div>
+                  <div className="pt-2.5 border-t border-[#BAE6FD]">
+                    <p className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+                      {t.unitExplanation ?? "Rango referencial"}
+                    </p>
+                    {t.rangePerUnitCLP ? (
+                      <>
+                        <p className="text-sm font-bold text-gray-900">{t.rangePerUnitCLP.label}</p>
+                        {t.estimatedUnits && (
+                          <p className="text-[11px] text-gray-400 mt-0.5">{t.estimatedUnits}</p>
+                        )}
+                        {t.estimatedTotalRangeCLP && (
+                          <p className="text-xs text-gray-600 mt-1.5 font-medium">
+                            Total estimado: <span className="text-gray-900">{t.estimatedTotalRangeCLP.label}</span>
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm font-bold text-gray-900">{t.estimatedPriceRangeCLP.label}</p>
+                    )}
                   </div>
                   {t.whatDentistMustConfirm && (
                     <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
