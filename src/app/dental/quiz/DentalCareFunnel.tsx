@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import DentalCameraModal from "./DentalCameraModal";
 
 const STEPS = [
   {
@@ -52,10 +53,10 @@ export default function DentalCareFunnel() {
   const [photoFrontalPreview, setPhotoFrontalPreview] = useState<string | null>(null);
   const [photoAbiertaPreview, setPhotoAbiertaPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const frontalCameraRef = useRef<HTMLInputElement>(null);
   const frontalGalleryRef = useRef<HTMLInputElement>(null);
-  const abiertaCameraRef = useRef<HTMLInputElement>(null);
   const abiertaGalleryRef = useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraPhotoType, setCameraPhotoType] = useState<"frontal" | "abierta">("frontal");
 
   const TOTAL_STAGES = 3; // 2 quiz + foto
   const progressPct =
@@ -206,7 +207,8 @@ export default function DentalCareFunnel() {
                 Puedes tomar una foto ahora o subir una desde tu galería.
               </p>
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => frontalCameraRef.current?.click()}
+                <button type="button"
+                  onClick={() => { setCameraPhotoType("frontal"); setCameraOpen(true); }}
                   className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#0EA5E9] bg-[#F0F9FF] text-[#0284C7] text-sm font-medium">
                   📷 Tomar foto
                 </button>
@@ -217,8 +219,6 @@ export default function DentalCareFunnel() {
               </div>
             </div>
           )}
-          <input ref={frontalCameraRef} type="file" accept="image/*" capture="environment" className="hidden"
-            onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "frontal")} />
           <input ref={frontalGalleryRef} type="file" accept="image/*" className="hidden"
             onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "frontal")} />
         </div>
@@ -249,7 +249,8 @@ export default function DentalCareFunnel() {
                 Mientras mejor sea la iluminación, más útil será la orientación.
               </p>
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => abiertaCameraRef.current?.click()}
+                <button type="button"
+                  onClick={() => { setCameraPhotoType("abierta"); setCameraOpen(true); }}
                   className="flex items-center justify-center gap-2 py-3 rounded-xl border border-[#0EA5E9] bg-[#F0F9FF] text-[#0284C7] text-sm font-medium">
                   📷 Tomar foto
                 </button>
@@ -260,8 +261,6 @@ export default function DentalCareFunnel() {
               </div>
             </div>
           )}
-          <input ref={abiertaCameraRef} type="file" accept="image/*" capture="environment" className="hidden"
-            onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "abierta")} />
           <input ref={abiertaGalleryRef} type="file" accept="image/*" className="hidden"
             onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null, "abierta")} />
         </div>
@@ -278,6 +277,15 @@ export default function DentalCareFunnel() {
           Volver
         </button>
       </div>
+      <DentalCameraModal
+        open={cameraOpen}
+        photoType={cameraPhotoType}
+        onCapture={(file) => {
+          handlePhotoChange(file, cameraPhotoType);
+          setCameraOpen(false);
+        }}
+        onClose={() => setCameraOpen(false)}
+      />
     </div>
   );
 }

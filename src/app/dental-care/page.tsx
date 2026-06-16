@@ -20,6 +20,7 @@ export default function DentalCarePage() {
         <SolutionSection />
         <HowItWorksSection />
         <ReportSection />
+        <QuoteComparisonBlock />
         <DisclaimerSection />
         <FinalCTA />
       </main>
@@ -262,6 +263,36 @@ function ReportSection() {
               <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{card.desc}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function QuoteComparisonBlock() {
+  return (
+    <section className="bg-white py-16 md:py-20">
+      <div className="mx-auto max-w-3xl px-4">
+        <div className="rounded-2xl border border-[#BAE6FD] bg-[#F0F9FF] px-8 py-10 text-center">
+          <span className="text-4xl">📋</span>
+          <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#0C4A6E] md:text-3xl">
+            ¿Ya tienes una cotización dental?
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-gray-600">
+            Súbela y te ayudamos a conseguir una alternativa más conveniente con clínicas verificadas.
+          </p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
+            Revisamos tu presupuesto y te enviamos una nueva cotización por WhatsApp en menos de 24 horas.
+          </p>
+          <a
+            href="/dental-care/comparar-presupuesto"
+            className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-[#0EA5E9] px-8 text-base font-semibold text-white hover:bg-[#0284C7] transition-colors"
+          >
+            Comparar mi presupuesto
+          </a>
+          <p className="mt-3 text-xs text-gray-400">
+            Gratis · Sin compromisos · Respuesta en menos de 24 horas
+          </p>
         </div>
       </div>
     </section>

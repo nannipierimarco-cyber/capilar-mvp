@@ -126,25 +126,51 @@ export function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
+export interface WhatsAppSendResult {
+  ok: boolean;
+  error?: string;
+  messageId?: string;
+  metaStatus?: number;
+  metaBody?: string;
+}
+
 /**
- * Sends a text message via WhatsApp Cloud API and returns a result object.
- * Use this when you need to know whether the message actually succeeded.
+ * Sends a text message via WhatsApp Cloud API and returns a detailed result.
+ * Logs env var presence, Meta HTTP status, and response body — never the token.
+ *
+ * NOTE: Meta requires an approved template to initiate conversations outside
+ * the 24-hour customer-service window. If this returns error code 131026 or
+ * 131047, a template message is required. Contact Meta Business to create one.
+ * TODO: implement sendWhatsAppTemplateMessage({ to, templateName, language, components })
+ *       once a template (e.g. "cotizacion_recibida") is approved in the Meta dashboard.
  */
 export async function sendWhatsAppTextResult(
   to: string,
   message: string
-): Promise<{ ok: boolean; error?: string }> {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+): Promise<WhatsAppSendResult> {
+  const accessToken   = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const hasToken      = Boolean(accessToken);
+  const hasPhoneId    = Boolean(phoneNumberId);
+
+  console.log("[WhatsApp:send] init", {
+    hasAccessToken:   hasToken,
+    hasPhoneNumberId: hasPhoneId,
+    phoneNumberIdPrefix: phoneNumberId ? phoneNumberId.slice(0, 5) + "…" : "MISSING",
+    to: maskPhone(to),
+  });
 
   if (!accessToken || !phoneNumberId) {
-    const msg = "Missing WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID";
-    console.warn("[WhatsApp]", msg);
-    return { ok: false, error: msg };
+    const err = `Missing env vars — hasAccessToken=${hasToken}, hasPhoneNumberId=${hasPhoneId}`;
+    console.warn("[WhatsApp:send] aborted —", err);
+    return { ok: false, error: err };
   }
 
   try {
-    const res = await fetch(apiBase(), {
+    const url = apiBase();
+    console.log("[WhatsApp:send] POST", url.replace(phoneNumberId, phoneNumberId.slice(0, 5) + "…"));
+
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -158,17 +184,35 @@ export async function sendWhatsAppTextResult(
       }),
     });
 
+    const metaBody = await res.text();
+    console.log("[WhatsApp:send] Meta response", { status: res.status, body: metaBody.slice(0, 500) });
+
     if (!res.ok) {
-      const errText = await res.text();
-      console.error("[WhatsApp] sendWhatsAppTextResult failed:", res.status, errText);
-      return { ok: false, error: `HTTP ${res.status}: ${errText.slice(0, 300)}` };
+      const isTemplateRequired =
+        metaBody.includes("131026") || metaBody.includes("131047") ||
+        metaBody.toLowerCase().includes("template");
+      if (isTemplateRequired) {
+        console.warn("[WhatsApp:send] Meta requires approved template — cannot send free-form text outside 24h window");
+      }
+      return {
+        ok:         false,
+        error:      `HTTP ${res.status}: ${metaBody.slice(0, 500)}`,
+        metaStatus: res.status,
+        metaBody:   metaBody.slice(0, 500),
+      };
     }
 
-    console.log("[WhatsApp] message sent to", maskPhone(to));
-    return { ok: true };
+    let messageId: string | undefined;
+    try {
+      const json = JSON.parse(metaBody) as { messages?: Array<{ id: string }> };
+      messageId = json.messages?.[0]?.id;
+    } catch { /* non-JSON success body — ignore */ }
+
+    console.log("[WhatsApp:send] success — to:", maskPhone(to), "messageId:", messageId);
+    return { ok: true, messageId, metaStatus: res.status, metaBody: metaBody.slice(0, 200) };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[WhatsApp] sendWhatsAppTextResult network error:", err);
+    console.error("[WhatsApp:send] network error:", err);
     return { ok: false, error: msg };
   }
 }

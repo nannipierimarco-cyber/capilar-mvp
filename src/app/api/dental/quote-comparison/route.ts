@@ -15,14 +15,26 @@ const MAX_BYTES = 4 * 1024 * 1024; // 4MB — Vercel serverless body limit is 4.
 const SIGNED_URL_SECONDS = 14 * 24 * 3600; // 14 days
 const CLINIC_WHATSAPP = (process.env.CLINIC_WHATSAPP_TO ?? "56998056526").replace(/\D/g, "");
 
+function parseOptionalAmount(raw: string | null): number | null {
+  if (!raw?.trim()) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return null;
+  const n = parseInt(digits, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 function buildClinicMessage(params: {
   fullName: string;
   rut: string;
   phone: string;
   email: string;
+  treatmentType: string | null;
+  quotedAmount: number | null;
+  externalClinicName: string | null;
   fileUrl: string;
 }): string {
-  const { fullName, rut, phone, email, fileUrl } = params;
+  const { fullName, rut, phone, email, treatmentType, quotedAmount, externalClinicName, fileUrl } = params;
+  const amountStr = quotedAmount ? `$${quotedAmount.toLocaleString("es-CL")}` : "No informado";
   return [
     "Nueva cotización dental recibida en Perfecto Labs 🦷",
     "",
@@ -30,6 +42,10 @@ function buildClinicMessage(params: {
     `RUT: ${rut}`,
     `Teléfono: ${phone}`,
     `Email: ${email}`,
+    "",
+    `Tratamiento cotizado: ${treatmentType ?? "No informado"}`,
+    `Monto cotizado: ${amountStr}`,
+    `Clínica origen: ${externalClinicName ?? "No informada"}`,
     "",
     "Ver cotización:",
     fileUrl,
@@ -55,6 +71,9 @@ export async function POST(req: NextRequest) {
   const rut           = (formData.get("patient_rut") as string | null)?.trim().toUpperCase();
   const phone         = (formData.get("patient_phone") as string | null)?.trim();
   const email         = (formData.get("patient_email") as string | null)?.trim().toLowerCase();
+  const clinicName    = (formData.get("original_clinic_name") as string | null)?.trim() || null;
+  const treatmentType = (formData.get("main_treatment_type") as string | null)?.trim() || null;
+  const amountRaw     = formData.get("original_quote_amount") as string | null;
   const file          = formData.get("original_file") as File | null;
   const consent       = formData.get("consent") as string | null;
 
@@ -88,6 +107,14 @@ export async function POST(req: NextRequest) {
   if (consent !== "true") {
     return NextResponse.json(
       { error: "Debes aceptar los términos para continuar", step: "validate" },
+      { status: 400 }
+    );
+  }
+
+  const originalQuoteAmount = parseOptionalAmount(amountRaw);
+  if (amountRaw?.trim() && originalQuoteAmount === null) {
+    return NextResponse.json(
+      { error: "Monto cotizado inválido", step: "validate" },
       { status: 400 }
     );
   }
@@ -139,6 +166,9 @@ export async function POST(req: NextRequest) {
       patient_rut:           rut,
       patient_phone:         phone,
       patient_email:         email,
+      original_clinic_name:  clinicName,
+      main_treatment_type:   treatmentType,
+      original_quote_amount: originalQuoteAmount,
       original_file_url:     fileUrl,
       status:                "submitted",
     })
@@ -153,12 +183,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Send WhatsApp to clinic — non-blocking for the user response
+  console.log(`[quote-comparison] record saved — id=${record.id}, sending WhatsApp to ${CLINIC_WHATSAPP}`);
+
   const waMessage = buildClinicMessage({
-    fullName: patientName,
+    fullName:           patientName,
     rut,
     phone,
     email,
+    treatmentType,
+    quotedAmount:       originalQuoteAmount,
+    externalClinicName: clinicName,
     fileUrl,
   });
 
@@ -166,17 +200,17 @@ export async function POST(req: NextRequest) {
 
   const updatePayload = waResult.ok
     ? { status: "sent_to_clinic", whatsapp_sent_at: new Date().toISOString() }
-    : { status: "failed_to_send", whatsapp_error: waResult.error ?? "unknown error" };
+    : {
+        status:          "failed_to_send",
+        // Store full Meta error body so we can diagnose token/template/phone issues in Supabase
+        whatsapp_error:  waResult.metaBody ?? waResult.error ?? "unknown error",
+      };
 
   await supabase
     .from("dental_quote_requests")
     .update(updatePayload)
     .eq("id", record.id);
 
-  if (!waResult.ok) {
-    console.warn(`[quote-comparison] WhatsApp failed for quote ${record.id}:`, waResult.error);
-  }
-
-  console.log(`[quote-comparison] ok — id=${record.id}, wa_ok=${waResult.ok}`);
+  console.log(`[quote-comparison] done — id=${record.id}, wa_ok=${waResult.ok}, wa_messageId=${waResult.messageId ?? "n/a"}`);
   return NextResponse.json({ success: true, quote_request_id: record.id });
 }
