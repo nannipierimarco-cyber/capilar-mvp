@@ -1,0 +1,128 @@
+﻿Necesito corregir un bug en el flujo gated report dental.
+
+Contexto:
+Se implementó el flujo donde:
+- /dental/quiz ya no pide datos.
+- /dental/analizando genera analysis + upload fotos.
+- Luego debería redirigir a /dental/reporte/temp.
+- /dental/reporte/temp debería mostrar un modal bloqueante pidiendo nombre/email/WhatsApp.
+- Solo después de enviar datos debería llamar /api/dental/lead y redirigir a /dental/reporte/[id real].
+
+Problema actual:
+En producción, después de generar el reporte, el usuario está viendo el reporte completo directamente. No aparece el pop-up/modal pidiendo datos para desbloquear el reporte.
+
+Diagnóstico probable:
+El gate depende solo de params.id === "temp", lo cual es frágil.
+Si por cualquier razón el flujo llega a /dental/reporte/[id real], o si hay sessionStorage viejo, el reporte se muestra completo.
+Necesitamos que el bloqueo dependa de un flag explícito en sessionStorage, no solo del ID temp.
+
+Objetivo:
+Asegurar que después de generar el reporte, el usuario NO pueda ver el reporte completo hasta completar nombre/email/WhatsApp.
+
+Cambios requeridos:
+
+1. En /dental/quiz / DentalCareFunnel
+Cuando empieza un nuevo análisis, limpiar completamente cualquier dato viejo:
+- dental_lead
+- dental_lead_id
+- dental_analysis_id
+- dental_report
+- dental_photo_paths
+- dental_report_unlocked
+- dental_report_locked
+
+Luego, antes de navegar a /dental/analizando, guardar:
+- dental_report_locked = "true"
+- dental_report_unlocked = "false"
+
+2. En /dental/analizando
+Después de generar analysis y subir fotos:
+- guardar dental_report
+- guardar dental_photo_paths
+- guardar dental_report_locked = "true"
+- guardar dental_report_unlocked = "false"
+- NO llamar /api/dental/lead todavía
+- redirigir siempre a /dental/reporte/temp
+
+Agregar console logs claros en desarrollo:
+- "[dental gated] analysis ready, redirecting to temp"
+- no imprimir datos sensibles.
+
+3. En /dental/reporte/[id]/page.tsx
+Cambiar la lógica del gate.
+
+No depender solo de:
+params.id === "temp"
+
+Crear lógica:
+- isTemp = params.id === "temp"
+- isLocked = sessionStorage.getItem("dental_report_locked") === "true"
+- isUnlocked = sessionStorage.getItem("dental_report_unlocked") === "true"
+- hasLeadId = Boolean(sessionStorage.getItem("dental_lead_id"))
+
+El reporte completo SOLO se puede mostrar si:
+- params.id !== "temp"
+AND
+- dental_report_unlocked === "true" OR existe lead id real confirmado
+
+Si isTemp o isLocked y no isUnlocked:
+- mostrar modal bloqueante.
+- mostrar solo teaser/fotos.
+- NO renderizar el reporte completo debajo.
+- NO permitir cerrar el modal.
+- NO mostrar CTA de agendar todavía.
+
+4. Al enviar el modal de datos
+Cuando el usuario completa nombre/email/WhatsApp:
+- llamar POST /api/dental/lead con lead + answers + analysis + photoPaths.
+- si responde ok:
+  - guardar dental_lead_id = id real
+  - guardar dental_analysis_id = id real
+  - guardar dental_report_locked = "false"
+  - guardar dental_report_unlocked = "true"
+  - redirigir a /dental/reporte/[id real]
+- si falla:
+  - mantener dental_report_locked = "true"
+  - mostrar error y NO desbloquear reporte.
+
+5. Defensa adicional
+Si el usuario llega a /dental/reporte/[id real] pero sessionStorage dice dental_report_locked = "true" y no tiene dental_report_unlocked = "true":
+- mostrar el modal igualmente.
+- No mostrar reporte completo.
+
+6. QA local obligatorio
+Crear logs temporales o usar console.log solo en development para confirmar:
+- current id
+- isTemp
+- isLocked
+- isUnlocked
+- hasLeadId
+No imprimir email/teléfono.
+
+7. Validación
+Correr npm run build.
+No hacer deploy todavía.
+
+8. Output esperado
+Entregar:
+- archivos modificados
+- explicación de por qué antes se escapaba el gate
+- nueva lógica de bloqueo/desbloqueo
+- resultado de npm run build
+- pasos exactos para testear:
+  A. limpiar sessionStorage
+  B. completar quiz
+  C. subir foto
+  D. verificar que URL sea /dental/reporte/temp
+  E. verificar que aparece modal
+  F. llenar datos
+  G. verificar redirect a /dental/reporte/[id real]
+  H. recargar y confirmar que reporte completo se mantiene visible
+
+Restricciones:
+- No tocar HubSpot appointment sync.
+- No tocar Calendly.
+- No tocar P1/P2.
+- No cambiar rutas públicas.
+- No instalar Bun.
+- Ignorar error no bloqueante Bun/printf.

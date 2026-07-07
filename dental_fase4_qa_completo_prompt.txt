@@ -1,0 +1,78 @@
+﻿Necesito ejecutar QA completo del nuevo flujo Dental Care.
+
+Objetivo:
+Validar que el flujo rediseñado funcione end-to-end sin romper dental, hair ni skin.
+
+Flujo a validar:
+
+1. /dental-care
+- Debe mostrar nueva propuesta de pre-cotización dental.
+- CTAs deben llevar a /dental/quiz.
+- No debe mencionar número fijo de preguntas.
+- Debe usar copy orientado a claridad de tratamiento y rangos de precio.
+
+2. /dental/quiz
+- Debe tener flujo lean:
+  - problema principal
+  - prioridad del usuario
+  - fotos
+  - datos contacto
+- Debe guardar sessionStorage correctamente.
+- No debe tener errores de ortografía.
+- Debe navegar a /dental/analizando.
+
+3. /dental/analizando
+- Debe llamar:
+  - /api/ai/dental-map
+  - /api/dental/upload-photos
+  - /api/dental/lead
+- Debe guardar en Supabase dental_patients.
+- Debe redirigir a /dental/reporte/[id].
+
+4. /dental/reporte/[id]
+- Debe cargar desde sessionStorage si existe.
+- Debe cargar desde Supabase si se recarga la página.
+- Debe mostrar orientación inicial.
+- Debe mostrar posibles tratamientos y rangos de precio.
+- CTA debe llevar a:
+  /agendar-consulta?vertical=dental&source=dental_report&reportId={id}
+
+5. /agendar-consulta?vertical=dental
+- Debe filtrar doctor_profiles vertical=dental.
+- Debe mostrar Calendly embed si hay doctor dental activo con calendly_url.
+- Debe escuchar calendly.event_scheduled.
+- Debe llamar /api/appointments/calendly-embed-scheduled.
+- Debe sincronizar HubSpot con:
+  appointment_status=scheduled
+  appointment_vertical=dental
+  appointment_service=dental
+  appointment_channel=calendly
+
+6. HubSpot
+- /api/dental/lead debe marcar el contacto como dental lead.
+- /api/appointments/calendly-embed-scheduled debe marcar cita scheduled.
+- No exponer tokens.
+- No usar webhook Calendly.
+
+7. Regression
+- Verificar que hair/skin no se rompan:
+  - vertical hair
+  - vertical skin
+  - /agendar-consulta?vertical=hair
+  - /agendar-consulta?vertical=skin
+- No tocar admin hair/skin.
+
+Tareas:
+- Correr npm run build.
+- Correr tests/scripts existentes si hay.
+- Revisar TypeScript/lint errors.
+- Crear un checklist final de test manual.
+- No deploy todavía.
+- No implementar nuevas features, solo corregir bugs encontrados durante QA.
+
+Output:
+1. Resultado build.
+2. Bugs encontrados.
+3. Bugs corregidos.
+4. Checklist final para test en producción.
+5. Archivos modificados.

@@ -1,0 +1,161 @@
+﻿Necesito ajustar el agendamiento dental con Dentalink usando los links correctos disponibles.
+
+Contexto:
+Tenemos dos links disponibles de Dentalink/Healthatom:
+
+1. Link corto Healthatom:
+https://ff.healthatom.io/F0HvxV
+
+2. Link Dentalink agendaExpress con localidad/sucursal probablemente ya seleccionada:
+https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress/1
+
+Antes intentamos embeber agendaExpress sin /1:
+https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress
+
+Pero pedía seleccionar localidad y dentro del iframe se bloqueaba al hacer click.
+
+El nuevo link con /1 probablemente salta la selección de localidad:
+https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress/1
+
+Objetivo:
+Usar agendaExpress/1 como link principal de agendamiento dental oficial.
+Evitar iframe como experiencia principal si se bloquea.
+Redirigir al usuario de forma top-level hacia Dentalink para que pueda agendar en el sistema oficial de la clínica.
+
+Flujo deseado:
+1. Usuario termina reporte dental.
+2. Aprieta “Confirmar presupuesto”.
+3. Va a /dental/agendar/[id]?autoredirect=1
+4. Ve una pantalla Perfecto Labs breve con información de clínica.
+5. Después de 1–2 segundos se redirige automáticamente a:
+   https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress/1
+6. Si el redirect no ocurre, el usuario puede apretar:
+   “Abrir agenda oficial”.
+
+Datos de la clínica:
+Dirección:
+Pérez Valenzuela 1661, Providencia
+Cercano a Metro Pedro de Valdivia
+
+Horario:
+Lunes a Viernes: 09:00 – 18:30 hrs
+Sábado: 10:00 – 13:00 hrs
+
+Teléfono:
++56 9 5804 3937
+
+Profesionales:
+- Dr. Ivo Fodich — Implantólogo
+- Dr. Patricio Lobos — Rehabilitador Oral
+
+Tareas:
+
+1. Auditar ruta actual de agendamiento dental
+Revisar:
+- /dental/reporte/[id]/page.tsx
+- /dental/agendar/[id] si existe
+- cualquier componente Dentalink iframe creado antes
+- cualquier CTA que todavía mande a /agendar-consulta
+- cualquier uso de reportId=undefined
+
+2. CTA desde reporte
+Cambiar el botón principal del reporte dental para que apunte a:
+ /dental/agendar/[id]?autoredirect=1
+
+Debe usar el id real del reporte desde params.id.
+No debe generar reportId=undefined.
+No debe mandar a /agendar-consulta para dental.
+
+3. Página /dental/agendar/[id]
+Usar esta página como pantalla intermedia premium.
+
+Debe mostrar:
+Título:
+“Te estamos llevando a la agenda oficial de la clínica”
+
+Subtítulo:
+“Reservarás tu evaluación directamente en Dentalink, el sistema oficial de la clínica.”
+
+Bloque destacado:
+Pérez Valenzuela 1661, Providencia
+Cercano a Metro Pedro de Valdivia
+
+Horario:
+Lunes a Viernes: 09:00 – 18:30 hrs
+Sábado: 10:00 – 13:00 hrs
+
+Teléfono:
++56 9 5804 3937
+
+CTA principal:
+“Abrir agenda oficial”
+
+4. URL principal Dentalink
+Usar como URL principal:
+https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress/1
+
+Crear una constante clara:
+DENTALINK_AGENDA_URL
+
+No usar iframe como camino principal.
+
+5. Link fallback
+Guardar también como fallback, si quieres dejarlo disponible:
+https://ff.healthatom.io/F0HvxV
+
+Pero el principal debe ser agendaExpress/1.
+
+6. Autoredirect
+Si searchParams contiene autoredirect=1:
+- esperar 1200ms
+- redirigir con window.location.href = DENTALINK_AGENDA_URL
+- mantener botón visible para abrir manualmente
+
+Si no contiene autoredirect=1:
+- mostrar la página con botón manual
+
+7. Remover o despriorizar iframe
+Si hoy existe iframe Dentalink:
+- quitarlo de la experiencia principal.
+- No intentar embeber agendaExpress si se bloqueaba.
+- No automatizar clicks dentro de Dentalink.
+
+8. HubSpot
+No marcar appointment_status=scheduled solo por abrir Dentalink.
+No tenemos confirmación real de cita.
+Si es simple y ya existe helper, opcionalmente registrar evento:
+- last_appointment_event = dentalink_agenda_opened
+- appointment_channel = dentalink
+Pero no es obligatorio. Si complica, no tocar HubSpot ahora.
+
+9. No hacer
+- No usar scraping.
+- No automatizar Dentalink.
+- No manipular RUT.
+- No tocar hair/skin.
+- No romper Calendly para hair/skin.
+- No tocar OpenAI report.
+- No tocar gated report.
+- No instalar Bun.
+- No hacer deploy.
+- Ignorar error no bloqueante Bun/printf.
+
+10. Validación
+Correr:
+npm run build
+
+Verificar:
+- El botón “Confirmar presupuesto” del reporte apunta a /dental/agendar/[id]?autoredirect=1.
+- No aparece reportId=undefined.
+- /dental/agendar/[id]?autoredirect=1 redirige top-level a agendaExpress/1.
+- No aparece iframe bloqueado.
+- El link principal es agendaExpress/1.
+- Hair/skin no se rompen.
+
+Output:
+1. Archivos modificados.
+2. Ruta final usada.
+3. URL Dentalink principal.
+4. Si se eliminó/despriorizó iframe.
+5. Resultado de npm run build.
+6. Cómo testear manualmente.

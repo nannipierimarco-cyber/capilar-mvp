@@ -1,0 +1,84 @@
+﻿Necesito simplificar el funnel /dental/quiz para que sea mucho más lean y orientado a pre-cotización dental.
+
+Contexto:
+Hoy DentalCareFunnel tiene 8 preguntas + fotos + lead form. Queremos reducir fricción.
+La nueva lógica debe ser:
+1. Entender la problemática principal con 1 o 2 preguntas máximo.
+2. Pedir fotos rápidamente.
+3. Capturar datos de contacto.
+4. Generar reporte.
+
+Objetivo:
+Modificar DentalCareFunnel sin romper /dental/analizando ni las APIs existentes.
+
+Nuevo flujo del quiz:
+
+Paso 1 — Problema principal
+Pregunta:
+¿Qué quieres resolver?
+
+Opciones:
+- Alinear mis dientes
+- Mejorar el color de mi sonrisa
+- Arreglar dientes quebrados o desgastados
+- Reemplazar una pieza faltante / implante
+- Mejorar encías o sonrisa gingival
+- No estoy seguro, quiero orientación
+
+Guardar en answers como campo compatible con el análisis actual.
+Si el schema anterior esperaba varias respuestas, mantener estructura compatible pero con menos campos.
+
+Paso 2 — Prioridad del usuario
+Pregunta:
+¿Qué es lo más importante para ti?
+
+Opciones:
+- Saber cuánto podría costar
+- Saber qué tratamiento necesito
+- Comparar opciones antes de ir a una clínica
+- Encontrar una opción financiable
+- Mejorar mi sonrisa lo antes posible
+
+Paso 3 — Fotos
+- Foto frontal obligatoria.
+- Foto con boca abierta opcional, pero recomendada.
+- Copy más claro:
+  "Mientras mejores sean las fotos, más útil será la orientación inicial."
+- Mantener compatibilidad con dental_photo_frontal y dental_photo_abierta.
+
+Paso 4 — Datos para recibir reporte
+Campos:
+- nombre
+- email
+- teléfono/WhatsApp
+
+Copy:
+"Te mostraremos tu orientación inicial y también la guardaremos para que puedas volver a verla."
+
+Después:
+- Guardar en sessionStorage usando las mismas keys actuales si /dental/analizando depende de ellas.
+- Evitar race condition de FileReader:
+  asegurar que las fotos estén guardadas en sessionStorage antes de router.push("/dental/analizando").
+- Luego router.push("/dental/analizando").
+
+Importante:
+- No mencionar número fijo de preguntas.
+- No dejar copy antiguo sin tildes.
+- Corregir ortografía del quiz.
+- Mantener compatibilidad con /api/ai/dental-map.
+- Si /api/ai/dental-map espera ciertas answers, adaptar de forma backwards-compatible.
+- No tocar reporte todavía.
+- No tocar agendamiento.
+- No tocar HubSpot directamente, salvo que el flujo existente lo requiera.
+
+Validación:
+- npm run build.
+- Probar localmente si es posible que el funnel avance hasta /dental/analizando.
+- No deploy.
+
+Output:
+1. Archivos modificados.
+2. Nuevo flujo del quiz.
+3. Estructura de answers final.
+4. Confirmación de compatibilidad con /dental/analizando.
+5. Resultado de build.

@@ -1,0 +1,103 @@
+﻿Necesito mejorar la experiencia de captura de fotos en el flujo dental quiz, específicamente en la sección “Sube foto de tus dientes”.
+
+Objetivo:
+Cuando el usuario haga clic en “Tomar foto”, quiero que la experiencia de captura muestre ayudas visuales claras para que la persona saque mejores fotos de sus dientes.
+
+Contexto:
+Hoy ya existe flujo de captura/subida de fotos en dental quiz. Quiero mejorar solo la experiencia de cámara y guía visual.
+
+Cambios requeridos:
+
+1. Overlay de referencia dental
+Cuando el usuario abre la cámara para tomar la foto, mostrar sobre la vista de cámara:
+- un marco visual de captura
+- una silueta / layout de dientes de referencia como guía
+- esta guía debe parecerse a la referencia visual adjunta por el usuario
+- la guía debe ayudar a que la persona alinee su boca con la posición esperada
+
+2. Mensajes de ayuda dentro de la cámara
+Mostrar mensajes visibles dentro de la experiencia de cámara:
+
+Arriba:
+- “Toca el centro para enfocar”
+
+Abajo:
+- “Usa la cámara principal para obtener mejores resultados”
+
+Estos mensajes deben verse claramente sobre la UI de cámara, mobile-first.
+
+3. Mantener dos opciones de origen de foto
+Quiero que el usuario pueda:
+- Tomar foto
+- Subir desde galería
+
+No eliminar la opción de galería.
+
+4. Mejor UX al abrir cámara
+Si es posible, al apretar “Tomar foto”, abrir una experiencia de captura más guiada, no solo el input nativo desnudo.
+
+Si el proyecto ya usa una cámara custom:
+- mejorar esa UI
+Si todavía no:
+- implementar la mínima experiencia guiada posible sin romper compatibilidad móvil.
+
+5. Adaptar guía por tipo de foto
+Revisar si hoy el flujo pide:
+- foto frontal
+- foto boca abierta / segunda foto
+
+Si es posible, ajustar el texto de ayuda según el tipo de foto:
+
+Para frontal:
+- “Centra tus dientes dentro de la guía”
+
+Para boca abierta:
+- “Abre la boca para mostrar mejor dientes y encías”
+
+Si esto complica mucho, al menos dejar una guía genérica funcional.
+
+6. Preview / ayuda posterior
+Después de tomar una foto, si ya existe lógica de preview, mantenerla.
+Si es posible, permitir mostrar una sugerencia tipo:
+- “Se recomienda el ángulo Front”
+si la captura no coincide bien.
+No implementar visión computacional compleja si no existe ya. Solo deja la estructura si es fácil.
+
+7. Diseño
+La experiencia debe sentirse:
+- limpia
+- premium
+- mobile-first
+- fácil de entender
+
+8. Importante
+- No romper el flujo existente de dental quiz
+- No romper las keys actuales:
+  - dental_photo_frontal
+  - dental_photo_abierta
+- No romper /dental/analizando
+- No tocar el reporte dental ahora
+- No tocar agendamiento
+- No tocar HubSpot
+- No hacer deploy todavía
+- No instalar Bun
+- Ignorar el error no bloqueante Bun/printf
+
+9. Validación
+- npm run build
+- probar que:
+  A. aparece opción tomar foto
+  B. aparece opción subir desde galería
+  C. al abrir cámara se ve la guía visual
+  D. se ve el texto “Toca el centro para enfocar”
+  E. se ve el texto “Usa la cámara principal para obtener mejores resultados”
+  F. la captura sigue funcionando y guarda las fotos correctamente
+
+10. Output esperado
+Entregar:
+1. archivos modificados
+2. cómo quedó implementada la guía visual
+3. cómo quedó implementado el mensaje de ayuda
+4. cómo se mantiene la opción de galería
+5. resultado de npm run build
+6. cómo probarlo manualmente

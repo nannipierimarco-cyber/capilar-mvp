@@ -1,0 +1,187 @@
+﻿Necesito cambiar el agendamiento dental para usar el link oficial de agenda Dentalink de la clínica.
+
+Contexto:
+La clínica usa Dentalink como SaaS oficial para agenda, pacientes y operación.
+Queremos evitar Calendly para dental porque la reserva debe quedar directamente en Dentalink.
+Encontré este link oficial de agenda express de Dentalink:
+
+https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress
+
+Problema:
+El link primero pide seleccionar localidad, pero la clínica tiene una sola localidad. Ese paso es innecesario.
+Queremos embeber Dentalink en la página de Perfecto Labs y, si es posible, mostrar directamente el calendario sin pedir localidad.
+
+Objetivo:
+Implementar un MVP donde la página posterior al reporte dental use Dentalink agendaExpress como agenda principal, embebida en Perfecto Labs si es posible, con fallback a abrir agenda oficial.
+
+Flujo deseado:
+1. Usuario termina reporte dental.
+2. Aprieta “Confirmar presupuesto”.
+3. Va a una página dental específica, idealmente /dental/agendar/[id].
+4. La página muestra:
+   - Clínica / dirección / mapa / teléfono / horarios
+   - Profesionales
+   - Agenda Dentalink embebida
+5. El usuario agenda en Dentalink, no en Calendly.
+
+Datos de la clínica:
+Dirección:
+Pérez Valenzuela 1661, Providencia
+Cercano a Metro Pedro de Valdivia
+
+Horario:
+Lunes a Viernes: 09:00 – 18:30 hrs
+Sábado: 10:00 – 13:00 hrs
+
+Teléfono:
++56 9 5804 3937
+
+Dentalink agendaExpress:
+https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress
+
+Profesionales:
+- Dr. Ivo Fodich — Implantólogo
+- Dr. Patricio Lobos — Rehabilitador Oral
+
+Tareas:
+
+1. Revisar el flujo actual
+Revisa:
+- /dental/reporte/[id]/page.tsx
+- ruta o página actual posterior al reporte
+- /agendar-consulta
+- si existe /dental/agendar/[id]
+- cualquier componente de Calendly actual para dental
+
+2. CTA desde el reporte
+Cambiar el botón principal del reporte dental:
+De:
+- /agendar-consulta?vertical=dental&source=dental_report&reportId=...
+A:
+- /dental/agendar/[id]
+o ruta equivalente dental específica.
+
+Debe corregir cualquier bug tipo reportId=undefined.
+Usar params.id cuando sea posible.
+
+3. Crear/ajustar página dental de agenda
+Crear una página específica:
+- /dental/agendar/[id]
+
+Debe tener diseño mobile-first y premium.
+
+Estructura recomendada:
+A. Header:
+“Confirma tu presupuesto en nuestra clínica dental”
+Subtexto:
+“Agenda una evaluación presencial para revisar tu caso, validar el tratamiento recomendado y confirmar el presupuesto final.”
+
+B. Bloque destacado de dirección:
+“Pérez Valenzuela 1661, Providencia”
+“Cercano a Metro Pedro de Valdivia”
+Esta dirección debe estar muy visible.
+
+C. Horarios y teléfono:
+Lunes a Viernes: 09:00 – 18:30 hrs
+Sábado: 10:00 – 13:00 hrs
++56 9 5804 3937
+
+D. Mapa:
+Agregar iframe o link a Google Maps para Pérez Valenzuela 1661, Providencia.
+Debe ser visible y claro.
+
+E. Profesionales:
+Mostrar cards de:
+- Dr. Ivo Fodich — Implantólogo
+- Dr. Patricio Lobos — Rehabilitador Oral
+Si ya hay imágenes disponibles en public/assets o similares, usarlas.
+Si no existen, dejar estructura preparada y usar placeholder elegante.
+
+F. Agenda:
+Embeber Dentalink agendaExpress.
+
+4. Implementar iframe Dentalink
+Agregar un iframe responsive con esta URL:
+https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress
+
+El iframe debe:
+- ocupar ancho completo
+- tener altura suficiente en mobile, mínimo 720–850px
+- estar dentro de un card limpio
+- tener fallback visible:
+  “Si la agenda no carga, abre la agenda oficial aquí”
+  con botón/link al mismo Dentalink URL
+
+5. Investigar si se puede saltar selección de localidad
+Sin hacer scraping invasivo ni automatizar datos sensibles:
+- Revisar si el link Dentalink permite query params.
+- Probar, solo a nivel código/config, si hay parámetros obvios como:
+  ?localidad=
+  ?id_sucursal=
+  ?sucursal=
+  ?branch=
+  ?location=
+  ?id_localidad=
+- Si ya existe una redirección o URL interna después de seleccionar localidad, documentar cómo capturarla manualmente.
+- No implementar hacks frágiles si no hay evidencia.
+- No manipular Dentalink por scraping.
+- No automatizar selección de localidad con bots.
+
+Si no se puede saltar la localidad:
+- dejar el iframe con el flujo actual
+- agregar copy arriba:
+  “Selecciona la sucursal Providencia para ver horarios disponibles.”
+Pero dado que hay una sola localidad, intentar dejarlo lo más claro posible.
+
+6. Dentalink como principal para dental
+Para vertical dental:
+- Dentalink debe ser el CTA principal.
+- Calendly no debe aparecer como principal en esta página.
+- No romper Calendly para hair/skin.
+- No tocar /agendar-consulta para hair/skin.
+
+7. HubSpot
+Como Dentalink no envía confirmación a nuestro backend por ahora:
+- No marcar appointment_status=scheduled al solo mostrar/abrir Dentalink.
+- Si existe helper para HubSpot, opcionalmente registrar evento al cargar/click:
+  last_appointment_event = dentalink_agenda_opened
+  appointment_channel = dentalink
+  appointment_vertical = dental
+  appointment_service = dental
+Pero no marcar scheduled sin confirmación real.
+
+Si esto complica, no tocar HubSpot ahora.
+
+8. Seguridad / compatibilidad
+- No guardar datos sensibles de Dentalink.
+- No usar scraping.
+- No romper flujo de reporte.
+- No romper gated report.
+- No tocar OpenAI report.
+- No tocar P1/P2.
+- No instalar Bun.
+- No hacer deploy.
+- Ignorar error no bloqueante Bun/printf.
+
+9. Validación
+Correr:
+npm run build
+
+Verificar:
+- /dental/reporte/[id] lleva a /dental/agendar/[id]
+- no hay reportId=undefined
+- /dental/agendar/[id] carga
+- se ve dirección claramente
+- se ve mapa
+- se ve iframe Dentalink o fallback
+- no pide email nuevamente en Perfecto Labs
+- hair/skin no se rompen
+
+Output:
+1. Archivos modificados.
+2. Ruta final creada/actualizada.
+3. Cómo quedó el flujo desde reporte hacia agenda.
+4. Si Dentalink iframe carga o queda con fallback.
+5. Si se encontró forma de saltar selección de localidad.
+6. Resultado de npm run build.
+7. Cómo testear manualmente.

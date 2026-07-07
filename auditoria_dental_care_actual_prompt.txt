@@ -1,0 +1,119 @@
+﻿Necesito que audites cómo está construido actualmente el flujo y la landing de Dental Care en Perfecto Labs.
+
+No modifiques código todavía. Solo diagnóstico.
+
+Objetivo:
+Quiero entender exactamente cómo funciona hoy la página Dental Care y su flujo completo antes de rediseñarlo.
+
+Revisa el proyecto y documenta:
+
+1. Landing dental actual
+- Ruta exacta de la página dental.
+- Archivo principal.
+- Componentes usados.
+- Copy actual.
+- CTAs actuales.
+- A dónde lleva cada CTA.
+- Si existe una página específica tipo /dental, /dental-care, /dental/reporte, /quiz dental, etc.
+
+2. Flujo actual del usuario dental
+Mapea paso a paso:
+- dónde empieza el usuario
+- si responde preguntas
+- si sube fotos
+- si se genera reporte
+- dónde ve el reporte
+- cómo llega a agendar
+- cómo se pasa vertical=dental
+- si el flujo usa order_id, report_id, intake_id o medical_review_id
+- si el usuario puede agendar sin reporte
+
+3. Carga de fotos / diagnóstico dental
+Revisa:
+- componentes de upload de fotos
+- APIs relacionadas
+- cómo se guardan las fotos
+- cómo se genera el reporte dental
+- dónde está el prompt o lógica de análisis dental
+- qué datos se guardan en Supabase
+
+4. Página de reporte dental
+Revisa:
+- ruta /dental/reporte/[id] o equivalente
+- archivo principal
+- qué datos muestra
+- qué CTA tiene
+- cómo conecta con agendamiento
+
+5. Agendamiento
+Revisa:
+- /agendar-consulta
+- cómo recibe vertical=dental
+- cómo filtra doctores
+- cómo usa doctor_profiles
+- cómo muestra Calendly embed
+- cómo escucha calendly.event_scheduled
+- cómo llama /api/appointments/calendly-embed-scheduled
+
+6. HubSpot
+Revisa:
+- qué endpoint sincroniza HubSpot
+- qué propiedades manda
+- appointment_status
+- appointment_vertical
+- appointment_service
+- appointment_channel
+- appointment_doctor_name
+- appointment_datetime
+- last_appointment_synced_at
+- si dental está bien separado de hair/skin
+
+7. Supabase
+Identifica tablas/campos usados:
+- doctor_profiles
+- medical_reviews
+- intakes
+- orders
+- reportes dentales
+- fotos
+- cualquier tabla dental específica
+
+8. Dependencias críticas
+Dime qué NO debemos romper al rediseñar:
+- rutas usadas por links actuales
+- CTAs actuales
+- estructuras de datos
+- APIs
+- integraciones con HubSpot
+- integraciones con Calendly
+- flujo hair/skin compartido
+
+9. Problemas actuales
+Detecta:
+- inconsistencias del flujo
+- pasos confusos
+- duplicación de lógica
+- hardcodes
+- falta de vertical dental
+- riesgo de que dental use lógica capilar/skin incorrectamente
+- dónde se podría mejorar conversión
+
+10. Output esperado
+
+Entrega:
+
+A. Mapa del flujo actual dental, paso a paso.
+B. Tabla de rutas y archivos relevantes.
+C. Tabla de componentes relevantes.
+D. Tabla de APIs/endpoints relevantes.
+E. Tabla de datos Supabase involucrados.
+F. Tabla de integraciones HubSpot/Calendly.
+G. Qué está funcionando.
+H. Qué está roto o débil.
+I. Qué no debemos tocar sin cuidado.
+J. Recomendación inicial para rediseñar el flujo Dental Care.
+
+No hagas cambios.
+No implementes nada.
+No corras deploy.
+Solo diagnóstico.

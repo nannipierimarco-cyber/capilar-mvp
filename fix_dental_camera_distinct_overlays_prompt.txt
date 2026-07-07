@@ -1,0 +1,138 @@
+﻿Necesito corregir la experiencia de cámara del flujo dental.
+
+Problema actual:
+En la sección “Sube fotos de tus dientes”, cuando el usuario toma la foto frontal y cuando toma la foto de boca abierta, se está usando el mismo layout/overlay de dientes como referencia.
+
+Eso está mal porque son dos tipos de fotos distintos:
+- Foto frontal: debe guiar al usuario a centrar la sonrisa y dientes frontales.
+- Foto boca abierta: debe guiar al usuario a abrir la boca y mostrar dientes/encías/arcadas, usando un frame diferente.
+
+Objetivo:
+Crear overlays/frames distintos según el tipo de foto:
+1. Foto frontal
+2. Boca abierta
+
+Tareas:
+
+1. Revisar implementación actual de cámara dental
+Buscar:
+- DentalCareFunnel.tsx
+- componente de cámara dental si existe
+- overlay SVG de dientes
+- props/estado que indiquen si la captura es "frontal" o "abierta"
+
+2. Diferenciar el tipo de captura
+Asegurar que cuando el usuario toca:
+- “Tomar foto” en Foto frontal → se abra cámara con mode/type = "frontal"
+- “Tomar foto” en Boca abierta → se abra cámara con mode/type = "abierta"
+
+3. Overlay para foto frontal
+Debe usar una guía tipo sonrisa frontal:
+- marco horizontal suave
+- silueta de dientes frontales / sonrisa centrada
+- texto de ayuda:
+  “Centra tu sonrisa dentro de la guía”
+- microcopy:
+  “Muestra los dientes de frente, con buena luz y sin filtros”
+
+Visual:
+- más ancho que alto
+- pensado para dientes frontales
+- no debe parecer una boca abierta
+
+4. Overlay para boca abierta
+Debe usar una guía distinta:
+- marco más alto/ovalado
+- forma de boca abierta
+- indicación de arcada superior e inferior
+- puede tener dos curvas/guías: arriba y abajo
+- texto de ayuda:
+  “Abre la boca y centra dientes y encías”
+- microcopy:
+  “Intenta mostrar la mayor cantidad posible de dientes y encías”
+
+Visual:
+- más vertical/ovalado
+- debe sugerir claramente boca abierta
+- no reutilizar el mismo SVG de sonrisa frontal
+
+5. Implementación SVG
+Si el overlay actual es inline SVG:
+- separarlo en dos componentes:
+  DentalFrontalGuideOverlay
+  DentalOpenMouthGuideOverlay
+
+Si está dentro del mismo componente:
+- crear una función:
+  renderDentalGuide(mode)
+que devuelva un SVG distinto según mode.
+
+No usar assets externos si no es necesario.
+Preferir SVG inline para mantenerlo simple.
+
+6. UI de cámara
+Mantener:
+- mensaje superior “Toca el centro para enfocar”
+- bottom sheet “Usa la cámara principal para obtener mejores resultados”
+- botón cerrar
+- botón capturar
+- opción repetir / usar foto
+- fallback galería
+
+Pero cambiar el texto dentro de la cámara según tipo de foto:
+
+Para frontal:
+Título/ayuda:
+“Foto frontal”
+“Centra tu sonrisa dentro de la guía”
+
+Para boca abierta:
+Título/ayuda:
+“Boca abierta”
+“Abre la boca y centra dientes y encías”
+
+7. Preview
+Después de capturar:
+- mantener preview.
+- mostrar qué tipo de foto fue:
+  “Foto frontal”
+  o
+  “Boca abierta”
+- botones:
+  “Usar esta foto”
+  “Repetir”
+
+8. No romper keys
+Mantener las mismas keys y flujo:
+- dental_photo_frontal
+- dental_photo_abierta
+
+No romper:
+- /dental/analizando
+- /dental/reporte
+- gated report
+- HubSpot
+- Dentalink
+- Calendly/hair/skin
+
+9. Validación
+Correr:
+npm run build
+
+Test manual:
+A. Ir a /dental/quiz
+B. Llegar a sección fotos
+C. En Foto frontal → Tomar foto
+D. Confirmar que aparece overlay frontal / sonrisa
+E. Cerrar o tomar foto
+F. En Boca abierta → Tomar foto
+G. Confirmar que aparece overlay distinto, tipo boca abierta
+H. Confirmar que ambas fotos se guardan y el flujo sigue
+
+10. Output esperado
+Entregar:
+1. Archivos modificados.
+2. Componentes/overlays creados.
+3. Diferencia visual entre frontal y boca abierta.
+4. Resultado de npm run build.
+5. Cómo testear manualmente.

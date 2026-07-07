@@ -1,0 +1,112 @@
+﻿Necesito cambiar el flujo de captura de datos del funnel dental.
+
+Contexto:
+Hoy el funnel dental pide nombre/email/teléfono antes de generar el reporte. Queremos cambiarlo porque puede bajar conversión.
+
+Nuevo flujo deseado:
+1. Usuario responde 1–2 preguntas del quiz dental.
+2. Usuario sube o toma fotos.
+3. Sin pedir datos todavía, el sistema genera el reporte en /dental/analizando.
+4. Cuando el reporte está listo, mostrar una pantalla/modal de “Tu reporte está listo”.
+5. Para ver el reporte completo, pedir:
+   - nombre
+   - email
+   - teléfono/WhatsApp
+6. Al enviar esos datos:
+   - guardar el lead completo en Supabase usando /api/dental/lead
+   - guardar answers, analysis y photoPaths
+   - sincronizar HubSpot como lead dental
+   - desbloquear y mostrar /dental/reporte/[id]
+
+Objetivo:
+Implementar un modelo de gated report: generar valor primero, pedir datos después.
+
+Cambios requeridos:
+
+1. DentalCareFunnel
+- Eliminar o saltar el paso actual de lead antes de /dental/analizando.
+- Después de fotos, guardar answers y fotos en sessionStorage como ya hace.
+- Asegurar que las fotos se guarden bien antes de router.push("/dental/analizando").
+- No pedir nombre/email/teléfono en este componente antes de generar.
+
+2. /dental/analizando
+- Debe seguir llamando:
+  - /api/ai/dental-map
+  - /api/dental/upload-photos
+- Pero NO debe llamar todavía a /api/dental/lead si no tiene datos del usuario.
+- Debe guardar temporalmente en sessionStorage:
+  - answers
+  - analysis
+  - photoPaths
+  - uploadId
+- Cuando el análisis esté listo, redirigir a una pantalla/página de reporte bloqueado o a /dental/reporte/temp con estado locked.
+- Si es más simple, puede redirigir a /dental/reporte/temp y pasar data por sessionStorage.
+
+3. /dental/reporte/[id] o nuevo estado temporal
+- Si el reporte está en sessionStorage pero todavía no tiene lead guardado, mostrar un modal/popup bloqueante:
+  Título: “Tu pre-cotización dental está lista”
+  Texto: “Déjanos tu email y WhatsApp para mostrarte el reporte completo y enviarte una copia.”
+  Campos:
+    - nombre
+    - email
+    - teléfono/WhatsApp
+  CTA: “Ver mi reporte”
+- Mostrar detrás un preview/teaser del reporte, pero no el contenido completo.
+- El usuario no debe poder ver todo el reporte sin completar esos datos.
+
+4. Al enviar el formulario del modal
+- Llamar /api/dental/lead con:
+  - lead
+  - answers
+  - analysis
+  - photoPaths
+- Recibir {id, success}
+- Guardar dental_report en sessionStorage con el id real
+- Redirigir a /dental/reporte/{id}
+- En ese reporte ya mostrar contenido completo.
+
+5. /api/dental/lead
+- Mantener compatibilidad con el flujo actual.
+- Asegurar que sincroniza HubSpot como lead dental:
+  - appointment_vertical = dental
+  - appointment_service = dental
+  - appointment_channel = dental_report
+  - last_appointment_event = dental_report_created
+- No marcar appointment_status=scheduled porque todavía no agendó.
+
+6. UX del modal
+Copy sugerido:
+Título:
+“Tu pre-cotización dental está lista”
+
+Subtítulo:
+“Generamos una orientación inicial con posibles tratamientos y rangos referenciales de precio. Déjanos tus datos para mostrarte el reporte completo y enviarte una copia.”
+
+Campos:
+- Nombre
+- Email
+- WhatsApp
+
+CTA:
+“Ver mi reporte”
+
+Microcopy:
+“Tu información se usa para enviarte el reporte y ayudarte a agendar una evaluación si decides avanzar.”
+
+7. Importante
+- No romper /agendar-consulta?vertical=dental.
+- No tocar Calendly embed.
+- No tocar HubSpot appointment sync.
+- No implementar pagos.
+- No implementar no-show.
+- No usar webhook Calendly.
+- No instalar Bun.
+- Ignorar el error no bloqueante Bun/printf.
+- Correr npm run build al final.
+
+Output:
+1. Archivos modificados.
+2. Nuevo flujo implementado.
+3. Cómo se guarda el reporte antes y después del lead.
+4. Resultado de npm run build.
+5. Cómo testear el flujo end-to-end.

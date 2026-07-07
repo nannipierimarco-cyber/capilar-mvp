@@ -1,0 +1,114 @@
+﻿Necesito implementar un workaround para activar HubSpot desde Calendly embed, sin depender todavía del webhook de Calendly.
+
+Contexto:
+El webhook de Calendly no se pudo crear porque la cuenta/token parece estar en plan Free. Pero sí tenemos un link de Calendly funcional para testear:
+
+https://calendly.com/nannipierimarco/new-meeting-1
+
+Queremos usar este link dentro de la página:
+
+/agendar-consulta?vertical=dental
+
+Objetivo:
+Cuando el usuario agenda una consulta desde el Calendly embed dentro de /agendar-consulta?vertical=dental, el frontend debe detectar el evento calendly.event_scheduled y llamar a un endpoint backend para sincronizar esa cita con HubSpot.
+
+Flujo deseado:
+1. Usuario entra a /agendar-consulta?vertical=dental
+2. La página filtra doctores por vertical = dental
+3. Muestra el Calendly embed del doctor dental
+4. Usuario agenda dentro del embed
+5. El frontend escucha window.postMessage de Calendly
+6. Cuando recibe calendly.event_scheduled, obtiene al menos:
+   - event.uri
+   - invitee.uri
+7. El frontend llama a un endpoint backend interno, por ejemplo:
+   POST /api/appointments/calendly-embed-scheduled
+8. El backend usa esas URIs y/o datos disponibles para sincronizar HubSpot
+9. HubSpot recibe:
+   - appointment_status = scheduled
+   - appointment_vertical = dental
+   - appointment_service = dental
+   - appointment_datetime si se puede obtener
+   - appointment_doctor_name si se puede obtener
+   - appointment_channel = calendly
+   - appointment_reschedule_url si se puede obtener
+   - appointment_cancel_url si se puede obtener
+   - last_appointment_synced_at
+10. HubSpot workflow dental dispara email de confirmación.
+
+Caso de test:
+- Calendly URL: https://calendly.com/nannipierimarco/new-meeting-1
+- Doctor backend: pato@gmail.com
+- Doctor vertical: dental
+- No usar pato@gmail.com como paciente de test. Usar otro email de paciente.
+
+Necesito que revises:
+A. Si /agendar-consulta ya usa Calendly embed o redirección externa.
+B. Si ya existe un listener para Calendly postMessage.
+C. Si existe un endpoint que pueda recibir el evento scheduled desde frontend.
+D. Si ya existe una función para syncHubSpotAppointment.
+E. Qué datos están disponibles en el evento calendly.event_scheduled.
+F. Si necesitamos agregar CALENDLY_TOKEN en variables de entorno para que el backend pueda consultar:
+   - invitee.uri
+   - event.uri
+   y obtener email del paciente, fecha/hora, cancel_url, reschedule_url.
+
+Implementación mínima esperada:
+1. En la página /agendar-consulta:
+   - asegurar que el calendario se embeddea en la página, no redirige directo afuera
+   - agregar listener seguro para mensajes de Calendly
+   - detectar solo eventos calendly.event_scheduled
+   - al detectar scheduled, llamar endpoint backend con:
+     - eventUri
+     - inviteeUri
+     - vertical actual
+     - doctorId si está disponible
+     - doctorName si está disponible
+     - doctorEmail si está disponible
+     - calendlyUrl si está disponible
+
+2. Crear endpoint backend:
+   POST /api/appointments/calendly-embed-scheduled
+
+   Este endpoint debe:
+   - validar input
+   - resolver vertical = dental para este caso
+   - resolver doctor desde doctorId o calendlyUrl
+   - si existe CALENDLY_TOKEN, consultar Calendly API para obtener detalles del invitee/event
+   - obtener email del paciente
+   - obtener fecha/hora de la cita
+   - llamar syncHubSpotAppointment
+   - devolver ok: true
+
+3. Seguridad:
+   - No exponer HUBSPOT_ACCESS_TOKEN al frontend
+   - No exponer CALENDLY_TOKEN al frontend
+   - El frontend solo manda URIs y metadata
+   - El backend hace la sincronización
+   - No bloquear la UX si HubSpot falla, pero loggear error
+
+4. HubSpot:
+   Confirmar que se manda appointment_vertical = dental.
+   Confirmar que appointment_datetime se manda como epoch ms string si HubSpot lo requiere.
+   Confirmar que appointment_status = scheduled.
+
+5. Testing:
+   Darme pasos exactos:
+   - correr build
+   - deploy
+   - entrar a /agendar-consulta?vertical=dental
+   - agendar usando email de paciente test
+   - revisar logs
+   - revisar contacto en HubSpot
+   - revisar workflow dental
+
+Importante:
+- No implementar P1/P2.
+- No implementar recordatorios.
+- No implementar no-show.
+- No implementar deals.
+- No hacer refactor grande.
+- Mantener el webhook Calendly existente, pero no depender de él para este test.
+- Si falta CALENDLY_TOKEN en env, indicarlo claramente.
+- Si el embed no entrega suficiente información para obtener email/fecha, usar Calendly API con invitee.uri/event.uri.
+- Si hay dudas, primero explícame el plan antes de modificar.

@@ -1,0 +1,201 @@
+﻿Necesito corregir la página de agendamiento dental posterior al reporte.
+
+Contexto:
+La última implementación no quedó bien por dos razones:
+1. Quitó o dejó de mostrar las fotos de los profesionales.
+2. Al hacer click en “Confirmar presupuesto”, lleva a /dental/agendar/[id] pero redirige automáticamente al calendario Dentalink. Eso NO es lo que queremos.
+
+Nuevo objetivo:
+La página /dental/agendar/[id] debe ser una página de conversión, no una pantalla de redirección.
+
+El usuario debe ver primero:
+- la clínica
+- la dirección
+- el mapa
+- los profesionales con sus fotos
+- información de confianza
+
+Y recién en la parte inferior debe ver el calendario Dentalink embebido para reservar.
+
+NO debe haber autoredirect.
+
+Flujo correcto:
+1. Usuario termina reporte dental.
+2. Hace click en “Confirmar presupuesto”.
+3. Llega a /dental/agendar/[id].
+4. Ve la información de la clínica y los doctores.
+5. Abajo ve el calendario Dentalink embebido.
+6. Si el calendario no carga, tiene botón “Abrir agenda oficial”.
+
+Datos de la clínica:
+Dirección:
+Pérez Valenzuela 1661, Providencia
+Cercano a Metro Pedro de Valdivia
+
+Horario:
+Lunes a Viernes: 09:00 – 18:30 hrs
+Sábado: 10:00 – 13:00 hrs
+
+Teléfono:
++56 9 5804 3937
+
+Profesionales:
+1. Dr. Ivo Fodich
+   Especialidad: Implantólogo
+
+2. Dr. Patricio Lobos
+   Especialidad: Rehabilitador Oral
+
+Dentalink principal:
+https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress/1
+
+Tareas:
+
+1. Revisar /dental/agendar/[id]
+- Eliminar cualquier autoredirect automático a Dentalink.
+- Si hay lógica con searchParam autoredirect=1, quitarla o ignorarla.
+- La página debe permanecer en Perfecto Labs.
+
+2. CTA desde /dental/reporte/[id]
+- El botón “Confirmar presupuesto” debe llevar a:
+  /dental/agendar/[id]
+- No agregar ?autoredirect=1.
+- No mandar a /agendar-consulta.
+- No generar reportId=undefined.
+
+3. Restaurar fotos de profesionales
+- Buscar si las fotos de los doctores ya existen en public/, assets/ o en algún componente anterior.
+- Si existen, usarlas.
+- Si no existen, dejar placeholders elegantes y TODO claro para reemplazarlas.
+- Pero NO eliminar la sección de profesionales.
+- La sección debe mostrar dos cards:
+  - foto
+  - nombre
+  - especialidad
+- Debe verse premium y mobile-first.
+
+4. Estructura de la página /dental/agendar/[id]
+
+Orden recomendado:
+
+A. Hero:
+Título:
+“Confirma tu presupuesto en nuestra clínica dental”
+
+Subtítulo:
+“Agenda una evaluación presencial para revisar tu caso, validar el tratamiento recomendado y confirmar el presupuesto final.”
+
+B. Bloque de dirección muy visible:
+Título:
+“Ubicación de la clínica”
+
+Texto destacado:
+“Pérez Valenzuela 1661, Providencia”
+
+Subtexto:
+“Cercano a Metro Pedro de Valdivia”
+
+La dirección debe estar arriba y ser muy clara.
+
+C. Horarios y contacto:
+- Lunes a Viernes: 09:00 – 18:30 hrs
+- Sábado: 10:00 – 13:00 hrs
+- +56 9 5804 3937
+
+D. Mapa:
+- Mostrar mapa embebido o iframe de Google Maps para Pérez Valenzuela 1661, Providencia.
+- Agregar botón “Abrir en Google Maps”.
+
+E. Profesionales:
+Título:
+“Especialistas que revisarán tu caso”
+
+Cards:
+- Dr. Ivo Fodich — Implantólogo
+- Dr. Patricio Lobos — Rehabilitador Oral
+
+Usar fotos si están disponibles.
+Mantener diseño premium.
+
+F. Agenda:
+Título:
+“Elige tu fecha y hora”
+
+Subtexto:
+“La reserva se realiza directamente en la agenda oficial de la clínica.”
+
+Embed:
+iframe con:
+https://9e93d9de54e8b651346cd4aae17ad9f6b1221485.agenda.softwaredentalink.com/agendas/agendaExpress/1
+
+El iframe debe:
+- estar abajo de la página, después de clínica/doctores
+- ocupar ancho completo
+- tener altura suficiente: 800px mínimo en mobile
+- estar dentro de una card limpia
+- NO bloquear visualmente el resto de la página
+
+Fallback:
+Debajo o encima del iframe mostrar botón:
+“Abrir agenda oficial”
+
+Ese botón abre el mismo link en nueva pestaña o misma pestaña.
+
+5. Si iframe se bloquea
+No intentar hacks.
+No automatizar clicks.
+No usar scraping.
+Solo mantener el fallback “Abrir agenda oficial”.
+
+6. Diseño
+La página debe verse:
+- premium
+- clara
+- confiable
+- orientada a conversión
+- mobile-first
+
+Evitar que parezca una simple redirección.
+La página tiene que aumentar confianza antes de que el usuario reserve.
+
+7. HubSpot
+No marcar appointment_status=scheduled solo por ver la página.
+No tocar HubSpot por ahora.
+
+8. No hacer
+- No usar autoredirect.
+- No remover fotos de profesionales.
+- No usar scraping.
+- No automatizar Dentalink.
+- No tocar hair/skin.
+- No romper Calendly para hair/skin.
+- No tocar OpenAI report.
+- No tocar gated report.
+- No instalar Bun.
+- No hacer deploy todavía.
+- Ignorar error no bloqueante Bun/printf.
+
+9. Validación
+Correr:
+npm run build
+
+Verificar:
+- Desde /dental/reporte/[id], botón “Confirmar presupuesto” lleva a /dental/agendar/[id].
+- No hay autoredirect.
+- La página muestra dirección claramente.
+- La página muestra mapa.
+- La página muestra profesionales con fotos o placeholders.
+- El calendario Dentalink aparece embebido abajo.
+- Hay botón fallback “Abrir agenda oficial”.
+- No se pide email nuevamente.
+- No hay reportId=undefined.
+- Hair/skin no se rompen.
+
+Output esperado:
+1. Archivos modificados.
+2. Cómo quedó el flujo final.
+3. Cómo se muestran las fotos de doctores.
+4. Cómo se muestra el mapa.
+5. Cómo se muestra Dentalink embed.
+6. Resultado de npm run build.
+7. Cómo testear manualmente.

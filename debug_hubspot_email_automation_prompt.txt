@@ -1,0 +1,137 @@
+﻿Necesito que ejecutes directamente un diagnóstico end-to-end de la automatización HubSpot para la cita dental.
+
+Contexto:
+Estamos usando el workaround de Calendly embed, no el webhook de Calendly.
+El endpoint esperado es:
+POST /api/appointments/calendly-embed-scheduled
+
+El objetivo del flujo es:
+1. Usuario agenda en /agendar-consulta?vertical=dental
+2. Frontend detecta calendly.event_scheduled
+3. Frontend llama /api/appointments/calendly-embed-scheduled
+4. Backend sincroniza HubSpot
+5. HubSpot contacto queda con:
+   - appointment_status = scheduled
+   - appointment_vertical = dental
+   - appointment_channel = calendly
+   - appointment_service = dental
+   - appointment_doctor_name
+   - last_appointment_synced_at
+6. Workflow HubSpot dental debería mandar email.
+
+Problema:
+Hicimos una prueba y el usuario no recibió el email de HubSpot.
+No quiero revisar manualmente 10 cosas. Necesito que tú ejecutes diagnóstico desde código/scripts.
+
+Tareas:
+
+A. Inspección de código
+1. Revisa /agendar-consulta y confirma:
+   - si el listener de Calendly embed está implementado
+   - si escucha calendly.event_scheduled
+   - si llama a /api/appointments/calendly-embed-scheduled
+   - qué payload manda
+
+2. Revisa /api/appointments/calendly-embed-scheduled y confirma:
+   - qué input espera
+   - cómo resuelve email del paciente
+   - cómo resuelve vertical dental
+   - cómo resuelve doctor
+   - si llama syncHubSpotAppointment
+   - qué logs emite
+
+3. Revisa syncHubSpotAppointment y confirma:
+   - qué propiedades manda a HubSpot
+   - si appointment_vertical se manda correctamente
+   - si appointment_status = scheduled
+   - si last_appointment_synced_at se actualiza
+
+B. Crear script de test directo backend → HubSpot
+Crea un script temporal seguro en scripts/test-hubspot-dental-sync.ts que:
+1. Reciba TEST_EMAIL desde variable de entorno.
+2. Llame directamente a syncHubSpotAppointment con:
+   - email = TEST_EMAIL
+   - appointmentStatus/status = scheduled
+   - vertical = dental
+   - service = dental
+   - channel = calendly
+   - doctorName = "Pato Dental Test"
+   - appointmentDatetime = mañana en ISO si la función lo permite
+   - cancelUrl = "https://calendly.com/nannipierimarco/new-meeting-1"
+   - rescheduleUrl = "https://calendly.com/nannipierimarco/new-meeting-1"
+3. Use el cliente/helper existente de HubSpot.
+4. No exponga tokens.
+5. Loguee claramente:
+   - contacto creado/actualizado
+   - propiedades enviadas
+   - respuesta de HubSpot
+   - errores si existen
+
+C. Crear script de verificación de contacto
+Crea un script temporal en scripts/check-hubspot-appointment-contact.ts que:
+1. Reciba TEST_EMAIL desde env.
+2. Busque el contacto en HubSpot por email.
+3. Imprima estas propiedades:
+   - email
+   - firstname
+   - appointment_status
+   - appointment_vertical
+   - appointment_channel
+   - appointment_service
+   - appointment_doctor_name
+   - appointment_datetime
+   - last_appointment_synced_at
+   - last_appointment_event
+4. Si el contacto no existe, imprimirlo claramente.
+5. Si existe pero faltan propiedades, indicar cuáles faltan.
+
+D. Ejecutar diagnóstico
+1. Primero corre npm run build.
+2. Si build falla, corrige el error mínimo.
+3. Luego ejecuta el test directo con un email de prueba.
+   Usa este email si no te paso otro:
+   marco.nannipieri+hubspot-dental-test@gmail.com
+
+Comando esperado:
+$env:TEST_EMAIL="marco.nannipieri+hubspot-dental-test@gmail.com"
+npx tsx scripts/test-hubspot-dental-sync.ts
+npx tsx scripts/check-hubspot-appointment-contact.ts
+
+E. Interpretación automática
+Después de correr los scripts, dame un diagnóstico con esta lógica:
+
+Caso 1:
+Si el contacto queda con appointment_status=scheduled y appointment_vertical=dental:
+→ El backend y HubSpot sync funcionan.
+→ Si no llegó email, el problema está en workflow/email HubSpot.
+→ Indicar exactamente qué revisar/configurar en workflow, pero sin pedirme revisar código.
+
+Caso 2:
+Si el contacto no se actualiza:
+→ El problema está en syncHubSpotAppointment, token, propiedades, permisos o tipos.
+→ Corregir el mínimo necesario.
+
+Caso 3:
+Si el script directo funciona pero el flujo embed no:
+→ El problema está en /agendar-consulta o /api/appointments/calendly-embed-scheduled.
+→ Agregar logs claros y corregir el mínimo necesario.
+
+F. No hacer
+- No implementar P1/P2.
+- No implementar recordatorios.
+- No implementar no-show.
+- No tocar deals.
+- No hacer refactor grande.
+- No exponer tokens.
+- No depender del webhook Calendly.
+- No instalar Bun.
+- Ignorar el hook Bun not found / printf permission denied porque es no bloqueante.
+
+Output final esperado:
+1. Archivos revisados.
+2. Scripts creados.
+3. Resultado de npm run build.
+4. Resultado del test directo HubSpot.
+5. Resultado de la verificación del contacto.
+6. Diagnóstico final: el problema está en código/backend, HubSpot sync, workflow o email.
+7. Próximo paso único recomendado.

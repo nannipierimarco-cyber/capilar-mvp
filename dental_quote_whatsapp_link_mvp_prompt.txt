@@ -1,0 +1,292 @@
+﻿Necesito implementar el MVP de subida de cotizaciones dentales externas y envío automático por WhatsApp a la clínica.
+
+IMPORTANTE:
+Vamos con la Opción A:
+- NO mandar el PDF como archivo adjunto por WhatsApp.
+- SÍ mandar un mensaje de WhatsApp con un link al documento subido.
+
+Contexto:
+Perfecto Labs tiene una sección dental donde los pacientes podrán subir cotizaciones/presupuestos que recibieron en otras clínicas.
+Queremos que la clínica reciba automáticamente la información por WhatsApp para revisar y contactar al paciente.
+
+Número WhatsApp clínica:
++56958043937
+
+Flujo MVP:
+1. Usuario completa formulario:
+   - nombre
+   - RUT
+   - teléfono
+   - email
+   - archivo de cotización
+   - tratamiento cotizado opcional
+   - monto cotizado opcional
+   - clínica donde cotizó opcional
+
+2. El sistema:
+   - valida los datos
+   - sube el archivo a Supabase Storage
+   - guarda registro en Supabase
+   - genera link accesible al documento
+   - manda WhatsApp a la clínica con datos + link
+   - muestra success al usuario
+
+Mensaje WhatsApp esperado:
+
+Nueva cotización dental recibida en Perfecto Labs 🦷
+
+Paciente: {{fullName}}
+RUT: {{rut}}
+Teléfono: {{phone}}
+Email: {{email}}
+
+Tratamiento cotizado: {{treatmentType || "No informado"}}
+Monto cotizado: {{quotedAmount || "No informado"}}
+Clínica origen: {{externalClinicName || "No informada"}}
+
+Ver cotización:
+{{fileUrl}}
+
+Acción sugerida:
+Contactar al paciente y ofrecer una mejor propuesta.
+
+Tareas:
+
+1. Revisar estructura actual
+Buscar si ya existe:
+- sección/página de subir cotización dental
+- endpoint dental relacionado
+- helpers de Supabase Storage
+- integración WhatsApp existente
+- tabla o bucket dental existente
+
+No romper:
+- dental quiz
+- dental reporte
+- dental agendamiento
+- hair/skin
+- HubSpot
+- Calendly
+
+2. Crear tabla Supabase
+Crear SQL/migration para:
+
+dental_quote_uploads
+
+Campos:
+- id uuid primary key default gen_random_uuid()
+- full_name text not null
+- rut text not null
+- phone text not null
+- email text not null
+- treatment_type text null
+- quoted_amount text null
+- external_clinic_name text null
+- file_url text not null
+- file_path text not null
+- original_file_name text null
+- file_mime_type text null
+- status text not null default 'submitted'
+- whatsapp_sent_at timestamptz null
+- whatsapp_error text null
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+
+Status permitidos:
+- submitted
+- sent_to_clinic
+- failed_to_send
+- contacted
+- won
+- lost
+
+Si el proyecto ya usa constraints/checks, agregar constraint.
+Si el proyecto ya usa trigger updated_at, reutilizar patrón.
+
+3. Supabase Storage
+Crear o documentar bucket:
+dental-quotes
+
+Preferencia:
+- bucket privado + signed URL si ya existe patrón en el proyecto.
+- Si eso complica para MVP, usar bucket público temporalmente y dejar TODO claro para hacerlo privado después.
+
+Ruta sugerida:
+dental-quotes/{quoteId}/{safeFileName}
+
+Tipos permitidos:
+- application/pdf
+- image/jpeg
+- image/png
+- image/webp
+
+Tamaño máximo:
+10MB
+
+4. Crear endpoint backend
+Crear endpoint:
+
+POST /api/dental/quote-upload
+
+Debe recibir multipart/form-data:
+- fullName
+- rut
+- phone
+- email
+- treatmentType opcional
+- quotedAmount opcional
+- externalClinicName opcional
+- consent
+- file
+
+Validaciones server-side:
+- fullName requerido
+- rut requerido
+- phone requerido
+- email requerido
+- consent requerido
+- file requerido
+- tipo de archivo permitido
+- tamaño máximo
+
+Proceso:
+A. generar quoteId
+B. sanitizar nombre de archivo
+C. subir archivo a Supabase Storage
+D. generar fileUrl
+E. insertar registro en dental_quote_uploads con status submitted
+F. enviar WhatsApp a la clínica con fileUrl
+G. si WhatsApp ok:
+   - actualizar status = sent_to_clinic
+   - whatsapp_sent_at = now()
+H. si WhatsApp falla:
+   - actualizar status = failed_to_send
+   - whatsapp_error = error
+I. responder JSON al frontend
+
+5. WhatsApp helper
+Buscar si ya existe integración WhatsApp en el proyecto.
+Si existe, reutilizarla.
+
+Si no existe, crear helper server-side:
+
+sendWhatsAppTextMessage({ to, body })
+
+Debe usar variables:
+- WHATSAPP_ACCESS_TOKEN
+- WHATSAPP_PHONE_NUMBER_ID
+- CLINIC_WHATSAPP_TO
+
+CLINIC_WHATSAPP_TO default:
+56958043937
+
+Endpoint Meta recomendado:
+POST https://graph.facebook.com/v20.0/{WHATSAPP_PHONE_NUMBER_ID}/messages
+
+Payload para texto:
+{
+  "messaging_product": "whatsapp",
+  "to": "56958043937",
+  "type": "text",
+  "text": { "body": "..." }
+}
+
+Importante:
+- No exponer tokens al frontend.
+- No hardcodear WHATSAPP_ACCESS_TOKEN.
+- Si faltan env vars, guardar error claro en whatsapp_error.
+- Si WhatsApp falla por template requirement, registrar error y devolver mensaje claro.
+
+6. Frontend
+Si ya existe página/sección de cotización dental, conectarla.
+Si no existe, crear página:
+
+/dental/cotizacion
+
+Formulario:
+- Nombre
+- RUT
+- WhatsApp / teléfono
+- Email
+- Tratamiento cotizado opcional
+- Monto cotizado opcional
+- Clínica donde cotizó opcional
+- Upload archivo
+- Checkbox consentimiento requerido
+
+Texto consentimiento:
+“Autorizo a Perfecto Labs a compartir mi cotización y datos de contacto con una clínica dental asociada para recibir una mejor propuesta.”
+
+Botón:
+“Subir cotización”
+
+Success:
+“Recibimos tu cotización. La clínica la revisará y te contactará con una mejor propuesta.”
+
+Error:
+Mostrar error amigable.
+
+7. UX
+La página debe sentirse:
+- simple
+- confiable
+- mobile-first
+- orientada a conversión
+
+Copy sugerido:
+Título:
+“¿Ya tienes una cotización dental?”
+
+Subtítulo:
+“Súbela y revisaremos si una clínica asociada puede ofrecerte una mejor propuesta.”
+
+Bullets:
+- Sube tu presupuesto en PDF o imagen
+- Lo revisa una clínica dental asociada
+- Te contactan con una mejor alternativa
+
+8. Seguridad / privacidad
+- No loguear datos sensibles innecesariamente.
+- Validar todo server-side.
+- No exponer service role al frontend.
+- RUT y cotización son sensibles.
+- Preferir signed URL.
+- Si usas signed URL, que dure 14 días.
+
+9. No hacer
+- No mandar PDF adjunto por WhatsApp.
+- No tocar reporte dental.
+- No tocar quiz dental.
+- No tocar agendamiento dental.
+- No tocar hair/skin.
+- No tocar HubSpot salvo que ya exista patrón muy simple.
+- No instalar Bun.
+- No hacer deploy todavía.
+- Ignorar errores no bloqueantes Bun/printf.
+
+10. Validación
+Correr:
+npm run build
+
+Probar manualmente:
+- subir PDF válido
+- subir JPG/PNG válido
+- archivo inválido debe fallar
+- archivo >10MB debe fallar
+- sin consentimiento debe fallar
+- registro queda en Supabase
+- archivo queda en Storage
+- WhatsApp se intenta mandar a 56958043937
+- si WhatsApp ok, status sent_to_clinic
+- si WhatsApp falla, status failed_to_send y whatsapp_error populated
+- frontend muestra success/error correctamente
+
+Output esperado:
+1. Archivos modificados.
+2. SQL/migration requerida.
+3. Variables de entorno necesarias.
+4. Ruta creada o conectada.
+5. Cómo se genera el link del archivo.
+6. Cómo se manda WhatsApp.
+7. Resultado de npm run build.
+8. Cómo testear manualmente.

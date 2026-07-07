@@ -1,0 +1,159 @@
+﻿Necesito diagnosticar por qué el flujo de subida de cotizaciones dentales ya guarda correctamente, pero no llega el WhatsApp a la clínica.
+
+Contexto:
+El formulario de cotización dental ahora funciona y guarda la solicitud.
+Sin embargo, el WhatsApp automático a la clínica no llega.
+
+Número destino de la clínica:
+CLINIC_WHATSAPP_TO=56998056526
+
+Variables esperadas:
+WHATSAPP_ACCESS_TOKEN
+WHATSAPP_PHONE_NUMBER_ID
+CLINIC_WHATSAPP_TO
+
+Objetivo:
+Diagnosticar y corregir el envío de WhatsApp. Necesito saber si:
+- no se está llamando el helper,
+- faltan env vars,
+- Meta está devolviendo error,
+- el token/phone_number_id está mal,
+- el número destino está mal,
+- o Meta exige template aprobado.
+
+Tareas:
+
+1. Auditar endpoint de cotización dental
+Revisar el endpoint:
+POST /api/dental/quote-upload
+
+Confirmar:
+- que después de guardar en Supabase sí llama al helper de WhatsApp
+- que el resultado del envío se captura
+- que si falla, se guarda whatsapp_error
+- que status cambia a sent_to_clinic o failed_to_send correctamente
+- que no se está silenciando ningún error
+
+2. Auditar helper de WhatsApp
+Buscar o crear helper:
+sendWhatsAppTextMessage({ to, body })
+
+Validar que use:
+- process.env.WHATSAPP_ACCESS_TOKEN
+- process.env.WHATSAPP_PHONE_NUMBER_ID
+- process.env.CLINIC_WHATSAPP_TO
+
+Validar formato:
+- to debe ser 56998056526
+- sin +
+- sin espacios
+- sin guiones
+
+Endpoint Meta:
+https://graph.facebook.com/v20.0/{WHATSAPP_PHONE_NUMBER_ID}/messages
+
+Payload texto:
+{
+  "messaging_product": "whatsapp",
+  "to": "56998056526",
+  "type": "text",
+  "text": {
+    "body": "..."
+  }
+}
+
+Headers:
+Authorization: Bearer {WHATSAPP_ACCESS_TOKEN}
+Content-Type: application/json
+
+3. Mejorar logging server-side
+Agregar logs seguros, sin imprimir token completo:
+- hasAccessToken true/false
+- phoneNumberId exists true/false
+- to
+- status HTTP de Meta
+- response body de Meta
+- message id si success
+- error message si falla
+
+No loguear el token completo.
+
+4. Guardar error real en Supabase
+Si Meta devuelve error, guardar en whatsapp_error el JSON/string del error real.
+No guardar solo “failed”.
+Necesito poder ver en Supabase si el error es:
+- invalid token
+- bad phone number id
+- recipient not allowed
+- template required
+- permission error
+- unsupported post request
+- etc.
+
+5. Crear endpoint manual de prueba
+Crear endpoint temporal o seguro:
+
+POST /api/debug/test-whatsapp
+
+Solo debe funcionar si viene header:
+x-internal-secret = process.env.INTERNAL_API_SECRET
+
+Body opcional:
+{
+  "to": "56998056526",
+  "message": "Prueba Perfecto Labs WhatsApp"
+}
+
+Debe:
+- enviar WhatsApp de prueba
+- devolver status de Meta
+- devolver response body de Meta
+- no exponer token
+
+Esto nos permite probar WhatsApp sin tener que subir cotización cada vez.
+
+6. Verificar template requirement
+Si Meta devuelve error relacionado a que no se puede enviar texto libre fuera de ventana de 24 horas, dejarlo explícito en el output.
+
+Nota:
+En WhatsApp Business API, si el usuario/destinatario no ha iniciado conversación recientemente con el número emisor, puede requerirse un template aprobado para iniciar conversación.
+Si ese es el caso, el código debe detectar el error y sugerir usar template.
+
+7. Opcional: dejar preparado template fallback
+No implementar template si no hay template aprobado todavía.
+Pero dejar TODO claro:
+- nombre template requerido
+- variables posibles
+- cómo se llamaría sendWhatsAppTemplateMessage
+
+8. No romper
+- No romper guardado de cotización
+- No romper Supabase Storage
+- No tocar dental quiz
+- No tocar reporte dental
+- No tocar agendamiento dental
+- No tocar hair/skin
+- No instalar Bun
+- No hacer deploy todavía
+- Ignorar error no bloqueante Bun/printf
+
+9. Validación
+Correr:
+npm run build
+
+Probar:
+A. En local o preview, llamar POST /api/debug/test-whatsapp con x-internal-secret correcto.
+B. Revisar response exacta de Meta.
+C. Subir una cotización y confirmar que whatsapp_error se llena si falla.
+D. Si Meta acepta, confirmar que llega WhatsApp.
+E. Si Meta rechaza por template, reportarlo claramente.
+
+Output esperado:
+1. Archivos modificados.
+2. Causa probable del WhatsApp no recibido.
+3. Qué devuelve Meta en la prueba.
+4. Si faltan env vars.
+5. Si el token/phone id parecen configurados.
+6. Si se requiere template.
+7. Resultado npm run build.
+8. Cómo testear manualmente.

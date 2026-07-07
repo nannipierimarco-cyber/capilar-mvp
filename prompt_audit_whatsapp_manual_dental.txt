@@ -1,0 +1,92 @@
+﻿Quiero hacer un audit read-only antes de implementar el botón manual de WhatsApp para clínicas dentales.
+
+IMPORTANTE:
+- No modifiques archivos.
+- No escribas código todavía.
+- No crees migrations.
+- No cambies prompts.
+- No cambies generación de reportes.
+- No ejecutes comandos destructivos.
+- No imprimas valores secretos de variables de entorno. Solo nombres de variables y si existen o no.
+- Este audit es solo para entender el estado actual del proyecto.
+
+Contexto:
+- Proyecto Next.js con Supabase y Vercel.
+- Ya agregué columnas en Supabase a la tabla public.dental_quote_requests:
+  - clinic_whatsapp_phone
+  - whatsapp_manual_message
+  - whatsapp_manual_sent_at
+  - whatsapp_manual_sent_by
+  - whatsapp_manual_status
+- Quiero implementar después un botón manual "Enviar por WhatsApp a clínica" usando wa.me, pero todavía NO quiero implementarlo.
+- La idea es entender dónde conviene hacerlo.
+
+Tu tarea:
+Haz un audit completo del proyecto y entrégame un reporte claro.
+
+Audita:
+
+1. Estructura general del proyecto
+   - framework/version si se puede detectar
+   - rutas principales
+   - estructura app/pages/components/lib
+   - dónde está el admin
+
+2. Flujo dental actual
+   - dónde se crea una solicitud/cotización dental
+   - dónde se consulta public.dental_quote_requests
+   - qué archivos están relacionados
+   - qué campos parecen usarse de dental_quote_requests
+   - qué pantalla permite ver/revisar esas solicitudes
+
+3. Admin actual
+   - rutas admin existentes
+   - componentes principales
+   - dónde sería más lógico agregar:
+     a) botón "Enviar por WhatsApp a clínica"
+     b) botón "Marcar como enviado"
+     c) estado visual del envío
+
+4. Supabase
+   - cómo se instancia Supabase en client/server
+   - si hay helpers existentes
+   - si hay server actions o API routes existentes para updates
+   - si se usan tipos generados
+   - si hay RLS o service role en el backend
+
+5. Variables de entorno
+   - lista los nombres de env vars usadas en el proyecto
+   - identifica si existen referencias a:
+     DEFAULT_CLINIC_WHATSAPP_PHONE
+     DEFAULT_CLINIC_NAME
+   - NO muestres valores secretos
+   - dime dónde deberían agregarse: .env.local y Vercel
+
+6. Vercel
+   - detecta si existe configuración de Vercel en el repo
+   - detecta scripts de build/deploy
+   - detecta riesgos de que falten variables en producción
+   - si puedes, dime qué variables debería verificar manualmente en Vercel dashboard
+
+7. Riesgos antes de implementar
+   - posibles problemas con RLS
+   - posibles problemas con admin auth
+   - posibles problemas con rutas internas privadas
+   - posibles problemas si el leadUrl apunta a una página no segura
+   - posibles problemas si faltan campos como patientName, phone, treatmentType o quoteAmount
+
+8. Recomendación de implementación
+   - dime exactamente en qué archivos conviene tocar
+   - dime si conviene server action o API route
+   - dime qué helper crearías
+   - dime cuál sería el plan mínimo y seguro
+   - dime qué NO tocarías
+
+Formato de salida:
+- Resumen ejecutivo
+- Archivos encontrados relevantes
+- Mapa del flujo dental actual
+- Variables de entorno detectadas, sin valores
+- Riesgos
+- Recomendación final de implementación
+- Próximo prompt sugerido para implementar, pero NO lo ejecutes ni hagas cambios

@@ -1,0 +1,305 @@
+﻿Necesito mejorar profundamente el output del reporte dental generado por OpenAI y la experiencia de subida de fotos.
+
+Contexto:
+El producto Dental Care cambió de foco. Ya no queremos que el reporte sea solo “análisis visual dental con IA”. Queremos que responda la pregunta principal del paciente:
+
+“¿Qué parece verse en mis dientes, qué tratamiento podría necesitar evaluar y cuánto podría costar aproximadamente?”
+
+El objetivo comercial es que el reporte entregue suficiente claridad para que el usuario quiera agendar una consulta y confirmar el presupuesto con un dentista.
+
+Estado actual:
+- El prompt actual es demasiado restrictivo.
+- El system prompt prohíbe mencionar tratamientos como blanqueamiento, ortodoncia, carillas, implantes, cirugía, etc.
+- Eso ya no sirve para el nuevo posicionamiento.
+- El user prompt buildDentalUserPrompt todavía mapea campos del quiz antiguo de 8 preguntas.
+- Con el quiz lean actual, los campos importantes son:
+  - queQuieresResolver
+  - prioridadUsuario
+- El reporte actual no está suficientemente enfocado en posibles tratamientos y rangos de precio.
+- La página de reporte debe mostrar arriba las fotos subidas por el usuario.
+- La subida de fotos debe permitir tomar foto con cámara o subir desde galería.
+
+Objetivo:
+Actualizar el prompt, schema, procesamiento y UI para que el reporte dental sea una “orientación inicial + pre-cotización referencial”, sin hacer diagnóstico definitivo.
+
+IMPORTANTE LEGAL/MÉDICO:
+El reporte puede mencionar tratamientos posibles, pero siempre como:
+- “opciones a evaluar”
+- “posibles caminos”
+- “tratamientos que un dentista podría revisar”
+- “no confirmado solo con fotos”
+- “requiere evaluación clínica”
+- “los precios son referenciales”
+No debe afirmar diagnóstico definitivo.
+No debe prometer resultados.
+No debe reemplazar evaluación odontológica.
+Debe mencionar que luz, cámara, foco, ángulo y calidad de fotos pueden afectar la lectura visual.
+
+Tareas:
+
+1. Actualizar DENTAL_MAP_SYSTEM_PROMPT
+
+Cambiar el enfoque actual.
+
+Eliminar o reemplazar reglas que dicen:
+- No recomiendes tratamientos específicos
+- No mencionar blanqueamiento, ortodoncia, carillas, implantes, cirugía
+- No elabores planes de tratamiento
+
+Nueva lógica:
+- Sí puede mencionar tratamientos dentales comunes como alternativas a evaluar.
+- Puede mencionar:
+  - limpieza / evaluación preventiva
+  - blanqueamiento
+  - resinas / restauraciones
+  - ortodoncia
+  - carillas / diseño de sonrisa
+  - coronas / rehabilitación
+  - implante dental
+  - evaluación de encías
+  - radiografía / scanner como examen necesario para confirmar
+- Siempre debe hablar en modo preliminar:
+  - “podría requerir evaluación para...”
+  - “una opción a discutir con el dentista podría ser...”
+  - “el rango referencial podría estar entre...”
+- Debe evitar:
+  - diagnóstico definitivo
+  - urgencia médica definitiva
+  - instrucciones clínicas
+  - promesas de resultado
+  - decir “necesitas X” de forma tajante
+
+2. Actualizar buildDentalUserPrompt
+
+Revisar el archivo donde vive buildDentalUserPrompt, probablemente prompts.ts.
+
+Actualizar el contexto del paciente para el quiz lean actual:
+- queQuieresResolver
+- prioridadUsuario
+
+No seguir llenando el prompt principalmente con campos antiguos que ahora llegan “no especificado”.
+
+El user prompt debe incluir:
+- problema principal declarado por el paciente
+- prioridad del paciente
+- número y tipo de fotos recibidas
+- objetivo del análisis:
+  “generar orientación inicial, posibles tratamientos a evaluar y rangos referenciales de precio”
+
+3. Actualizar JSON schema del reporte
+
+Mantener compatibilidad con campos existentes si otras partes del sistema dependen de ellos:
+- promptVersion
+- summary
+- visualFindings
+- zoneAnalysis
+- visualDashboard
+- nextStep
+- disclaimer
+
+Pero agregar nuevos campos estructurados:
+
+A. patientGoal
+{
+  "mainConcern": "...",
+  "priority": "..."
+}
+
+B. preliminaryInterpretation
+{
+  "headline": "...",
+  "description": "...",
+  "confidenceNote": "..."
+}
+
+C. treatmentOptions
+Array de objetos:
+{
+  "key": "orthodontics | whitening | veneers | implant | restoration | cleaning | gums | rehabilitation | other",
+  "label": "...",
+  "whyItMayApply": "...",
+  "whatDentistMustConfirm": "...",
+  "estimatedPriceRangeCLP": {
+    "min": number,
+    "max": number,
+    "label": "$X – $Y"
+  },
+  "complexity": "low | medium | high",
+  "priority": "low | medium | high",
+  "disclaimer": "..."
+}
+
+D. priceSummary
+{
+  "headline": "...",
+  "description": "...",
+  "ranges": [
+    {
+      "label": "Ortodoncia",
+      "range": "$900.000 – $2.800.000",
+      "whenItApplies": "..."
+    }
+  ]
+}
+
+E. costDrivers
+Array:
+{
+  "factor": "...",
+  "description": "..."
+}
+
+F. consultationCTA
+{
+  "title": "Confirma tu presupuesto con un dentista",
+  "description": "...",
+  "ctaLabel": "Agendar evaluación dental"
+}
+
+G. photoQualityDisclaimer
+String:
+Explicar que luz, cámara, foco, ángulo y calidad de imagen pueden afectar el análisis.
+
+4. Rangos referenciales de precio
+
+Incluir en el prompt estos rangos base para Chile, como referencias aproximadas:
+
+- Limpieza / evaluación: $30.000 – $80.000
+- Blanqueamiento: $80.000 – $250.000
+- Resinas / restauraciones simples: $60.000 – $180.000 por pieza
+- Ortodoncia tradicional / alineadores: $900.000 – $2.800.000
+- Carillas / diseño de sonrisa: $1.200.000 – $4.000.000+
+- Implante unitario: $600.000 – $1.500.000+
+- Corona / rehabilitación: $300.000 – $900.000+
+- Evaluación de encías / periodoncia inicial: $80.000 – $300.000+
+
+Reglas:
+- No inventar precisión falsa.
+- Usar rangos amplios.
+- Si la foto no permite inferir, decir que requiere evaluación.
+- Puede sugerir combinación de tratamientos.
+Ejemplo:
+“Podrías evaluar una combinación de ortodoncia + blanqueamiento”
+“Podrías requerir evaluación para restauración + corona, pero se necesita radiografía”
+
+5. Actualizar UI de /dental/reporte/[id]
+
+Arriba del reporte, antes del resumen, mostrar las dos fotos subidas como referencia.
+
+Debe tener una sección:
+“Fotos analizadas”
+
+Mostrar:
+- Foto frontal
+- Foto boca abierta / segunda foto, si existe
+- Si solo hay una foto, mostrar una sola y un placeholder o texto “segunda foto no subida”
+
+Agregar texto:
+“Estas fotos se usan como referencia visual. La iluminación, el ángulo, el foco y la calidad de cámara pueden afectar la orientación inicial.”
+
+6. Rediseñar el contenido del reporte
+
+Modificar la UI para priorizar:
+
+A. Header:
+“Tu orientación dental inicial”
+Subheadline:
+“Basado en tus fotos y respuestas, generamos una pre-cotización referencial para ayudarte a entender tus posibles opciones antes de ir al dentista.”
+
+B. Sección:
+“Qué parece observarse”
+Usar preliminaryInterpretation + visualFindings.
+
+C. Sección:
+“Tratamientos que podrías evaluar”
+Usar treatmentOptions.
+Cada card debe mostrar:
+- label
+- whyItMayApply
+- estimatedPriceRangeCLP.label
+- complexity
+- whatDentistMustConfirm
+
+D. Sección:
+“Rango estimado”
+Usar priceSummary.
+
+E. Sección:
+“Qué puede cambiar el precio”
+Usar costDrivers.
+
+F. CTA:
+“Confirmar mi presupuesto con un dentista”
+Link:
+/agendar-consulta?vertical=dental&source=dental_report&reportId={id}
+
+7. Mejorar CTA para conversión
+
+El reporte debe empujar agenda, sin ser agresivo.
+
+Copy sugerido:
+“Tu reporte entrega una orientación inicial. Para confirmar el tratamiento exacto, materiales, radiografías necesarias y presupuesto final, agenda una evaluación con un dentista.”
+
+Botón:
+“Confirmar presupuesto”
+
+8. Actualizar subida de fotos
+
+En DentalCareFunnel o componente relevante:
+- Al pedir foto frontal y foto abierta, ofrecer dos opciones:
+  A. Tomar foto
+  B. Subir desde galería
+
+Implementación sugerida:
+- Para tomar foto:
+  input type="file" accept="image/*" capture="environment"
+- Para galería:
+  input type="file" accept="image/*"
+- Mantener las mismas keys:
+  dental_photo_frontal
+  dental_photo_abierta
+- No romper /dental/analizando.
+
+UI copy:
+“Puedes tomar una foto ahora o subir una desde tu galería.”
+“Mientras mejor sea la iluminación, más útil será la orientación.”
+
+9. Fallbacks y compatibilidad
+
+Si OpenAI devuelve el schema viejo:
+- La UI no debe romper.
+- Mostrar visualFindings/zoneAnalysis como fallback.
+- treatmentOptions puede mostrarse vacío con mensaje:
+  “No fue posible generar alternativas de tratamiento con suficiente confianza. Agenda una evaluación para confirmar.”
+
+Si reportes antiguos no tienen treatmentOptions:
+- No romper.
+- Usar campos antiguos.
+
+10. Validación
+
+Correr:
+npm run build
+
+Si falla:
+- corregir error mínimo.
+
+No hacer:
+- No implementar P1/P2.
+- No tocar Calendly embed salvo CTA del reporte.
+- No tocar HubSpot appointment sync.
+- No cambiar rutas.
+- No hacer deploy.
+- No usar webhook Calendly.
+- No instalar Bun.
+- Ignorar error no bloqueante Bun/printf.
+
+Output:
+1. Archivos modificados.
+2. Nuevo schema o tipos agregados.
+3. Nuevo system prompt resumido.
+4. Nuevo user prompt resumido.
+5. Cómo se muestran fotos arriba del reporte.
+6. Cómo se muestran tratamientos y precios.
+7. Cómo probar el flujo.
+8. Resultado de npm run build.

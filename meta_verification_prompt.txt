@@ -1,0 +1,19 @@
+﻿Necesito agregar la metaetiqueta de verificación de dominio de Facebook/Meta al sitio Next.js.
+
+Meta tag exacta:
+<meta name="facebook-domain-verification" content="byb5izhqm0hsnmx9jztx87rutuvzus" />
+
+Instrucciones:
+1. Detecta si el proyecto usa App Router con app/layout.tsx.
+2. Si usa app/layout.tsx, agrega la verificación dentro del export const metadata usando:
+   verification: {
+     other: {
+       "facebook-domain-verification": "byb5izhqm0hsnmx9jztx87rutuvzus",
+     },
+   }
+3. Si ya existe metadata, preserva title, description y cualquier otra propiedad existente.
+4. Si ya existe verification, no lo borres; solo agrega facebook-domain-verification.
+5. Si el proyecto usa Pages Router, agrega la metaetiqueta en el Head correspondiente para que aparezca en el HTML inicial de la home.
+6. Asegúrate de que la metaetiqueta aparezca en el <head> del HTML inicial de https://www.perfectolabs.cl/.
+7. No modifiques estilos, páginas ni lógica de negocio.
+8. Al final dime exactamente qué archivo modificaste.

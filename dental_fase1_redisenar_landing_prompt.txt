@@ -1,0 +1,107 @@
+﻿Necesito rediseñar la landing /dental-care con una nueva propuesta comercial.
+
+Contexto:
+Hoy la página está demasiado enfocada en el producto/IA. Queremos enfocarla en el problema real del usuario:
+- No sabe qué tratamiento necesita.
+- No sabe cuánto podría costar.
+- Quiere claridad antes de ir a una clínica.
+- Quiere comparar opciones y rangos de precio.
+
+Nueva promesa principal:
+"Recibe una pre-cotización dental online en 30–60 segundos"
+
+La IA no debe ser el centro del mensaje. La IA es el medio. El valor principal es:
+"Entender qué podrías necesitar y cuánto podría costar antes de ir al dentista."
+
+Objetivo:
+Rediseñar SOLO /dental-care y sus componentes directos, sin romper el funnel existente.
+
+Nueva estructura de la landing:
+
+1. Hero
+Headline:
+Recibe una pre-cotización dental online en menos de 1 minuto
+
+Subheadline:
+Sube fotos de tus dientes, responde unas preguntas rápidas y recibe una orientación inicial con posibles tratamientos y rangos referenciales de precio.
+
+CTA principal:
+Obtener mi pre-cotización dental
+
+CTA secundario:
+Ver cómo funciona
+
+Notas:
+- No decir "diagnóstico definitivo".
+- Usar "orientación inicial", "pre-cotización", "rangos referenciales".
+- Dejar claro que el presupuesto final se confirma con evaluación clínica.
+
+2. Sección problema
+Título:
+Ir al dentista sin saber cuánto puede costar genera incertidumbre
+
+Mensajes clave:
+- No sabes si necesitas algo simple o un tratamiento más caro.
+- No sabes si tu caso puede requerir ortodoncia, carillas, implantes, blanqueamiento o una evaluación más profunda.
+- No quieres llegar a una consulta sin una idea previa de precio.
+- No quieres sentir que te están vendiendo algo que no entiendes.
+
+3. Sección solución
+Título:
+Primero entiende tus opciones. Después decides si agendar.
+
+Explicar que Perfecto Labs entrega:
+- Posibles caminos de tratamiento.
+- Rangos referenciales de precio.
+- Factores que pueden cambiar el costo.
+- Próximo paso recomendado.
+- Opción de agendar para confirmar presupuesto.
+
+4. Cómo funciona
+No mencionar número fijo de preguntas.
+No decir "8 preguntas".
+Usar 3 pasos simples:
+- Cuéntanos qué quieres mejorar.
+- Sube fotos de tus dientes.
+- Recibe tu orientación inicial y rangos de precio.
+
+5. Qué puede incluir el reporte
+Cards:
+- Posibles tratamientos a evaluar.
+- Rango de precio referencial.
+- Nivel de prioridad.
+- Qué puede cambiar el costo.
+- Próximo paso recomendado.
+
+6. Disclaimer médico/comercial
+Texto:
+La orientación entregada por Perfecto Labs no reemplaza una evaluación odontológica. Los precios son rangos referenciales y pueden variar según radiografías, diagnóstico clínico, materiales, complejidad y criterio profesional.
+
+7. CTA final
+Título:
+Obtén claridad antes de agendar
+
+CTA:
+Empezar mi pre-cotización
+
+Requisitos visuales:
+- Diseño premium, limpio, de healthtech.
+- Unificar paleta dental. Priorizar azul/sky/teal consistente con Perfecto Labs.
+- Evitar mezclar verde antiguo con sky blue si hoy está inconsistente.
+- Mobile first.
+- Mantener rutas actuales.
+- CTA debe seguir llevando a /dental/quiz.
+- No tocar /dental/quiz todavía.
+- No tocar /agendar-consulta.
+- No tocar HubSpot.
+- No tocar Supabase.
+
+Validación:
+- npm run build.
+- No deploy.
+
+Output:
+1. Archivos modificados.
+2. Estructura final de la landing.
+3. Copy principal implementado.
+4. Resultado de build.

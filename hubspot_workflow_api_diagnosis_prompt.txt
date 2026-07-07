@@ -1,0 +1,72 @@
+﻿El HUBSPOT_ACCESS_TOKEN ya fue actualizado y ahora GET /automation/v3/workflows devuelve 200.
+
+Necesito que diagnostiques y, si la API lo permite, soluciones el workflow dental de HubSpot.
+
+Contexto:
+- Backend → HubSpot sync ya funciona.
+- El contacto queda con:
+  appointment_status = scheduled
+  appointment_vertical = dental
+  appointment_service = dental
+  appointment_channel = calendly
+- Pero el email de HubSpot no llegó.
+- El problema está en workflow/email HubSpot.
+- No quiero pasos manuales salvo que la API realmente no permita corregirlo.
+
+Datos del listado de workflows:
+- Workflow 113545497: enabled=true, enrolled=5
+- Workflow 114275938: enabled=true, enrolled=2, creado 2026-06-04
+- El workflow dental probablemente es 114275938, pero confírmalo por criterios internos.
+
+Tareas:
+
+1. No imprimas el token.
+2. Usa HUBSPOT_ACCESS_TOKEN desde .env.local.
+3. Lee detalles completos de los workflows activos:
+   - GET /automation/v3/workflows/113545497
+   - GET /automation/v3/workflows/114275938
+   - si hay otro workflow activo que parezca dental, incluirlo.
+4. Para cada workflow, imprime resumen:
+   - id
+   - name
+   - enabled
+   - enrollment criteria / trigger
+   - re-enrollment settings
+   - actions
+   - si hay acción de email
+   - si la acción de email parece válida/publicada o si solo referencia un email id
+5. Identifica cuál workflow tiene trigger:
+   appointment_status = scheduled
+   appointment_vertical = dental
+6. Verifica si el workflow depende de appointment_datetime o appointment_service.
+   - Si depende de appointment_datetime, marcarlo como problema porque puede venir undefined.
+   - Si depende de appointment_service, ahora ya debería llegar, pero para el test preferimos no depender de service.
+7. Verifica si re-enrollment está activo.
+8. Verifica si el contacto test cumple las condiciones del workflow:
+   usa este email:
+   marco.nannipieri+hubspot-dental-test@gmail.com
+   y/o el último email test usado si está en scripts.
+9. Si la API permite editar el workflow de forma segura:
+   - dejar trigger mínimo:
+     appointment_status = scheduled
+     appointment_vertical = dental
+   - quitar dependencia de appointment_datetime
+   - quitar dependencia de appointment_service para el test
+   - activar re-enrollment por last_appointment_synced_at si el endpoint lo permite
+   - mantener acción de email existente
+10. Si la API NO permite editar el workflow:
+   - no sigas probando PUT/PATCH al azar.
+   - explícame exactamente qué descubriste y cuál sería la única acción manual necesaria en HubSpot.
+11. Después de inspeccionar/corregir, corre un test directo:
+   TEST_EMAIL=marco.nannipieri+workflow-api-test@gmail.com
+   npx tsx scripts/test-hubspot-dental-sync.ts
+   npx tsx scripts/check-hubspot-appointment-contact.ts
+12. Confirma si ese contacto cumple el trigger del workflow dental.
+
+Restricciones:
+- No tocar código productivo salvo que sea estrictamente necesario.
+- No implementar P1/P2.
+- No usar webhook Calendly.
+- No instalar Bun.
+- Ignorar el error no bloqueante de Bun/printf.
+- No imprimir secretos.

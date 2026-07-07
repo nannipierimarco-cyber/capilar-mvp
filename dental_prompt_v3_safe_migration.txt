@@ -1,0 +1,233 @@
+﻿Necesito mejorar el prompt dental existente, pero de forma segura y sin perder nada del TypeScript actual.
+
+IMPORTANTE:
+No reemplaces a ciegas el archivo actual.
+Primero debes leer el código existente y hacer una migración cuidadosa.
+
+OBJETIVO GENERAL:
+Actualizar el prompt dental de pre-cotización para que:
+1. Detecte correctamente dientes faltantes visibles.
+2. No resuma casos con múltiples dientes ausentes como simple desalineación.
+3. Elimine del reporte la tarjeta "Infografía visual dental" si viene del frontend.
+4. Explique al paciente los posibles caminos de tratamiento en lenguaje simple.
+5. Use presupuestos con la unidad correcta:
+   - implantes por diente reemplazado
+   - restauraciones por diente
+   - blanqueamiento por arcada
+   - carillas por diente y por caso
+   - ortodoncia como tratamiento completo
+   - limpieza por sesión o profundidad
+   - prótesis por tipo, caso o arcada
+6. Mantenga lenguaje preliminar, no diagnóstico.
+7. No rompa reportes antiguos ni el frontend actual.
+
+PASO 1 — AUDITORÍA DEL CÓDIGO ACTUAL:
+Busca y lee todos los archivos relacionados con:
+- DENTAL_ANALYSIS_PROMPT_VERSION
+- DENTAL_ANALYSIS_SYSTEM_PROMPT
+- buildDentalAnalysisPrompt
+- dental report
+- dental analysis types
+- treatmentOptions
+- visualFindings
+- visualDashboard
+- priceSummary
+- Infografía visual dental
+- Resumen visual generado por IA
+- dental/reporte
+- DentalReport
+- DentalAnalysis
+
+Antes de modificar, entrégame un resumen de:
+1. Archivos encontrados.
+2. Qué campos JSON espera actualmente el frontend.
+3. Qué campos vienen del prompt actual.
+4. Qué componentes renderizan la tarjeta "Infografía visual dental".
+5. Qué partes podrían romperse si cambiamos el schema.
+
+PASO 2 — MIGRACIÓN SEGURA DEL PROMPT:
+Crea una versión:
+dental_precotizacion_v3_2026_06_12
+
+Pero NO elimines campos legacy si el frontend todavía los usa.
+
+Mantén o adapta estos campos legacy si existen en el render:
+- promptVersion
+- patientGoal
+- summary
+- preliminaryInterpretation
+- visualFindings
+- zoneAnalysis
+- treatmentOptions
+- priceSummary
+- costDrivers
+- consultationCTA
+- nextStep
+- photoQualityDisclaimer
+- disclaimer
+
+Agrega campos nuevos si son útiles para la nueva UI:
+- caseSummary
+- visualSignals
+- whatSeemsToBeObserved
+- patientPriorities
+- possibleTreatmentPath
+- dentistConfirmationChecklist
+
+REGLA:
+Si el frontend actual usa treatmentOptions, entonces treatmentOptions debe seguir existiendo.
+Puedes mejorar su contenido y agregar dentro de cada option:
+- patientCategory
+- pricingType
+- estimatedUnits
+- rangePerUnitCLP
+- estimatedTotalRangeCLP
+- unitExplanation
+
+PASO 3 — REGLAS CLÍNICAS DEL PROMPT:
+El prompt debe incluir esta regla crítica:
+
+La ausencia visible de dientes es una señal prioritaria. Si en las fotos se observan espacios grandes donde deberían estar dientes, o ausencia de múltiples piezas en una arcada, debes reflejarlo claramente en el reporte.
+
+Si hay dientes faltantes visibles:
+- El headline principal debe mencionar "dientes faltantes" o "reposición de dientes a evaluar".
+- Debe incluirse un hallazgo visual con key "missing_teeth".
+- Debe incluirse una prioridad o tratamiento visible para paciente con key "replace_missing_teeth" o "implant".
+- No debes resumir el caso principalmente como "desalineación" si lo más relevante son piezas ausentes.
+- Puedes estimar de forma preliminar la cantidad de dientes visibles a evaluar, pero siempre aclarando que debe confirmarse presencialmente.
+
+PASO 4 — CATEGORÍAS SIMPLES PARA PACIENTE:
+El reporte visible para el paciente no debe usar títulos técnicos como:
+- periodoncia
+- operatoria
+- implantología
+- rehabilitación oral
+- odontología estética
+
+Usa estas categorías simples:
+1. Cuidar dientes y encías
+2. Arreglar dientes dañados
+3. Quitar dolor o infección
+4. Ordenar los dientes
+5. Mejorar la sonrisa
+6. Reponer dientes que faltan
+
+PASO 5 — RANGOS REFERENCIALES EN CHILE:
+Usa estos rangos como base:
+
+Limpieza y encías:
+- Limpieza básica: $30.000 – $80.000 por sesión
+- Limpieza profunda / tratamiento de encías: $80.000 – $300.000+ según profundidad y extensión
+
+Arreglar dientes dañados:
+- Resina / restauración simple: $60.000 – $180.000 por diente
+- Restauración compleja o reconstrucción: $180.000 – $350.000+ por diente
+- Corona / rehabilitación unitaria: $300.000 – $900.000+ por diente
+
+Dolor, infección o urgencia:
+- Consulta / evaluación de urgencia: $30.000 – $80.000
+- Tratamiento de conducto: $180.000 – $500.000+ por diente
+- Extracción simple: $60.000 – $180.000 por diente
+- Extracción compleja: $180.000 – $450.000+ por diente
+
+Ordenar los dientes:
+- Ortodoncia / brackets / alineadores: $900.000 – $2.800.000+ como tratamiento completo
+- Duración referencial: 8 – 24 meses, dependiendo del caso
+
+Mejorar la sonrisa:
+- Blanqueamiento 1 arcada: $80.000 – $150.000
+- Blanqueamiento 2 arcadas: $150.000 – $280.000
+- Resina estética / bonding: $80.000 – $250.000 por diente
+- Carilla por diente: $250.000 – $800.000+ por diente
+- Caso pequeño de carillas, 4 dientes: $1.000.000 – $3.200.000+
+- Caso medio de carillas, 6 dientes: $1.500.000 – $4.800.000+
+- Caso visible amplio, 8 a 10 dientes: $2.000.000 – $8.000.000+
+
+Reponer dientes que faltan:
+- Implante unitario con corona: $600.000 – $1.500.000+ por diente reemplazado
+- Puente dental: $700.000 – $2.000.000+ según cantidad de piezas y material
+- Prótesis removible parcial: $300.000 – $1.200.000+ según caso
+- Prótesis total: $500.000 – $1.800.000+ por arcada
+- Rehabilitación compleja: requiere evaluación presencial, radiografías y plan personalizado
+
+PASO 6 — REGLAS DE PRESUPUESTO:
+Usa siempre la unidad correcta:
+- Limpieza: por sesión o tipo de limpieza.
+- Encías: por tratamiento o nivel de profundidad.
+- Restauraciones: por diente.
+- Tratamiento de conducto: por diente.
+- Extracción: por diente.
+- Implantes: por diente reemplazado.
+- Blanqueamiento: por arcada.
+- Carillas: por diente y, si aplica, por cantidad de dientes visibles.
+- Ortodoncia/alineadores: por tratamiento completo.
+- Prótesis: por tipo de prótesis, por arcada o por caso.
+- Rehabilitación compleja: por combinación de tratamientos, siempre explicando que requiere evaluación presencial.
+
+PASO 7 — OUTPUT IDEAL:
+El reporte debe mostrar máximo 2 o 3 prioridades principales.
+
+Ejemplo de dirección para un caso con dientes faltantes:
+1. Reponer dientes que faltan
+   Podría evaluarse cómo reemplazar piezas ausentes mediante implantes, puentes o prótesis.
+   Rango referencial: desde $600.000 – $1.500.000+ por diente reemplazado si aplica implante unitario.
+   El valor final depende de cuántos dientes se reemplacen y de si se requiere puente, prótesis, injerto, radiografías o scanner.
+
+2. Arreglar dientes dañados
+   Podría haber dientes remanentes que necesiten revisión por desgaste, daño, manchas profundas o restauraciones.
+   Rango referencial: $60.000 – $350.000+ por diente, según tamaño y complejidad.
+
+3. Cuidar dientes y encías
+   Antes de tratamientos complejos, conviene confirmar salud de encías, higiene, sarro y soporte de los dientes.
+   Rango referencial: $30.000 – $300.000+ según limpieza básica o profunda.
+
+PASO 8 — TONO OBLIGATORIO:
+Siempre usar:
+- "podría evaluarse"
+- "una opción a revisar con el dentista"
+- "no se puede confirmar solo con fotos"
+- "requiere evaluación presencial"
+- "rango referencial"
+- "el valor final depende de la cantidad de dientes, complejidad y diagnóstico clínico"
+
+Nunca usar:
+- "necesitas"
+- "tienes caries"
+- "tienes infección"
+- "debes hacerte implantes"
+- "el tratamiento costará exactamente"
+- "diagnóstico confirmado"
+
+PASO 9 — FRONTEND:
+Actualiza el frontend para:
+1. Mostrar claramente si hay dientes faltantes visibles.
+2. Mostrar las 2–3 prioridades principales.
+3. Mostrar presupuesto por unidad correcta.
+4. Eliminar la tarjeta:
+   - "Infografía visual dental"
+   - "Resumen visual generado por IA"
+5. No depender de un segundo score visual.
+6. Mantener diseño limpio y mobile-first.
+
+PASO 10 — COMPATIBILIDAD:
+No rompas reportes antiguos v2.
+
+Implementa lógica defensiva:
+- Si existe patientPriorities, usa el nuevo render v3.
+- Si no existe patientPriorities pero existe treatmentOptions, usa render legacy.
+- Si falta un campo opcional, no debe romper la página.
+
+PASO 11 — VALIDACIÓN:
+Agrega o actualiza tests si existen.
+Corre:
+npm run typecheck
+npm run build
+
+PASO 12 — REPORTE FINAL:
+Al terminar, dime:
+1. Archivos modificados.
+2. Qué cambió en el prompt.
+3. Qué cambió en los types.
+4. Qué cambió en la UI.
+5. Cómo probar con un caso de dientes faltantes.
+6. Qué pendientes quedan.

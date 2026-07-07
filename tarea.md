@@ -1,42 +1,62 @@
-TAREA 1 — Calibración del prompt (ambos endpoints)
+﻿# Tarea: Agregar subida de imagenes al panel de contenido
 
-En src/app/api/mapa-capilar/analyze/route.ts, agrega estas instrucciones al final de PASS1_SYSTEM:
+## Contexto
+El panel de aprobacion en /admin/content ya funciona. Los posts tienen un 
+placeholder gris donde deberia ir la imagen. Necesitamos agregar la capacidad 
+de subir una imagen por post directamente desde el panel a Supabase Storage.
 
-"Para calibrar la escala Norwood correctamente:
-- Norwood 1-2: línea frontal intacta o mínima recesión en sienes, sin adelgazamiento visible en coronilla
-- Norwood 3: recesión moderada en sienes formando M, posible adelgazamiento leve en coronilla
-- Norwood 4: recesión profunda en sienes + adelgazamiento claro en coronilla con banda de pelo en medio
-- Norwood 5-7: pérdida extensa, zonas fusionadas
-Sé conservador — si hay duda entre dos etapas, elige la menor.
-Para el mapa de densidad, usa muy_baja solo si el cuero cabelludo es claramente visible en esa zona.
-Usa baja si hay adelgazamiento notable pero el cuero no es completamente visible.
-Usa media si la densidad es menor que lo normal pero funcional.
-Usa alta para zonas con densidad normal o superior."
+## Paso 1 - Crear bucket en Supabase Storage
 
-Haz el mismo cambio en src/app/api/ai/patient-report/route.ts agregando las mismas instrucciones al system prompt.
+Crea un bucket publico llamado 'post-images' en Supabase Storage.
+El bucket debe ser publico para que Make e Instagram puedan acceder a las URLs.
 
-TAREA 2 — Perfil clínico en /results
+Ejecuta este SQL en Supabase para asegurar las politicas correctas:
+INSERT INTO storage.buckets (id, name, public) VALUES ('post-images', 'post-images', true);
 
-En src/app/results/page.tsx, debajo del componente HairReportNew, agrega una segunda sección 
-"Tu Perfil Clínico" que muestre los datos del intake del paciente.
-La sección debe incluir:
-1. Duración de la caída (hair_loss_duration)
-2. Historial familiar (family_history: si/no)
-3. Tratamientos previos (previous_treatments array)
-4. Condiciones médicas relevantes (medical_conditions array)
-5. Medicamentos actuales (current_medications: si/no)
-6. Nivel de pérdida (loss_severity: mild/moderate/advanced)
-7. Señales de alerta - mostrar en rojo si hay: severe_irritation, heart_disease, liver_disease, kidney_disease
-8. Ruta recomendada - si journey es "transplant" mostrar "Evaluación de trasplante",
-   si es "treatment" mostrar "Tratamiento médico online"
+CREATE POLICY post_images_public_read ON storage.objects
+FOR SELECT USING (bucket_id = 'post-images');
 
-El diseño debe ser igual al resto del reporte - mismos colores (GOLD, CREAM, BORDER, DARK, MUTED),
-mismas Cards, mismo estilo de SectionTitle.
+CREATE POLICY post_images_upload ON storage.objects
+FOR INSERT WITH CHECK (bucket_id = 'post-images');
 
-Los datos del intake deben estar disponibles en la respuesta del endpoint /api/ai/patient-report.
-Si no están, modifica el endpoint para incluirlos junto al HairMapReport.
+## Paso 2 - Agregar boton de subida en cada card del panel
 
-Al final de todo el reporte, el CTA "Iniciar mi tratamiento" debe ser muy visible -
-botón grande, color dorado (#c9a84c), texto blanco, ancho completo, padding generoso.
+En la pagina /admin/content, en cada card de post:
+- Si el post NO tiene image_url: mostrar el placeholder gris actual + boton 
+  'Subir imagen' debajo del placeholder
+- Si el post SI tiene image_url: mostrar la imagen normalmente
 
-Al terminar ambas tareas, hacer commit y deploy a producción con vercel --prod.
+El boton 'Subir imagen' debe:
+- Abrir el selector de archivos del sistema operativo
+- Aceptar solo imagenes (jpg, png, webp)
+- Maximo 8MB (limite de Instagram)
+- Al seleccionar el archivo, subirlo a Supabase Storage en el bucket 
+  'post-images' con el nombre: post-{id}-{timestamp}.jpg
+- Mostrar barra de progreso mientras sube
+- Al terminar, guardar la URL publica en el campo image_url del post en 
+  la tabla scheduled_posts
+- Mostrar la imagen inmediatamente en el card sin recargar la pagina
+
+## Paso 3 - API route para actualizar image_url
+
+Crea o modifica el endpoint PUT /api/admin/posts/[id] para que tambien 
+acepte actualizacion de image_url.
+
+## Paso 4 - Mostrar indicador de completitud
+
+En cada card, mostrar un indicador visual de que tan completo esta el post:
+- Sin imagen: badge amarillo 'Falta imagen'
+- Con imagen pero sin aprobar: badge gris 'Listo para aprobar'
+- Aprobado con imagen: badge verde 'Listo para publicar'
+
+Solo los posts con imagen pueden ser aprobados. Si el usuario intenta 
+aprobar sin imagen, mostrar mensaje de error: 'Agrega una imagen antes 
+de aprobar'.
+
+## Notas importantes
+- Usar el cliente de Supabase que ya existe en el proyecto
+- La URL publica de Supabase Storage tiene el formato:
+  https://[project-id].supabase.co/storage/v1/object/public/post-images/[filename]
+- No instalar librerias nuevas
+- El upload debe funcionar directo desde el browser usando el cliente 
+  de Supabase en el frontend

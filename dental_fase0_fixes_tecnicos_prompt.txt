@@ -1,0 +1,79 @@
+﻿Necesito implementar primero los fixes técnicos base del flujo Dental Care antes de rediseñar la landing y el funnel.
+
+Contexto:
+La auditoría del flujo dental encontró que el flujo actual funciona, pero tiene bugs críticos:
+1. /dental/reporte/[id] depende de sessionStorage y se rompe al recargar.
+2. /api/dental/lead guarda overall_score y urgency_level como null por mismatch de campos.
+3. /api/dental/lead sincroniza HubSpot solo como contacto básico, sin vertical dental.
+4. /api/appointments/scheduled fallback falla porque requiere appointmentDatetime pero el form no lo envía.
+5. reportId no llega a CalendlyEmbedBooking desde /agendar-consulta.
+
+Objetivo:
+Aplicar fixes mínimos sin rediseñar todavía la UI.
+
+Tareas:
+
+1. /dental/reporte/[id]
+- Mantener el comportamiento actual con sessionStorage si existe.
+- Si sessionStorage no tiene dental_report, buscar el reporte en Supabase usando el id de la URL.
+- Leer desde dental_patients.
+- Reconstruir el objeto de reporte usando analysis JSONB, answers, photo paths y datos guardados.
+- Si el id no existe, mostrar estado amigable de "Reporte no encontrado" con CTA para crear nuevo reporte.
+- No romper el caso id=demo.
+
+2. /api/dental/lead
+- Corregir overall_score:
+  usar analysis.summary.visualScore o el campo real del schema actual.
+- Corregir urgency_level:
+  usar analysis.summary.visualRiskLevel o el campo real.
+- Mapear valores:
+  low → baja
+  medium → media
+  high → alta
+- Si el valor no existe, guardar null sin romper.
+- Confirmar que el constraint de DB siga siendo alta/media/baja.
+
+3. HubSpot en /api/dental/lead
+- Además de syncHubSpotContact básico, marcar el contacto como lead dental.
+- Usar las propiedades existentes si están disponibles:
+  appointment_vertical = dental
+  appointment_service = dental
+  appointment_channel = dental_report
+  last_appointment_event = dental_report_created
+- No poner appointment_status = scheduled en este paso porque todavía no hay cita.
+- Si existe una propiedad de lead stage o lifecycle, mantener la lógica actual.
+- No romper syncHubSpotAppointment ni el flujo de citas.
+
+4. /api/appointments/scheduled fallback
+- Revisar el fallback AppointmentBookingForm.
+- Si no hay doctor dental con Calendly, el formulario no debe romper con 400.
+- Solución mínima aceptable:
+  A. ocultar el fallback y mostrar mensaje "No hay disponibilidad online por ahora", o
+  B. permitir crear un lead de solicitud sin appointmentDatetime.
+- No inventar una fecha falsa.
+- Mantener el flujo Calendly principal intacto.
+
+5. /agendar-consulta y reportId
+- Confirmar si reportId llega en searchParams.
+- Pasar reportId a CalendlyEmbedBooking si el componente lo acepta.
+- Si no lo acepta, agregar prop opcional reportId.
+- En /api/appointments/calendly-embed-scheduled, aceptar reportId opcional y loguearlo.
+- Si es fácil, mandar reportId a HubSpot como last_appointment_event o metadata solo si ya existe propiedad. No crear nuevas propiedades sin necesidad.
+
+Validación:
+- Correr npm run build.
+- Correr scripts de test HubSpot existentes si aplican.
+- No hacer deploy.
+- No rediseñar landing.
+- No cambiar copy masivo.
+- No implementar P1/P2 de no-show.
+- No usar webhook Calendly.
+- No instalar Bun.
+- Ignorar el error no bloqueante Bun/printf.
+
+Output:
+1. Archivos modificados.
+2. Cambios realizados.
+3. Resultado de build.
+4. Riesgos o migraciones necesarias.
+5. Cómo testear manualmente el flujo mínimo.

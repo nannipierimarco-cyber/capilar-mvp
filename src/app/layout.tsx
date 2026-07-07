@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   title: "Capilar — Tratamiento capilar desde casa",
   description:
     "Evalúa tu caso, habla con un médico y recibe tu tratamiento mensual a domicilio. Minoxidil, dutasteride y más, coordinados por especialistas.",
+  verification: {
+    other: {
+      "facebook-domain-verification": "byb5izhqm0hsnmx9jztx87rutuvzus",
+    },
+  },
 };
 
 export default function RootLayout({

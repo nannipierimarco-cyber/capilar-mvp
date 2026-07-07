@@ -1,0 +1,192 @@
+﻿Necesito pulir visualmente la experiencia de cámara del flujo dental para que se vea mucho más premium, clara y parecida a una app nativa.
+
+Contexto:
+Ya existe o se está implementando una experiencia para tomar fotos en el dental quiz con:
+- opción “Tomar foto”
+- opción “Subir desde galería”
+- overlay o guía visual de dientes
+- mensajes tipo “Toca el centro para enfocar”
+- mensaje “Usa la cámara principal para obtener mejores resultados”
+
+Ahora quiero mejorar la UI/UX visual, sin reescribir toda la lógica.
+
+Objetivo:
+Hacer que la pantalla de captura dental se vea premium, simple, mobile-first y confiable, similar a una experiencia nativa de cámara guiada.
+
+Referencias visuales:
+- Cámara en pantalla completa.
+- Fondo oscuro/transparente alrededor del área de captura.
+- Marco rectangular central con esquinas redondeadas.
+- Corners blancos grandes en las esquinas del área de captura.
+- Silueta dental blanca centrada dentro del marco.
+- Mensaje superior tipo pill: “Toca el centro para enfocar”.
+- Bottom sheet blanco con el mensaje: “Usa la cámara principal para obtener mejores resultados”.
+- Botón circular grande para capturar.
+- Botón para cerrar arriba izquierda.
+- Botón para cambiar cámara si existe soporte.
+- Botón de flash si existe soporte o dejarlo visualmente desactivado si no hay lógica.
+- Animaciones suaves y sensación mobile premium.
+
+Cambios visuales requeridos:
+
+1. Pantalla de cámara full-screen
+Cuando el usuario elige “Tomar foto”, abrir una vista full-screen o modal full-screen.
+Debe ocupar toda la pantalla móvil.
+El fondo debe ser oscuro/transparente sobre el video de cámara.
+
+2. Header
+Arriba izquierda:
+- botón circular blanco con “X” para cerrar.
+- Debe volver al paso de fotos sin perder lo ya cargado.
+
+Arriba centro:
+- no es necesario mostrar logo.
+- si hay espacio, mantener limpio.
+
+3. Mensaje superior
+Mostrar una pill centrada con:
+“Toca el centro para enfocar”
+
+Estilo:
+- fondo negro/transparente
+- borde blanco sutil
+- icono de información
+- texto blanco
+- border-radius alto
+- posición superior, pero sin chocar con la barra del teléfono.
+
+4. Área de captura
+Crear un área central rectangular con:
+- aspect ratio similar a 4:3 o 16:10
+- border-radius 18–24px
+- overlay semitransparente dentro
+- corners grandes blancos en las esquinas externas, como guía de escaneo
+- silueta dental blanca centrada
+- la silueta debe ser visible pero no invasiva
+
+Si ya existe SVG de dientes:
+- reutilizarlo
+Si no existe:
+- crear un SVG inline simple de dientes en React
+- no usar assets externos
+
+5. Guía por tipo de foto
+Si la foto es frontal:
+- texto pequeño opcional dentro/abajo del marco:
+  “Centra tu sonrisa dentro de la guía”
+
+Si la foto es boca abierta:
+- texto:
+  “Abre la boca y centra dientes y encías”
+
+No saturar la pantalla.
+
+6. Controles inferiores
+Abajo, sobre el video pero arriba del bottom sheet:
+- botón circular grande de captura
+- botón secundario para galería si tiene sentido
+- botón de cambiar cámara si existe soporte
+- botón de flash si existe soporte o dejarlo como visual desactivado
+
+Si la lógica de cámara nativa no permite flash/cambiar cámara:
+- no implementar funcionalidad compleja
+- puedes dejar solo cerrar + capturar + galería
+- no romper compatibilidad.
+
+7. Bottom sheet de ayuda
+Agregar una bottom sheet blanca con:
+Título:
+“Usa la cámara principal para obtener mejores resultados”
+
+Texto secundario opcional:
+“Busca buena luz, evita filtros y mantén los dientes dentro de la guía.”
+
+Estilo:
+- fondo blanco
+- border-radius top 24px
+- handle gris arriba
+- padding generoso
+- mobile-first
+
+8. Estado después de capturar
+Después de tomar la foto:
+- mostrar preview con la foto tomada
+- mantener opción:
+  “Usar esta foto”
+  “Repetir”
+- no pasar automáticamente si la foto salió mal
+- mantener opción de volver.
+
+9. Microcopy recomendado
+Usar español claro y profesional.
+
+Textos:
+- “Toca el centro para enfocar”
+- “Usa la cámara principal para obtener mejores resultados”
+- “Centra tu sonrisa dentro de la guía”
+- “Busca buena luz y evita filtros”
+- “Usar esta foto”
+- “Repetir foto”
+
+10. Diseño general
+Debe sentirse:
+- premium
+- limpio
+- confiable
+- rápido
+- mobile-first
+- no infantil
+- no sobrecargado
+
+Colores:
+- blanco para overlay/corners/silueta
+- negro/transparente para fondo
+- azul Perfecto Labs (#0EA5E9 o similar) para acciones principales
+- mantener consistencia con dental flow
+
+11. Accesibilidad y compatibilidad
+- Botones con aria-label.
+- No bloquear galería.
+- Si getUserMedia falla, mostrar fallback amigable:
+  “No pudimos abrir la cámara. Puedes subir una foto desde tu galería.”
+- Debe funcionar en mobile Safari y Chrome.
+- No romper desktop: en desktop puede usar galería o cámara si está disponible.
+
+12. Importante técnico
+- No cambiar las keys:
+  dental_photo_frontal
+  dental_photo_abierta
+- No romper DentalCareFunnel.
+- No romper /dental/analizando.
+- No tocar reporte.
+- No tocar HubSpot.
+- No tocar Calendly.
+- No hacer deploy.
+- No instalar Bun.
+- Ignorar error no bloqueante Bun/printf.
+
+13. Validación
+Correr:
+npm run build
+
+Probar manualmente:
+A. /dental/quiz
+B. llegar al paso fotos
+C. click “Tomar foto”
+D. se abre experiencia full-screen premium
+E. se ve la silueta dental
+F. se ve “Toca el centro para enfocar”
+G. se ve bottom sheet “Usa la cámara principal para obtener mejores resultados”
+H. se puede cerrar
+I. se puede capturar
+J. se puede repetir o usar foto
+K. se guarda foto y el flujo sigue
+
+Output:
+1. Archivos modificados.
+2. Componentes creados o ajustados.
+3. Cómo quedó la UX visual.
+4. Qué funcionalidad se soporta realmente.
+5. Qué queda como visual sin funcionalidad si aplica.
+6. Resultado de npm run build.
+7. Cómo testear en mobile.

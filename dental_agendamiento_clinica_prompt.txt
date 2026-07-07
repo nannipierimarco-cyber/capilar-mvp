@@ -1,0 +1,143 @@
+﻿Necesito rediseñar el paso posterior al reporte dental.
+
+Contexto:
+Hoy el botón del reporte dental lleva a:
+ /agendar-consulta?vertical=dental&source=dental_report&reportId=undefined
+
+Problemas:
+1. reportId está llegando como undefined.
+2. La página /agendar-consulta vuelve a pedir email, lo cual ya no tiene sentido porque el usuario ya dejó sus datos al desbloquear el reporte.
+3. Para dental, el flujo ideal ahora es:
+   reporte → confirmar presupuesto → página de clínica dental con ubicación + profesionales + Calendly embebido.
+
+Objetivo:
+Crear una experiencia específica para dental que elimine fricción y lleve directo al agendamiento presencial.
+
+Quiero implementar esto:
+
+1. Nueva página dental específica de agendamiento
+Crear una página dedicada para dental, idealmente:
+- /dental/agendar/[id]
+o una ruta equivalente clara
+
+Donde [id] sea el reportId / leadId real cuando exista.
+
+2. Desde /dental/reporte/[id]
+Cambiar el botón principal “Confirmar presupuesto” para que lleve a esta nueva página dental específica.
+No debe llevar al flujo genérico actual que vuelve a pedir email.
+
+3. Contenido de la nueva página
+La página debe estar enfocada en una sola clínica dental.
+
+Título principal:
+“Confirma tu presupuesto en nuestra clínica dental”
+
+Subtítulo:
+“Agenda una evaluación presencial para revisar tu caso, validar el tratamiento recomendado y confirmar el presupuesto final.”
+
+4. Información principal de la clínica
+Mostrar de forma muy destacada:
+
+Dirección:
+Pérez Valenzuela 1661, Providencia
+Cercano a Metro Pedro de Valdivia
+
+Horario de atención:
+Lunes a Viernes: 09:00 – 18:30 hrs
+Sábado: 10:00 – 13:00 hrs
+
+Teléfono:
++56 9 5804 3937
+
+La dirección es lo más importante y debe quedar muy visible arriba.
+
+5. Mapa
+Agregar un bloque de mapa visible en la página.
+Puede ser:
+- embed de Google Maps, o
+- mapa estático / iframe + botón “Abrir en Google Maps”.
+
+Debe mostrar claramente la ubicación de Pérez Valenzuela 1661, Providencia.
+
+6. Profesionales
+Usar las dos imágenes adjuntas/provistas por el usuario para mostrar a los dos profesionales.
+
+Profesional 1:
+- Dr. Ivo Fodich
+- Implantólogo
+
+Profesional 2:
+- Dr. Patricio Lobos
+- Rehabilitador Oral
+
+La UI debe:
+- recortar/adaptar bien las imágenes
+- mostrarlas con look premium
+- nombre y especialidad debajo o sobre la foto
+- priorizar mobile
+
+No hace falta selector complejo entre médicos por ahora.
+Es una sola clínica con dos profesionales.
+
+7. Calendly embebido
+En la misma página debe aparecer directamente el calendario embebido de Calendly.
+No pedir email otra vez antes de mostrar el calendario.
+
+Si hoy ya existe lógica para embeber Calendly, reutilizarla si conviene.
+Pero el resultado final debe ser:
+- clínica visible
+- doctores visibles
+- calendario visible
+sin pasos intermedios.
+
+8. Integración con reportId
+Arreglar el bug de reportId=undefined.
+El botón desde /dental/reporte/[id] debe pasar correctamente el id.
+Si el id viene de params.id, usar params.id.
+Si existe mejor fuente (ej. dental_lead_id), usarla.
+No dejar undefined.
+
+9. Comportamiento deseado
+Nuevo flujo:
+- usuario termina reporte
+- aprieta “Confirmar presupuesto”
+- llega a página dental específica
+- ve dirección, mapa, profesionales y calendario
+- agenda directamente
+
+10. UX / diseño
+La página debe sentirse:
+- premium
+- clara
+- mobile-first
+- muy orientada a conversión
+
+Orden sugerido:
+A. título y subtítulo
+B. dirección / horario / teléfono
+C. mapa
+D. profesionales
+E. Calendly embebido
+
+11. No hacer
+- No volver a pedir email en esta página.
+- No tocar hair/skin.
+- No romper el flujo genérico si otros verticales lo usan.
+- No instalar Bun.
+- Ignorar error no bloqueante Bun/printf.
+- No hacer deploy todavía.
+
+12. Validación
+- npm run build
+- revisar que el botón desde /dental/reporte/[id] apunte bien
+- confirmar que ya no aparece reportId=undefined
+- confirmar que ya no se pide email de nuevo para dental
+
+Output:
+1. Archivos modificados.
+2. Ruta final creada/ajustada.
+3. Cómo quedó el flujo dental.
+4. Cómo se resolvió reportId undefined.
+5. Cómo se integró el mapa.
+6. Cómo se integró el Calendly embebido.
+7. Resultado de npm run build.

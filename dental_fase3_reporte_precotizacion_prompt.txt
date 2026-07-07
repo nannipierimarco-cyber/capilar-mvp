@@ -1,0 +1,123 @@
+﻿Necesito rediseñar /dental/reporte/[id] para que el reporte dental esté enfocado en opciones de tratamiento y rangos referenciales de precio.
+
+Contexto:
+La nueva propuesta de Dental Care es:
+"Recibe una pre-cotización dental online en 30–60 segundos."
+
+El reporte no debe ser solo análisis visual. Debe ayudar al usuario a entender:
+- qué podría necesitar evaluar
+- qué tratamientos podrían aplicar
+- cuánto podría costar aproximadamente
+- qué factores pueden cambiar el precio
+- cuál es el próximo paso
+
+Objetivo:
+Modificar la UI del reporte y, si es necesario, adaptar el uso del analysis JSON actual sin romper el schema dental_visual_v1_2026_05_27.
+
+Nueva estructura del reporte:
+
+1. Header
+Título:
+Tu orientación dental inicial
+
+Subtítulo:
+Estos resultados son una guía preliminar basada en tus fotos y respuestas. El presupuesto definitivo requiere evaluación odontológica.
+
+Mostrar:
+- score visual si existe
+- nivel de prioridad si existe
+- fecha/reporte id si existe
+
+2. Resumen
+Sección:
+Lo que vemos en tus fotos
+
+Usar datos existentes del analysis:
+- señales visuales
+- análisis por zona
+- summary
+- risk/score si existen
+
+3. Posibles caminos de tratamiento
+Crear un módulo nuevo de cards. Puede derivarse de answers + analysis.
+
+Ejemplos de cards:
+- Limpieza / evaluación preventiva
+- Blanqueamiento
+- Ortodoncia
+- Carillas / diseño de sonrisa
+- Implante dental
+- Rehabilitación / corona
+- Evaluación de encías
+
+Para cada card:
+- Por qué podría aplicar
+- Rango referencial de precio en Chile
+- Nivel: bajo / medio / alto
+- Qué lo puede encarecer
+
+Importante:
+No presentar como diagnóstico definitivo.
+Usar lenguaje:
+"Podría ser recomendable evaluar..."
+"No podemos confirmarlo solo con fotos..."
+"El rango puede variar según..."
+
+4. Rangos de precio
+Agregar bloque:
+"Rangos referenciales que podrías considerar"
+
+Ejemplos base, ajustables:
+- Limpieza / evaluación: $30.000 – $80.000
+- Blanqueamiento: $80.000 – $250.000
+- Resinas / restauraciones simples: $60.000 – $180.000 por pieza
+- Ortodoncia: $900.000 – $2.800.000
+- Carillas / diseño de sonrisa: $1.200.000 – $4.000.000+
+- Implante unitario: $600.000 – $1.500.000+
+- Corona / rehabilitación: $300.000 – $900.000+
+
+Añadir disclaimer:
+Los precios son rangos referenciales de mercado y pueden variar por clínica, materiales, exámenes, radiografías, complejidad y diagnóstico clínico.
+
+5. Qué puede cambiar el costo
+Lista:
+- necesidad de radiografías o scanner
+- número de piezas
+- estado de encías/hueso
+- materiales
+- urgencia
+- complejidad del caso
+- experiencia del especialista
+
+6. CTA principal
+Texto:
+Confirmar mi presupuesto con un dentista
+
+Link:
+/agendar-consulta?vertical=dental&source=dental_report&reportId={id}
+
+CTA secundario:
+Guardar / compartir reporte si ya existe lógica; si no existe, no implementar ahora.
+
+7. Fallback Supabase
+Asegurar que el reporte funcione recargando la página, usando el fix de Fase 0.
+No volver a depender exclusivamente de sessionStorage.
+
+Restricciones:
+- No cambiar el schema de OpenAI todavía salvo que sea estrictamente necesario.
+- No tocar /api/ai/dental-map salvo que haya que mapear campos existentes.
+- No tocar CalendlyEmbedBooking.
+- No tocar HubSpot appointment sync.
+- No implementar pagos.
+- No implementar financiamiento todavía.
+- No implementar admin dental.
+
+Validación:
+- npm run build.
+- No deploy.
+
+Output:
+1. Archivos modificados.
+2. Nueva estructura del reporte.
+3. Cómo se calculan/seleccionan posibles tratamientos.
+4. Resultado de build.
