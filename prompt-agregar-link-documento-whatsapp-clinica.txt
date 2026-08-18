@@ -1,0 +1,91 @@
+Necesito ajustar el admin de cotizaciones dentales para que el mensaje de WhatsApp a la clínica incluya automáticamente el link temporal al documento/cotización que subió el paciente.
+
+Contexto:
+Tenemos el flujo /dental-care/comparar-presupuesto donde el paciente sube una cotización dental.
+El archivo se guarda en Supabase Storage bucket privado:
+dental-quotes
+
+La tabla dental_quote_requests guarda el path del archivo en una columna como:
+- storage_path
+o similar.
+
+En /admin/dental-quotes/[id] existe una sección “WHATSAPP A CLÍNICA” con:
+- WhatsApp de la clínica
+- Mensaje para la clínica
+- Notas internas
+
+Actualmente el mensaje dice algo como:
+“Hola, nueva cotización dental recibida en Perfecto Labs ??
+
+Paciente: ...
+WhatsApp: ...
+Email: ...
+
+Acción sugerida: contactar al paciente y ofrecer una mejor propuesta.”
+
+Necesito que ese mensaje incluya también el link al archivo subido por el paciente.
+
+Requisitos:
+1. Como el bucket dental-quotes es privado, NO usar URL pública fija.
+2. Generar signed URL temporal desde backend usando SUPABASE_SERVICE_ROLE_KEY.
+3. El signed URL debe durar 7 días para este MVP.
+4. El signed URL debe generarse a partir del storage_path guardado en dental_quote_requests.
+5. El signed URL debe aparecer automáticamente dentro del textarea “Mensaje para la clínica”.
+6. El mensaje debe quedar así:
+
+Hola, nueva cotización dental recibida en Perfecto Labs ??
+
+Paciente: {{patient_name}}
+WhatsApp: {{patient_phone}}
+Email: {{patient_email}}
+
+Archivo cotización:
+{{signed_file_url}}
+
+Acción sugerida:
+Revisar la cotización adjunta y responder con una alternativa referencial, indicando precio estimado, qué incluye, qué no incluye y si requiere evaluación presencial.
+
+7. Si no existe storage_path, mostrar en el mensaje:
+“Archivo cotización: no disponible”
+y mostrar warning visible en admin.
+
+8. Si falla la generación del signed URL, mostrar error claro en admin:
+“No se pudo generar el link temporal del archivo.”
+
+9. No exponer SUPABASE_SERVICE_ROLE_KEY en frontend.
+10. Si ya existe una API route para el detalle admin, extenderla para devolver signed_file_url.
+11. Si no existe, crear endpoint backend seguro, por ejemplo:
+GET /api/admin/dental-quotes/[id]/file-link
+
+Este endpoint debe:
+- Buscar la solicitud por id.
+- Leer storage_path.
+- Generar signed URL desde bucket dental-quotes.
+- Devolver signed_file_url.
+- Usar service role en backend.
+- No devolver datos innecesarios.
+
+12. En /admin/dental-quotes/[id], usar ese signed_file_url para:
+- Mostrar un botón “Ver cotización subida”
+- Incluir el link en el mensaje de WhatsApp a clínica
+- Permitir copiar el mensaje completo
+
+13. Mantener el diseño actual.
+14. No romper el flujo público.
+15. No hacer el bucket público.
+16. No crear policies públicas para dental-quotes.
+
+Criterios de aceptación:
+- En el detalle admin, veo un botón o link para abrir la cotización subida.
+- El textarea de “Mensaje para la clínica” incluye el link temporal al archivo.
+- El botón/copiar mensaje WhatsApp copia el mensaje incluyendo el link.
+- El link abre el archivo correctamente.
+- El link no es público permanente.
+- npm run build pasa sin errores.
+
+Al final dime:
+- archivos modificados
+- si usaste storage_path u otra columna
+- duración configurada del signed URL
+- cómo probarlo localmente
+- cómo probarlo en producción

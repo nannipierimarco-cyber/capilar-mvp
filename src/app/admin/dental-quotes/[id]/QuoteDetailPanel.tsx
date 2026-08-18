@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import FileLinkButton from "../FileLinkButton";
 
 interface QuoteRecord {
   id: string;
@@ -82,7 +81,7 @@ function buildPatientWhatsAppMessage(q: QuoteRecord): string {
   return lines.join("\n");
 }
 
-function buildClinicWhatsAppMessage(q: QuoteRecord): string {
+function buildClinicWhatsAppMessage(q: QuoteRecord, signedFileUrl: string | null): string {
   const lines: string[] = [
     `Hola, nueva cotización dental recibida en Perfecto Labs 🦷`,
     ``,
@@ -94,17 +93,24 @@ function buildClinicWhatsAppMessage(q: QuoteRecord): string {
   if (q.original_clinic_name)   lines.push(`Clínica origen: ${q.original_clinic_name}`);
   if (q.original_quote_amount)  lines.push(`Monto cotizado: $${q.original_quote_amount.toLocaleString("es-CL")}`);
   if (q.preferred_commune)      lines.push(`Comuna: ${q.preferred_commune}`);
-  if (q.original_file_url) {
-    lines.push(``);
-    lines.push(`Ver cotización original:`);
-    lines.push(q.original_file_url);
-  }
   lines.push(``);
-  lines.push(`Acción sugerida: contactar al paciente y ofrecer una mejor propuesta.`);
+  lines.push(`Archivo cotización:`);
+  lines.push(signedFileUrl ?? "no disponible");
+  lines.push(``);
+  lines.push(`Acción sugerida:`);
+  lines.push(`Revisar la cotización adjunta y responder con una alternativa referencial, indicando precio estimado, qué incluye, qué no incluye y si requiere evaluación presencial.`);
   return lines.join("\n");
 }
 
-export default function QuoteDetailPanel({ quote }: { quote: QuoteRecord }) {
+export default function QuoteDetailPanel({
+  quote,
+  signedFileUrl,
+  signedFileUrlError,
+}: {
+  quote: QuoteRecord;
+  signedFileUrl: string | null;
+  signedFileUrlError: boolean;
+}) {
   const [fields, setFields] = useState({
     patient_name:            quote.patient_name ?? "",
     preferred_commune:       quote.preferred_commune ?? "",
@@ -118,7 +124,7 @@ export default function QuoteDetailPanel({ quote }: { quote: QuoteRecord }) {
     appointment_url:         quote.appointment_url ?? "",
     status:                  quote.status ?? "submitted",
     clinic_whatsapp_phone:   quote.clinic_whatsapp_phone ?? "",
-    whatsapp_manual_message: quote.whatsapp_manual_message ?? buildClinicWhatsAppMessage(quote),
+    whatsapp_manual_message: quote.whatsapp_manual_message ?? buildClinicWhatsAppMessage(quote, signedFileUrl),
     clinic_batch_notes:      quote.clinic_batch_notes ?? "",
   });
 
@@ -239,13 +245,24 @@ export default function QuoteDetailPanel({ quote }: { quote: QuoteRecord }) {
 
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Cotización original</p>
-          <FileLinkButton
-            quoteId={quote.id}
-            hasFile={Boolean(quote.storage_path)}
-            fallbackUrl={quote.original_file_url}
-            label="📎 Ver archivo →"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0EA5E9] hover:underline disabled:opacity-50"
-          />
+          {!quote.storage_path ? (
+            <p className="text-sm text-amber-600 bg-amber-50 rounded-lg px-3 py-2 inline-block">
+              ⚠️ Archivo no disponible
+            </p>
+          ) : signedFileUrlError || !signedFileUrl ? (
+            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 inline-block">
+              No se pudo generar el link temporal del archivo.
+            </p>
+          ) : (
+            <a
+              href={signedFileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0EA5E9] hover:underline"
+            >
+              📎 Ver cotización subida →
+            </a>
+          )}
         </div>
 
         {quote.extracted_summary && (

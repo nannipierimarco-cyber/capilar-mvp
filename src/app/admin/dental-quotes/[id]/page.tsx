@@ -35,6 +35,22 @@ export default async function DentalQuoteDetailPage({
 
   if (error || !quote) notFound();
 
+  const SIGNED_URL_SECONDS = 7 * 24 * 3600; // 7 days — long enough for the clinic to open the link from the WhatsApp message
+  let signedFileUrl: string | null = null;
+  let signedFileUrlError = false;
+
+  if (quote.storage_path) {
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from("dental-quotes")
+      .createSignedUrl(quote.storage_path, SIGNED_URL_SECONDS);
+    if (signedError || !signedData) {
+      console.error("[dental-quotes:detail] createSignedUrl error:", signedError);
+      signedFileUrlError = true;
+    } else {
+      signedFileUrl = signedData.signedUrl;
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -58,7 +74,7 @@ export default async function DentalQuoteDetailPage({
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <QuoteDetailPanel quote={quote} />
+        <QuoteDetailPanel quote={quote} signedFileUrl={signedFileUrl} signedFileUrlError={signedFileUrlError} />
       </div>
     </div>
   );
