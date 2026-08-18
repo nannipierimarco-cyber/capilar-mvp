@@ -42,6 +42,8 @@ export async function PUT(
     "whatsapp_manual_sent_at",
     "whatsapp_manual_sent_by",
     "whatsapp_manual_status",
+    "clinic_batch_sent_at",
+    "clinic_batch_notes",
   ];
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };

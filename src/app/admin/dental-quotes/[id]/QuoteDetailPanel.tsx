@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import FileLinkButton from "../FileLinkButton";
 
 interface QuoteRecord {
   id: string;
@@ -7,7 +8,8 @@ interface QuoteRecord {
   patient_rut: string | null;
   patient_phone: string;
   patient_email: string;
-  original_file_url: string;
+  original_file_url: string | null;
+  storage_path: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -31,11 +33,13 @@ interface QuoteRecord {
   whatsapp_manual_sent_at: string | null;
   whatsapp_manual_sent_by: string | null;
   whatsapp_manual_status: string | null;
+  clinic_batch_notes: string | null;
 }
 
 const STATUS_OPTIONS = [
   { value: "submitted",          label: "Recibido" },
   { value: "in_review",          label: "En revisión" },
+  { value: "sent_to_clinic",     label: "Enviado a clínica" },
   { value: "quote_sent",         label: "Cotización enviada" },
   { value: "appointment_booked", label: "Cita agendada" },
   { value: "closed",             label: "Cerrado" },
@@ -44,6 +48,7 @@ const STATUS_OPTIONS = [
 const STATUS_COLORS: Record<string, string> = {
   submitted:          "bg-gray-100 text-gray-600",
   in_review:          "bg-amber-100 text-amber-700",
+  sent_to_clinic:     "bg-indigo-100 text-indigo-700",
   quote_sent:         "bg-sky-100 text-sky-700",
   appointment_booked: "bg-green-100 text-green-700",
   closed:             "bg-blue-100 text-blue-700",
@@ -114,6 +119,7 @@ export default function QuoteDetailPanel({ quote }: { quote: QuoteRecord }) {
     status:                  quote.status ?? "submitted",
     clinic_whatsapp_phone:   quote.clinic_whatsapp_phone ?? "",
     whatsapp_manual_message: quote.whatsapp_manual_message ?? buildClinicWhatsAppMessage(quote),
+    clinic_batch_notes:      quote.clinic_batch_notes ?? "",
   });
 
   const [waManualStatus, setWaManualStatus] = useState(quote.whatsapp_manual_status ?? "");
@@ -173,6 +179,8 @@ export default function QuoteDetailPanel({ quote }: { quote: QuoteRecord }) {
     setMarkingSent(true);
     setMarkError(null);
     const now = new Date().toISOString();
+    // Advance the main status too, but never downgrade one that's already further along.
+    const shouldAdvanceStatus = fields.status === "submitted" || fields.status === "in_review";
     try {
       const res = await fetch(`/api/admin/dental-quotes/${quote.id}`, {
         method: "PUT",
@@ -183,12 +191,16 @@ export default function QuoteDetailPanel({ quote }: { quote: QuoteRecord }) {
           whatsapp_manual_status:  "sent",
           whatsapp_manual_message: fields.whatsapp_manual_message,
           clinic_whatsapp_phone:   fields.clinic_whatsapp_phone,
+          clinic_batch_sent_at:    now,
+          clinic_batch_notes:      fields.clinic_batch_notes,
+          ...(shouldAdvanceStatus ? { status: "sent_to_clinic" } : {}),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
       setWaManualStatus("sent");
       setWaManualSentAt(now);
+      if (shouldAdvanceStatus) update("status", "sent_to_clinic");
     } catch (e) {
       setMarkError(e instanceof Error ? e.message : "Error al marcar como enviado");
     } finally {
@@ -227,18 +239,13 @@ export default function QuoteDetailPanel({ quote }: { quote: QuoteRecord }) {
 
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Cotización original</p>
-          {quote.original_file_url ? (
-            <a
-              href={quote.original_file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0EA5E9] hover:underline"
-            >
-              📎 Ver archivo →
-            </a>
-          ) : (
-            <span className="text-sm text-gray-300">Sin archivo</span>
-          )}
+          <FileLinkButton
+            quoteId={quote.id}
+            hasFile={Boolean(quote.storage_path)}
+            fallbackUrl={quote.original_file_url}
+            label="📎 Ver archivo →"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0EA5E9] hover:underline disabled:opacity-50"
+          />
         </div>
 
         {quote.extracted_summary && (
@@ -389,6 +396,16 @@ export default function QuoteDetailPanel({ quote }: { quote: QuoteRecord }) {
             onChange={(e) => update("whatsapp_manual_message", e.target.value)}
             rows={8}
             className={`${inputClass} resize-y font-mono text-xs`}
+          />
+        </Field>
+
+        <Field label="Notas internas">
+          <textarea
+            value={fields.clinic_batch_notes}
+            onChange={(e) => update("clinic_batch_notes", e.target.value)}
+            rows={3}
+            className={`${inputClass} resize-none`}
+            placeholder="Notas para el equipo interno (no se envían al paciente ni a la clínica)…"
           />
         </Field>
 

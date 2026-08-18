@@ -10,7 +10,6 @@ const inputClass =
 
 export default function CompararPresupuestoPage() {
   const [patientName, setPatientName]   = useState("");
-  const [rut, setRut]                   = useState("");
   const [phoneDigits, setPhoneDigits]   = useState("");
   const [email, setEmail]             = useState("");
   const [file, setFile]               = useState<File | null>(null);
@@ -30,11 +29,10 @@ export default function CompararPresupuestoPage() {
       setError("Ingresa tu nombre y apellido");
       return;
     }
-    if (!rut.trim()) { setError("Ingresa tu RUT"); return; }
-    if (phoneDigits.length !== 8) { setError("Ingresa los 8 dígitos de tu celular"); return; }
-    if (!email.trim()) { setError("Ingresa tu email"); return; }
-    if (!file) { setError("Sube tu cotización"); return; }
-    if (file.size > MAX_BYTES) { setError("El archivo no puede superar 4MB"); return; }
+    if (phoneDigits.length !== 8) { setError("Falta WhatsApp"); return; }
+    if (!email.trim()) { setError("Falta email"); return; }
+    if (!file) { setError("Falta archivo"); return; }
+    if (file.size > MAX_BYTES) { setError("Archivo demasiado grande"); return; }
     if (!consent) { setError("Debes aceptar los términos para continuar"); return; }
 
     setSubmitting(true);
@@ -42,7 +40,6 @@ export default function CompararPresupuestoPage() {
       setUploadStep("Subiendo cotización…");
       const fd = new FormData();
       fd.append("patient_name", patientName.trim());
-      fd.append("patient_rut", rut.trim().toUpperCase());
       fd.append("patient_phone", `+56 9 ${phoneDigits}`);
       fd.append("patient_email", email.trim());
       fd.append("original_file", file);
@@ -52,14 +49,14 @@ export default function CompararPresupuestoPage() {
       const data = await res.json().catch(() => ({})) as { error?: string; step?: string };
 
       if (!res.ok) {
+        // step "validate" errors from the backend are already user-facing (e.g. "Falta WhatsApp") — show as-is.
         const stepLabel: Record<string, string> = {
           parse:     "Error al leer el formulario",
-          validate:  "Error de validación",
           read_file: "Error al leer el archivo",
-          storage:   "Error al subir el archivo",
-          database:  "Error al guardar la solicitud",
+          storage:   "Error subiendo archivo",
+          database:  "Error guardando solicitud",
         };
-        const prefix = data.step ? stepLabel[data.step] ?? data.step : null;
+        const prefix = data.step ? stepLabel[data.step] : null;
         setError(prefix ? `${prefix}: ${data.error}` : (data.error ?? "Error al enviar. Intenta nuevamente."));
         return;
       }
@@ -112,20 +109,6 @@ export default function CompararPresupuestoPage() {
                     value={patientName}
                     onChange={(e) => setPatientName(e.target.value)}
                     placeholder="María González"
-                    className={inputClass}
-                  />
-                </div>
-
-                {/* RUT */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    RUT <span className="text-[#0EA5E9]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={rut}
-                    onChange={(e) => setRut(e.target.value)}
-                    placeholder="12.345.678-9"
                     className={inputClass}
                   />
                 </div>
@@ -183,7 +166,7 @@ export default function CompararPresupuestoPage() {
                       const f = e.target.files?.[0];
                       if (!f) return;
                       if (f.size > MAX_BYTES) {
-                        setError("El archivo no puede superar 4MB");
+                        setError("Archivo demasiado grande");
                         e.target.value = "";
                         return;
                       }

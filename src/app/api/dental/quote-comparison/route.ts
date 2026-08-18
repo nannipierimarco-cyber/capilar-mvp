@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { sendWhatsAppTextResult } from "@/lib/whatsapp";
+import { randomUUID } from "crypto";
 
 function getAdminClient() {
   return createClient(
@@ -12,8 +12,6 @@ function getAdminClient() {
 
 const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
 const MAX_BYTES = 4 * 1024 * 1024; // 4MB — Vercel serverless body limit is 4.5MB
-const SIGNED_URL_SECONDS = 14 * 24 * 3600; // 14 days
-const CLINIC_WHATSAPP = (process.env.CLINIC_WHATSAPP_TO ?? "56998056526").replace(/\D/g, "");
 
 function parseOptionalAmount(raw: string | null): number | null {
   if (!raw?.trim()) return null;
@@ -23,36 +21,8 @@ function parseOptionalAmount(raw: string | null): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function buildClinicMessage(params: {
-  fullName: string;
-  rut: string;
-  phone: string;
-  email: string;
-  treatmentType: string | null;
-  quotedAmount: number | null;
-  externalClinicName: string | null;
-  fileUrl: string;
-}): string {
-  const { fullName, rut, phone, email, treatmentType, quotedAmount, externalClinicName, fileUrl } = params;
-  const amountStr = quotedAmount ? `$${quotedAmount.toLocaleString("es-CL")}` : "No informado";
-  return [
-    "Nueva cotización dental recibida en Perfecto Labs 🦷",
-    "",
-    `Paciente: ${fullName}`,
-    `RUT: ${rut}`,
-    `Teléfono: ${phone}`,
-    `Email: ${email}`,
-    "",
-    `Tratamiento cotizado: ${treatmentType ?? "No informado"}`,
-    `Monto cotizado: ${amountStr}`,
-    `Clínica origen: ${externalClinicName ?? "No informada"}`,
-    "",
-    "Ver cotización:",
-    fileUrl,
-    "",
-    "Acción sugerida:",
-    "Contactar al paciente y ofrecer una mejor propuesta.",
-  ].join("\n");
+function safeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
 }
 
 export async function POST(req: NextRequest) {
@@ -68,7 +38,6 @@ export async function POST(req: NextRequest) {
   }
 
   const patientName   = (formData.get("patient_name") as string | null)?.trim();
-  const rut           = (formData.get("patient_rut") as string | null)?.trim().toUpperCase();
   const phone         = (formData.get("patient_phone") as string | null)?.trim();
   const email         = (formData.get("patient_email") as string | null)?.trim().toLowerCase();
   const clinicName    = (formData.get("original_clinic_name") as string | null)?.trim() || null;
@@ -80,27 +49,24 @@ export async function POST(req: NextRequest) {
   if (!patientName || patientName.length < 3) {
     return NextResponse.json({ error: "Nombre y apellido requeridos", step: "validate" }, { status: 400 });
   }
-  if (!rut || rut.length < 8) {
-    return NextResponse.json({ error: "RUT requerido", step: "validate" }, { status: 400 });
-  }
   if (!phone) {
-    return NextResponse.json({ error: "WhatsApp requerido", step: "validate" }, { status: 400 });
+    return NextResponse.json({ error: "Falta WhatsApp", step: "validate" }, { status: 400 });
   }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "Email inválido", step: "validate" }, { status: 400 });
+    return NextResponse.json({ error: "Falta email", step: "validate" }, { status: 400 });
   }
   if (!file || file.size === 0) {
-    return NextResponse.json({ error: "Archivo requerido", step: "validate" }, { status: 400 });
+    return NextResponse.json({ error: "Falta archivo", step: "validate" }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "El archivo no puede superar 4MB", step: "validate" },
+      { error: "Archivo demasiado grande", step: "validate" },
       { status: 400 }
     );
   }
   if (!ALLOWED_TYPES.includes(file.type)) {
     return NextResponse.json(
-      { error: "Formato no permitido. Usa PDF, PNG, JPG o WebP", step: "validate" },
+      { error: "Formato no permitido", step: "validate" },
       { status: 400 }
     );
   }
@@ -132,85 +98,54 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const ext      = file.name.split(".").pop()?.toLowerCase() ?? "pdf";
-  const fileName = `quote-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const today       = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+  const ext         = file.name.split(".").pop()?.toLowerCase() ?? "pdf";
+  const cleanName   = safeFileName(file.name.replace(/\.[^.]+$/, "")) || "cotizacion";
+  const storagePath = `quote-comparisons/${today}/${randomUUID()}-${cleanName}.${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from("dental-quotes")
-    .upload(fileName, fileBuffer, {
+    .upload(storagePath, fileBuffer, {
       contentType:  file.type,
       cacheControl: "3600",
       upsert:       false,
     });
 
   if (uploadError) {
-    console.error("[quote-comparison] storage upload error:", uploadError);
+    console.error("[quote-comparison] storage_upload_failed:", uploadError);
     return NextResponse.json(
-      { error: `Error al subir el archivo: ${uploadError.message}`, step: "storage" },
+      { error: uploadError.message, step: "storage" },
       { status: 500 }
     );
   }
 
-  // Prefer signed URL (14 days); fall back to public URL
-  const { data: signedUrlData } = await supabase.storage
-    .from("dental-quotes")
-    .createSignedUrl(fileName, SIGNED_URL_SECONDS);
-
-  const fileUrl = signedUrlData?.signedUrl
-    ?? supabase.storage.from("dental-quotes").getPublicUrl(fileName).data.publicUrl;
-
   const { data: record, error: insertError } = await supabase
     .from("dental_quote_requests")
     .insert({
-      patient_name:          patientName,
-      patient_rut:           rut,
-      patient_phone:         phone,
-      patient_email:         email,
-      original_clinic_name:  clinicName,
-      main_treatment_type:   treatmentType,
-      original_quote_amount: originalQuoteAmount,
-      original_file_url:     fileUrl,
-      status:                "submitted",
+      patient_name:              patientName,
+      patient_phone:             phone,
+      patient_email:             email,
+      original_clinic_name:      clinicName,
+      main_treatment_type:       treatmentType,
+      original_quote_amount:     originalQuoteAmount,
+      storage_path:              storagePath,
+      original_file_name:        file.name,
+      original_file_mime_type:   file.type,
+      original_file_size:        file.size,
+      source:                    "quote_comparison",
+      status:                    "submitted",
     })
     .select("id")
     .single();
 
   if (insertError || !record) {
-    console.error("[quote-comparison] db insert error:", insertError);
+    console.error("[quote-comparison] database_insert_failed:", insertError);
     return NextResponse.json(
-      { error: `Error al guardar la solicitud: ${insertError?.message ?? "sin detalle"}`, step: "database" },
+      { error: insertError?.message ?? "sin detalle", step: "database" },
       { status: 500 }
     );
   }
 
-  console.log(`[quote-comparison] record saved — id=${record.id}, sending WhatsApp to ${CLINIC_WHATSAPP}`);
-
-  const waMessage = buildClinicMessage({
-    fullName:           patientName,
-    rut,
-    phone,
-    email,
-    treatmentType,
-    quotedAmount:       originalQuoteAmount,
-    externalClinicName: clinicName,
-    fileUrl,
-  });
-
-  const waResult = await sendWhatsAppTextResult(CLINIC_WHATSAPP, waMessage);
-
-  const updatePayload = waResult.ok
-    ? { status: "sent_to_clinic", whatsapp_sent_at: new Date().toISOString() }
-    : {
-        status:          "failed_to_send",
-        // Store full Meta error body so we can diagnose token/template/phone issues in Supabase
-        whatsapp_error:  waResult.metaBody ?? waResult.error ?? "unknown error",
-      };
-
-  await supabase
-    .from("dental_quote_requests")
-    .update(updatePayload)
-    .eq("id", record.id);
-
-  console.log(`[quote-comparison] done — id=${record.id}, wa_ok=${waResult.ok}, wa_messageId=${waResult.messageId ?? "n/a"}`);
+  console.log(`[quote-comparison] record saved — id=${record.id}`);
   return NextResponse.json({ success: true, quote_request_id: record.id });
 }

@@ -1,0 +1,228 @@
+Necesito simplificar y estabilizar HOY el flujo de comparación de cotizaciones dentales para poder empezar a correr ads.
+
+Contexto:
+La página /dental-care/comparar-presupuesto actualmente falla al subir archivo con:
+“Error al subir el archivo: Error al subir el archivo: fetch failed”
+
+El flujo actual parece usar:
+1. POST /api/dental/quote-upload-url
+2. Signed URL
+3. Upload directo desde frontend a Supabase Storage
+4. POST /api/dental/quote-comparison
+
+Quiero simplificarlo porque hoy no necesito automatización con doctor/portal/WhatsApp. Solo necesito capturar leads y revisar manualmente una vez al día.
+
+Nuevo objetivo MVP:
+El usuario debe poder subir su cotización dental y dejar sus datos mínimos. Perfecto Labs revisará las solicitudes internamente y enviará manualmente una vez al día la información estructurada a una clínica partner.
+
+IMPORTANTE:
+Eliminar la dependencia del signed upload desde frontend para este flujo.
+No usar POST /api/dental/quote-upload-url para este MVP.
+El frontend debe enviar todo en un solo POST multipart/form-data al backend.
+
+Formulario público:
+Ruta:
+/dental-care/comparar-presupuesto
+
+Campos visibles:
+1. Nombre y apellido
+   - Puede ser obligatorio si ya está implementado, pero idealmente mantenerlo simple.
+2. WhatsApp
+   - Obligatorio.
+   - Mantener input dividido +56 9 si ya existe.
+3. Email
+   - Obligatorio.
+4. Subir cotización
+   - Obligatorio.
+   - PDF, JPG, JPEG, PNG, WEBP.
+   - Máximo 4MB o 10MB, pero que coincida con frontend/backend/bucket.
+5. Checkbox consentimiento
+   - Obligatorio.
+
+Eliminar del formulario público:
+- RUT
+- Preguntas clínicas largas
+- Comuna
+- Tratamiento
+- Urgencia
+- Radiografías
+- Clínica original
+- Monto original
+- Cualquier cuestionario adicional
+
+Copy del consentimiento:
+“Acepto que Perfecto Labs revise mi cotización y comparta la información necesaria con clínicas asociadas para generar una alternativa. Entiendo que la cotización final puede requerir evaluación presencial.”
+
+Botón:
+“Recibir cotización por WhatsApp”
+
+Mensaje de éxito:
+“Recibimos tu cotización. Nuestro equipo la revisará y te enviaremos una alternativa por WhatsApp en menos de 24 horas.”
+
+Backend:
+Crear o ajustar el endpoint:
+POST /api/dental/quote-comparison
+
+Este endpoint debe recibir request.formData() directamente.
+
+Debe validar:
+- patient_name, si se mantiene en el formulario
+- patient_phone
+- patient_email
+- consent
+- original_file
+
+Debe validar archivo:
+- application/pdf
+- image/png
+- image/jpeg
+- image/jpg
+- image/webp
+- tamaño máximo coherente con frontend y Supabase bucket
+
+Subida de archivo:
+- Usar Supabase server-side con SUPABASE_SERVICE_ROLE_KEY.
+- Subir archivo al bucket privado dental-quotes.
+- No crear policies públicas.
+- No usar SUPABASE_SERVICE_ROLE_KEY en frontend.
+- Guardar storage_path en la base de datos.
+- No depender de URL pública.
+
+Path sugerido:
+quote-comparisons/{yyyy-mm-dd}/{uuid}-{safeFilename}
+
+Base de datos:
+Usar tabla dental_quote_requests.
+
+Asegurar que tenga al menos estas columnas:
+- id uuid primary key
+- patient_name text
+- patient_phone text not null
+- patient_email text not null
+- storage_path text not null
+- original_file_name text
+- original_file_mime_type text
+- original_file_size integer
+- status text default 'new'
+- source text default 'quote_comparison'
+- clinic_batch_sent_at timestamptz
+- clinic_batch_notes text
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+
+Si faltan columnas, generar SQL en una migration nueva. No romper datos existentes.
+
+Estados simples para MVP:
+- new
+- reviewed
+- sent_to_clinic
+- quoted
+- contacted
+- closed_won
+- closed_lost
+
+Admin:
+Crear o ajustar:
+/admin/dental-quotes
+
+Debe mostrar una tabla simple:
+- Fecha
+- Nombre
+- WhatsApp
+- Email
+- Archivo
+- Estado
+- Acción
+
+La acción debe permitir:
+1. Ver detalle
+2. Generar signed URL temporal para ver/descargar el archivo
+3. Copiar resumen estructurado para enviar manualmente a clínica
+4. Marcar como “sent_to_clinic”
+
+Detalle admin:
+/admin/dental-quotes/[id]
+
+Debe mostrar:
+- Fecha de ingreso
+- Nombre
+- WhatsApp
+- Email
+- Link temporal al archivo
+- Estado
+- Campo interno de notas
+- Botón “Copiar resumen para clínica”
+- Botón “Marcar enviado a clínica”
+
+Resumen para clínica:
+Debe tener formato estándar para copiar y pegar manualmente, por ejemplo:
+
+“Nueva solicitud de cotización dental - Perfecto Labs
+
+Paciente: {{patient_name}}
+WhatsApp: {{patient_phone}}
+Email: {{patient_email}}
+Fecha de ingreso: {{created_at}}
+Archivo cotización: {{signed_file_url}}
+
+Instrucción:
+Por favor revisar la cotización adjunta y responder con una alternativa referencial, indicando:
+1. Tratamiento propuesto
+2. Precio estimado
+3. Qué incluye
+4. Qué no incluye
+5. Si requiere evaluación presencial o radiografía
+6. Vigencia de la cotización”
+
+Importante:
+Por ahora NO necesitamos:
+- Portal doctor
+- Envío automático WhatsApp
+- Integración con HubSpot
+- IA de extracción
+- Asignación automática de clínica
+- Signed upload desde frontend
+
+Errores:
+El frontend debe mostrar errores específicos:
+- “Falta WhatsApp”
+- “Falta email”
+- “Falta archivo”
+- “Archivo demasiado grande”
+- “Formato no permitido”
+- “Error guardando solicitud”
+- “Error subiendo archivo”
+
+Backend debe hacer console.error claro para:
+- validation_failed
+- storage_upload_failed
+- database_insert_failed
+
+No loguear datos sensibles ni contenido del archivo.
+
+Variables:
+Verificar uso correcto de:
+- NEXT_PUBLIC_SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+
+No depender de NEXT_PUBLIC_SUPABASE_ANON_KEY para subir este archivo.
+
+Criterios de aceptación:
+1. El usuario puede enviar el formulario desde /dental-care/comparar-presupuesto.
+2. El archivo queda en Supabase Storage bucket dental-quotes.
+3. La fila queda guardada en dental_quote_requests.
+4. El admin puede ver la solicitud.
+5. El admin puede abrir/descargar el archivo mediante signed URL temporal.
+6. El admin puede copiar un resumen estándar para enviar manualmente a la clínica.
+7. El admin puede marcar la solicitud como sent_to_clinic.
+8. El formulario público ya no pide RUT.
+9. No existe dependencia del flujo quote-upload-url para este MVP.
+10. npm run build pasa sin errores.
+
+Al final dime:
+- causa probable del error fetch failed
+- archivos modificados
+- SQL/migration creada
+- variables que debo revisar en Vercel
+- cómo probarlo localmente
+- cómo probarlo en producción antes de activar ads
