@@ -84,6 +84,12 @@ export default async function AdminPage({
             <Link href="/admin/doctors" className="text-sm text-muted-foreground hover:text-foreground">
               Médicos
             </Link>
+            <Link href="/admin/dental" className="text-sm text-muted-foreground hover:text-foreground">
+              Dental IA
+            </Link>
+            <Link href="/admin/dental-quotes" className="text-sm text-muted-foreground hover:text-foreground">
+              Cotizaciones dentales
+            </Link>
             <span className="text-sm text-muted-foreground">{rows.length} pacientes</span>
           </div>
         </div>

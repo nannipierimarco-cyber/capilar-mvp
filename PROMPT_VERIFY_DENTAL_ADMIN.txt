@@ -1,0 +1,205 @@
+﻿Quiero hacer una última fase de verificación y hardening del nuevo admin dental.
+
+IMPORTANTE:
+- Trabaja SOLO sobre el proyecto actual capilar-mvp / Perfecto Labs.
+- NO crees proyectos nuevos.
+- NO cambies el flujo funcional dental salvo que sea estrictamente necesario para corregir seguridad o bugs.
+- NO borres datos reales.
+- NO hagas cambios destructivos en producción.
+- NO hagas migraciones innecesarias.
+- Primero audita; después implementa solo lo necesario.
+
+==================================================
+OBJETIVO 1 — VERIFICAR EL ADMIN DENTAL END-TO-END
+==================================================
+
+Ya existe:
+
+/admin/dental
+/admin/dental/[id]
+
+y el flujo dental AI usa:
+
+dental_patients
+patient-photos
+
+Quiero verificar de forma end-to-end que un lead dental real puede aparecer correctamente en el admin.
+
+Primero revisa las variables de entorno disponibles en este entorno.
+
+NO muestres ni imprimas secrets completos.
+
+Determina si existe conectividad válida hacia el Supabase de producción o hacia algún entorno con datos reales.
+
+Si existe acceso:
+
+1. Haz una consulta READ-ONLY a dental_patients.
+2. Confirma que la consulta devuelve registros.
+3. Confirma que /admin/dental utiliza la misma fuente de datos.
+4. Revisa el registro más reciente SIN modificarlo.
+5. Confirma que:
+   - id funciona;
+   - created_at funciona;
+   - telefono/email aparecen;
+   - answers se interpretan correctamente;
+   - analysis se interpreta correctamente;
+   - fotos pueden resolverse;
+   - detalle /admin/dental/[id] puede cargarlo.
+
+NO crees un paciente falso directamente en base de datos solo para probar.
+
+Si NO existe acceso real a producción desde este entorno:
+
+- no inventes resultados;
+- dime exactamente qué variable/conexión falta;
+- deja un procedimiento manual MUY CORTO para que yo pueda verificar en producción:
+  1. completar flujo;
+  2. entrar a /admin/dental;
+  3. qué revisar.
+
+==================================================
+OBJETIVO 2 — AUDITAR SEGURIDAD DE patient-photos
+==================================================
+
+Encontraste que el bucket:
+
+patient-photos
+
+actualmente es público.
+
+Estas fotografías son imágenes dentales asociadas a pacientes y potencialmente datos sensibles.
+
+Quiero que audites exactamente:
+
+1. Por qué el bucket es público.
+2. Qué partes del frontend/API dependen actualmente de URLs públicas.
+3. Qué rutas generan o leen esas URLs.
+4. Si podemos convertir patient-photos a PRIVADO sin romper:
+   - flujo de upload;
+   - análisis AI;
+   - reporte del paciente;
+   - infografía;
+   - admin dental;
+   - cualquier otro consumidor existente.
+
+Busca referencias completas a:
+
+patient-photos
+getPublicUrl
+createSignedUrl
+createSignedUrls
+upload
+download
+
+==================================================
+OBJETIVO 3 — SI ES SEGURO, PRIVATIZAR EL BUCKET
+==================================================
+
+Si después de la auditoría confirmas que podemos hacerlo sin romper el producto:
+
+Quiero que patient-photos sea privado.
+
+Implementa acceso mediante Signed URLs donde sea necesario.
+
+REQUISITOS:
+
+- uploads deben seguir funcionando;
+- análisis AI debe seguir pudiendo acceder a las fotos;
+- usuario debe poder ver su reporte;
+- admin debe poder ver ambas fotografías;
+- URLs deben tener expiración razonable;
+- nunca exponer service_role_key en cliente;
+- Signed URLs deben generarse server-side cuando corresponda;
+- no crear bucket duplicado.
+
+Si requiere una migración SQL:
+- crea una migración Supabase clara y mínima;
+- NO la ejecutes automáticamente contra producción si implica cambio destructivo;
+- explícame exactamente cómo aplicarla.
+
+Si privatizar el bucket ahora rompería alguna arquitectura importante:
+- NO lo hagas a ciegas;
+- explícame exactamente qué debe cambiar primero.
+
+==================================================
+OBJETIVO 4 — VALIDAR RLS / AUTH
+==================================================
+
+Audita específicamente:
+
+dental_patients
+patient-photos
+/admin/dental
+/admin/dental/[id]
+/api/admin/dental/[id]
+
+Quiero confirmar:
+
+1. Un usuario público NO puede listar todos los dental_patients.
+2. Un usuario público NO puede consultar arbitrariamente otro patient id.
+3. Un usuario público NO puede listar fotos de otros pacientes.
+4. El admin sí puede acceder utilizando el mecanismo seguro existente.
+5. service_role nunca llega al browser.
+6. La API PUT de admin requiere verifyAdminToken.
+7. No existen endpoints nuevos del admin accidentalmente públicos.
+
+Si encuentras una vulnerabilidad real, corrígela con el cambio mínimo necesario.
+
+==================================================
+OBJETIVO 5 — BUILD Y REGRESIONES
+==================================================
+
+Al terminar:
+
+- npm run build
+- lint/typecheck correspondientes
+
+Corrige únicamente errores relacionados con estos cambios.
+
+Además revisa que sigan funcionando conceptualmente:
+
+- /dental/quiz
+- upload de fotos
+- análisis AI
+- /dental/reporte/[id]
+- /admin/dental
+- /admin/dental/[id]
+
+==================================================
+ENTREGA FINAL
+==================================================
+
+Dame un resumen concreto:
+
+1. END-TO-END
+- ¿pudiste conectar a datos reales?
+- ¿pudiste confirmar registros?
+- último registro visible, sin exponer datos personales.
+
+2. PATIENT-PHOTOS
+- ¿estaba público?
+- ¿por qué?
+- ¿lo dejaste privado?
+- si no, ¿por qué no?
+
+3. RLS
+- estado actual de dental_patients;
+- estado actual de Storage;
+- vulnerabilidades encontradas/corregidas.
+
+4. CAMBIOS REALIZADOS
+
+5. MIGRACIONES
+- archivo;
+- qué hace;
+- si debo ejecutarla manualmente.
+
+6. ARCHIVOS MODIFICADOS
+
+7. BUILD
+- resultado exacto.
+
+8. ACCIÓN QUE TENGO QUE HACER YO
+Máximo 3 pasos.
+
+No amplíes scope a otras verticales.

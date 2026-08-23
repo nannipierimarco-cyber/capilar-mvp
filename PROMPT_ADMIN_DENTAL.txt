@@ -1,0 +1,316 @@
+﻿Quiero que audites el flujo actual de Perfecto Labs relacionado con la evaluación dental por AI y, si es necesario, construyas una vista administrativa para poder revisar todos los pacientes que completan o empiezan este flujo.
+
+IMPORTANTE:
+- Trabaja sobre el proyecto actual.
+- Antes de modificar código, entiende completamente cómo funciona hoy.
+- No crees nuevas tablas ni dupliques información si los datos ya existen.
+- Reutiliza la arquitectura, componentes, autenticación y estilo del admin existente.
+- Puedes realizar directamente los cambios necesarios una vez terminada la auditoría.
+- Al final ejecuta build/lint/typecheck según corresponda y corrige errores derivados de tus cambios.
+- No cambies funcionalidades no relacionadas.
+
+==================================================
+FASE 1 — AUDITORÍA DEL FLUJO DENTAL ACTUAL
+==================================================
+
+Primero revisa el código y dime exactamente:
+
+1. ¿Cuál es actualmente la URL/ruta pública donde el usuario realiza la evaluación dental por AI?
+
+Busca todas las páginas y rutas relacionadas con:
+- dental
+- dental-care
+- dental assessment
+- dental quiz
+- evaluación dental
+- análisis dental AI
+- dental AI
+
+2. Sigue el flujo completo desde que el usuario comienza hasta que termina.
+
+Identifica:
+- qué formulario completa;
+- qué preguntas se hacen;
+- qué datos personales se solicitan;
+- nombre;
+- teléfono;
+- email;
+- respuestas del quiz;
+- información de salud dental;
+- tratamientos seleccionados;
+- imágenes subidas;
+- documentos/cotizaciones subidas;
+- análisis AI generado;
+- APIs/endpoints/server actions involucrados.
+
+3. Identifica EXACTAMENTE dónde se guarda cada dato.
+
+Revisa:
+- tablas de Supabase;
+- columnas;
+- relaciones entre tablas;
+- Supabase Storage;
+- HubSpot, si aplica;
+- cualquier otro sistema.
+
+Para cada tabla relacionada identifica:
+- nombre exacto;
+- identificador del paciente/lead;
+- created_at;
+- nombre;
+- teléfono;
+- email;
+- respuestas del quiz;
+- información de salud dental;
+- tratamiento solicitado;
+- imágenes;
+- documentos;
+- cotizaciones;
+- análisis AI;
+- status o estado del flujo.
+
+4. Confirma específicamente:
+
+A. Si un usuario que empieza el quiz pero no lo termina queda registrado.
+
+B. Si un usuario que termina el quiz queda registrado.
+
+C. Si podemos distinguir ambos casos.
+
+D. Si se guarda fecha y hora.
+
+E. Si podemos recuperar todas las respuestas del usuario.
+
+F. Si podemos acceder posteriormente a las imágenes subidas.
+
+G. Si podemos acceder posteriormente a documentos/cotizaciones subidas.
+
+H. Si se guarda el resultado del análisis AI.
+
+I. Si existe alguna información relevante que actualmente se esté perdiendo.
+
+5. Revisa todo el frontend/admin existente.
+
+Busca rutas como:
+- /admin
+- /admin/dental
+- /admin/leads
+- /admin/patients
+- /admin/assessments
+- cualquier otra ruta relacionada.
+
+Determina si YA EXISTE una pantalla desde donde pueda ver estos pacientes.
+
+Si ya existe:
+- dime la URL exacta;
+- dime qué información muestra;
+- verifica que realmente esté conectada al flujo dental actual;
+- corrige cualquier bug que impida ver los pacientes;
+- asegúrate de ordenar los pacientes más recientes primero;
+- no construyas una vista duplicada innecesariamente.
+
+==================================================
+FASE 2 — CREAR ADMIN SI NO EXISTE
+==================================================
+
+Si no existe una vista administrativa adecuada, crea:
+
+/admin/dental
+
+Manteniendo la arquitectura y diseño actual del admin de Perfecto Labs.
+
+MUY IMPORTANTE:
+
+Usa las tablas y datos YA EXISTENTES.
+
+No crees una base de datos paralela.
+
+No dupliques información.
+
+==================================================
+LISTADO PRINCIPAL
+==================================================
+
+Necesito poder entrar al admin y ver rápidamente todos los pacientes/leads dentales.
+
+Mostrar, cuando los datos existan:
+
+- Fecha y hora
+- Nombre
+- Teléfono
+- Email
+- Estado del flujo
+- Tratamiento/interés principal
+- Quiz completado
+- Imágenes subidas
+- Documento/cotización subido
+- Análisis AI disponible
+- Acción "Ver detalle"
+
+Ordenar por:
+
+created_at DESC
+
+Los pacientes más nuevos deben aparecer primero.
+
+==================================================
+ESTADOS
+==================================================
+
+Utiliza la información existente para mostrar estados claros.
+
+Por ejemplo, solo si realmente pueden inferirse:
+
+- Inició
+- Quiz completado
+- Fotos recibidas
+- Cotización recibida
+- Análisis AI generado
+- Completo
+
+No inventes estados si los datos actuales no permiten inferirlos.
+
+==================================================
+DETALLE DEL PACIENTE
+==================================================
+
+Al hacer click en un paciente necesito poder revisar toda su información.
+
+Usa:
+
+/admin/dental/[id]
+
+o modal/drawer si es más consistente con el admin existente.
+
+Mostrar:
+
+DATOS PERSONALES
+- nombre
+- teléfono
+- email
+- fecha de registro
+
+QUIZ DENTAL
+- todas las preguntas;
+- todas las respuestas;
+- salud dental reportada;
+- síntomas/problemas seleccionados;
+- tratamiento buscado;
+- cualquier otra información recopilada.
+
+ARCHIVOS
+
+Mostrar:
+- imágenes dentales subidas;
+- documentos;
+- cotizaciones.
+
+Para imágenes:
+- preview;
+- posibilidad de abrir/ver tamaño completo.
+
+Para documentos:
+- nombre/tipo;
+- acción "Ver documento".
+
+Si Supabase Storage es privado:
+- genera Signed URLs de forma segura server-side;
+- no hagas público el bucket.
+
+ANÁLISIS AI
+
+Si existe, mostrar:
+- resultado del análisis;
+- fecha;
+- structured output;
+- tratamientos sugeridos;
+- rangos de precio;
+- cualquier otra información generada.
+
+==================================================
+BÚSQUEDA Y FILTROS
+==================================================
+
+Si es razonablemente simple con la arquitectura existente, agregar:
+
+Búsqueda por:
+- nombre
+- teléfono
+- email
+
+Filtros:
+- Todos
+- Completados
+- Incompletos
+- Con imágenes
+- Con cotización
+- Con análisis AI
+
+No agregues complejidad innecesaria.
+
+==================================================
+SEGURIDAD
+==================================================
+
+Esta información contiene datos personales y potencialmente información de salud.
+
+Por lo tanto:
+
+- /admin/dental debe usar exactamente el mismo sistema de autenticación/protección que el admin existente;
+- nunca debe ser una página pública;
+- no expongas service_role_key en browser/client components;
+- consultas sensibles deben hacerse server-side;
+- respeta RLS;
+- no debilites políticas de Supabase para hacer funcionar la página;
+- maneja correctamente Storage privado.
+
+==================================================
+VERIFICACIÓN END-TO-END
+==================================================
+
+Después de implementar:
+
+1. Verifica qué pasa cuando un nuevo usuario completa el flujo dental.
+2. Confirma que aparece automáticamente en /admin/dental.
+3. Confirma que las respuestas coinciden.
+4. Confirma que imágenes/documentos son accesibles.
+5. Confirma que el análisis AI aparece si existe.
+6. Confirma que el admin está protegido.
+7. Ejecuta build.
+8. Ejecuta lint/typecheck si existen scripts.
+9. Corrige cualquier error causado por tus cambios.
+
+No borres ni modifiques datos reales para probar.
+
+==================================================
+ENTREGA FINAL
+==================================================
+
+Al terminar dame un resumen muy concreto con:
+
+1. DÓNDE SE GUARDABAN LOS PACIENTES
+- tablas;
+- columnas importantes;
+- Storage;
+- APIs relevantes.
+
+2. QUÉ EXISTÍA ANTES
+- si había o no frontend/admin para verlos.
+
+3. QUÉ IMPLEMENTASTE
+
+4. URL EXACTA PARA VER LOS PACIENTES
+
+5. QUÉ INFORMACIÓN PUEDO VER DE CADA PACIENTE
+
+6. ARCHIVOS MODIFICADOS
+
+7. MIGRACIONES
+- indicar si fueron necesarias;
+- idealmente ninguna si los datos ya existen.
+
+8. RESULTADO DEL BUILD
+
+9. DATOS QUE ACTUALMENTE NO SE ESTÉN GUARDANDO Y QUE RECOMIENDES EMPEZAR A GUARDAR.
+
+Puedes inspeccionar todo el repositorio y realizar directamente los cambios necesarios.

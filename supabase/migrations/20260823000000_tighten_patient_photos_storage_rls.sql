@@ -1,0 +1,28 @@
+-- Tighten patient-photos Storage RLS.
+--
+-- Finding: storage.objects has a blanket SELECT policy for the patient-photos
+-- bucket ("allow public read photos", bucket_id = 'patient-photos', no owner/path
+-- filter). This grants ANY caller — including the anon/publishable key used in
+-- the browser — permission to call list()/download()/createSignedUrl() against
+-- this bucket via the Storage REST API, independent of the bucket's public/private
+-- flag. In practice this means every patient photo path across every vertical
+-- (dental, mapa-capilar, score-capilar, quiz) can be enumerated by anyone who
+-- has the anon key, which is public by definition (shipped in the client bundle).
+--
+-- This policy is not required by anything currently in the codebase:
+--   - Public URL rendering (getPublicUrl) uses the bucket's public=true flag,
+--     which is served via /storage/v1/object/public/... and bypasses RLS
+--     entirely — unaffected by this change.
+--   - Every createSignedUrl() call in the app (admin/dental, admin/dental-quotes,
+--     dental infographic, ai/patient-report, api/images, mapa-capilar) runs
+--     through a service_role client, which bypasses RLS entirely — unaffected.
+--   - No client-side code calls .list() or .download() against this bucket.
+--
+-- Net effect: removes an unnecessary enumeration/read vector with zero impact
+-- on any existing upload, analysis, report, infographic, or admin flow.
+--
+-- This does NOT make the bucket private (public flag untouched) — that is a
+-- separate, larger change with known breakage in the score-capilar and quiz
+-- (hair intake) flows; see docs/P1A_PRIVATE_PHOTOS_NOTES.md before attempting it.
+
+DROP POLICY IF EXISTS "allow public read photos" ON storage.objects;
