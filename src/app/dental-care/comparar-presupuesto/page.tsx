@@ -235,61 +235,67 @@ export default function CompararPresupuestoPage() {
     <div className="flex flex-col min-h-screen overflow-x-hidden bg-[#F0F9FF]">
       <Header />
       <main className="flex-1 flex flex-col items-center">
-        <section className="w-full py-10 md:py-14 px-4">
-          <div className="w-full max-w-md mx-auto">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0EA5E9] text-center mb-3">
+        <section className="w-full py-8 md:py-16 px-4">
+          <div className="w-full max-w-5xl mx-auto">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0EA5E9] text-center md:text-left mb-3">
               Comparación de presupuestos dentales
             </p>
 
             {submitted ? (
-              <SuccessState />
+              <div className="w-full max-w-md mx-auto">
+                <SuccessState />
+              </div>
             ) : (
-              <>
-                <div className="text-center mb-5">
-                  <h1 className="text-3xl font-bold tracking-tight text-[#0C4A6E] leading-snug">
-                    ¿Ya tienes una cotización dental?
-                  </h1>
-                  <p className="mt-3 text-base leading-relaxed text-gray-600">
-                    Súbela y busca una alternativa a un precio más competitivo.
-                  </p>
-                  <p className="mt-3 text-sm font-semibold text-[#0284C7]">
-                    Gratis · Sin compromiso · Respuesta en menos de 24 h
-                  </p>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Revisamos tu presupuesto y consultamos clínicas dentales seleccionadas. Recibes la
-                    alternativa directamente por WhatsApp.
-                  </p>
+              <div className="grid gap-8 md:grid-cols-2 md:gap-12 md:items-start">
+                <div>
+                  <div className="text-center md:text-left mb-5 md:mb-6">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#0C4A6E] leading-snug">
+                      ¿Ya tienes una cotización dental?
+                    </h1>
+                    <p className="mt-3 text-base leading-relaxed text-gray-600">
+                      Súbela y busca una alternativa a un precio más competitivo.
+                    </p>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Revisamos tu presupuesto y consultamos clínicas dentales seleccionadas. Recibes la
+                      alternativa directamente por WhatsApp.
+                    </p>
+                    <TrustBadges />
+                  </div>
+
+                  <HeroVisualCard />
                 </div>
 
-                <div className="bg-white rounded-2xl border border-[#BAE6FD] p-6 shadow-sm">
-                  {step === "upload" ? (
-                    <UploadStep
-                      dragOver={dragOver}
-                      setDragOver={setDragOver}
-                      uploading={uploading}
-                      uploadError={uploadError}
-                      fileInputRef={fileInputRef}
-                      onFileChosen={startUpload}
-                    />
-                  ) : (
-                    <DetailsStep
-                      file={file}
-                      onChangeFile={resetFile}
-                      patientName={patientName}
-                      setPatientName={setPatientName}
-                      phoneDigits={phoneDigits}
-                      setPhoneDigits={setPhoneDigits}
-                      consent={consent}
-                      setConsent={setConsent}
-                      submitting={submitting}
-                      submitError={submitError}
-                      onSubmit={handleSubmit}
-                    />
-                  )}
-                </div>
+                <div className="w-full max-w-md mx-auto md:max-w-none md:mx-0">
+                  <div className="bg-white rounded-2xl border border-[#BAE6FD] p-6 shadow-sm">
+                    {step === "upload" ? (
+                      <UploadStep
+                        dragOver={dragOver}
+                        setDragOver={setDragOver}
+                        uploading={uploading}
+                        uploadError={uploadError}
+                        fileInputRef={fileInputRef}
+                        onFileChosen={startUpload}
+                      />
+                    ) : (
+                      <DetailsStep
+                        file={file}
+                        onChangeFile={resetFile}
+                        patientName={patientName}
+                        setPatientName={setPatientName}
+                        phoneDigits={phoneDigits}
+                        setPhoneDigits={setPhoneDigits}
+                        consent={consent}
+                        setConsent={setConsent}
+                        submitting={submitting}
+                        submitError={submitError}
+                        onSubmit={handleSubmit}
+                      />
+                    )}
+                  </div>
 
-                <TrustRow />
-              </>
+                  <TrustRow />
+                </div>
+              </div>
             )}
           </div>
         </section>
@@ -326,7 +332,22 @@ function UploadStep({
   return (
     <div>
       <h2 className="text-lg font-bold text-[#0C4A6E] text-center">Sube tu cotización dental</h2>
-      <p className="text-sm text-gray-500 text-center mt-1 mb-4">Foto, PDF o screenshot</p>
+      <p className="text-sm text-gray-500 text-center mt-1 mb-3">¿Qué puedes subir?</p>
+      <div className="flex items-center justify-center gap-2 mb-4">
+        {[
+          ["📷", "Foto"],
+          ["🖼️", "Screenshot"],
+          ["📄", "PDF"],
+        ].map(([icon, label]) => (
+          <span
+            key={label}
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600"
+          >
+            <span>{icon}</span>
+            {label}
+          </span>
+        ))}
+      </div>
 
       <input
         ref={fileInputRef}
@@ -379,6 +400,10 @@ function UploadStep({
           {uploadError}
         </div>
       )}
+
+      <p className="mt-3 flex items-center justify-center gap-1 text-center text-[11px] text-gray-400">
+        <span>🔒</span> Tus archivos se manejan de forma confidencial
+      </p>
     </div>
   );
 }
@@ -503,16 +528,90 @@ function DetailsStep({
   );
 }
 
+function TrustBadges() {
+  const items: { icon: string; label: string; tone: "green" | "blue" }[] = [
+    { icon: "✓", label: "Gratis", tone: "green" },
+    { icon: "✓", label: "Sin compromiso", tone: "green" },
+    { icon: "🕒", label: "Respuesta < 24 h", tone: "blue" },
+  ];
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-center md:justify-start gap-2">
+      {items.map((item) => (
+        <span
+          key={item.label}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+            item.tone === "green"
+              ? "border-[#86EFAC] bg-[#F0FDF4] text-[#15803D]"
+              : "border-[#BAE6FD] bg-[#F0F9FF] text-[#0284C7]"
+          }`}
+        >
+          <span>{item.icon}</span>
+          {item.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function HeroVisualCard() {
+  return (
+    <div className="mt-6 md:mt-8 rounded-3xl border border-[#BAE6FD] bg-white p-5 md:p-6 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Tu cotización</p>
+          <p className="mt-1 text-sm font-semibold text-gray-800 truncate">Implante + corona</p>
+          <p className="text-lg font-bold text-gray-800">$1.250.000</p>
+        </div>
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#0EA5E9] text-base text-white">
+          →
+        </div>
+        <div className="flex-1 min-w-0 rounded-2xl border border-[#BAE6FD] bg-[#F0F9FF] px-3 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#0284C7]">Alternativa</p>
+          <p className="mt-1 text-sm font-semibold text-[#0C4A6E] truncate">Clínica seleccionada</p>
+          <p className="text-lg font-bold text-[#0284C7]">$890.000</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-2.5 rounded-2xl border border-[#86EFAC] bg-[#F0FDF4] px-4 py-3">
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#25D366] text-sm text-white">
+          💬
+        </span>
+        <p className="text-xs leading-relaxed text-[#14532D]">
+          <span className="font-semibold">WhatsApp:</span> &ldquo;Encontramos una alternativa con un ahorro
+          de $360.000&rdquo;
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#BAE6FD] bg-[#F0F9FF] px-3 py-1.5 text-[11px] font-medium text-[#0C4A6E]">
+          🏥 Clínicas seleccionadas
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#86EFAC] bg-[#F0FDF4] px-3 py-1.5 text-[11px] font-medium text-[#15803D]">
+          🔒 Datos protegidos
+        </span>
+      </div>
+
+      <p className="mt-3 text-[11px] text-gray-400">
+        Ejemplo ilustrativo. Los precios reales dependen de la evaluación de cada clínica.
+      </p>
+    </div>
+  );
+}
+
 function TrustRow() {
+  const items = ["Revisión de tu presupuesto", "Alternativa competitiva", "Respuesta por WhatsApp"];
   return (
     <div className="mt-5">
+      <p className="text-center text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400 mb-2.5">
+        ¿Qué recibes?
+      </p>
       <div className="grid grid-cols-3 gap-2 text-center">
-        {["100% gratis", "Sin compromiso", "Respuesta < 24 h"].map((label) => (
+        {items.map((label) => (
           <div
             key={label}
-            className="rounded-xl border border-[#BAE6FD] bg-white px-2 py-3 text-xs font-medium text-[#0C4A6E]"
+            className="rounded-xl border border-[#86EFAC] bg-[#F0FDF4] px-2 py-3 text-xs font-medium text-[#14532D]"
           >
-            <span className="block text-[#0EA5E9] text-base mb-1">✓</span>
+            <span className="block text-[#16A34A] text-base mb-1">✓</span>
             {label}
           </div>
         ))}
