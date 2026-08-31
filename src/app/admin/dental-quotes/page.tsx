@@ -131,6 +131,9 @@ export default async function DentalQuotesAdminPage() {
                             hasFile={Boolean(q.storage_path)}
                             fallbackUrl={q.original_file_url}
                           />
+                          {/\.(heic|heif)$/i.test(q.storage_path ?? "") && (
+                            <div className="text-[10px] text-gray-400 mt-0.5">HEIC — download to view</div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Link

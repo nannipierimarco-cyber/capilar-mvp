@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LinkButton } from "@/components/ui/link-button";
 import { isSkinCarePath } from "@/lib/skinCareRoutes";
+import { isDentalPath } from "@/lib/dentalRoutes";
 import { cn } from "@/lib/utils";
 
 /** Homepage: hero verde móvil incluye su propia barra; ocultar header global solo por debajo de md. */
 export default function Header({ hideOnMobile }: { hideOnMobile?: boolean }) {
   const pathname = usePathname();
-  const hideMapaCapilarCta = isSkinCarePath(pathname);
+  const isDental = isDentalPath(pathname);
+  const hideMapaCapilarCta = isSkinCarePath(pathname) || isDental;
 
   return (
     <header
@@ -38,9 +40,11 @@ export default function Header({ hideOnMobile }: { hideOnMobile?: boolean }) {
               Mapa Capilar AI
             </LinkButton>
           )}
-          <LinkButton href="/quiz" size="sm" className="rounded-full px-5">
-            Comenzar evaluación
-          </LinkButton>
+          {!isDental && (
+            <LinkButton href="/quiz" size="sm" className="rounded-full px-5">
+              Comenzar evaluación
+            </LinkButton>
+          )}
         </div>
       </div>
     </header>

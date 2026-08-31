@@ -6,7 +6,7 @@ interface QuoteRecord {
   patient_name: string | null;
   patient_rut: string | null;
   patient_phone: string;
-  patient_email: string;
+  patient_email: string | null;
   original_file_url: string | null;
   storage_path: string | null;
   status: string;
@@ -58,6 +58,10 @@ const WA_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   sent:    { label: "Enviado",    color: "bg-green-100 text-green-700" },
   failed:  { label: "Fallido",    color: "bg-red-100 text-red-700" },
 };
+
+function isHeicPath(path: string | null): boolean {
+  return /\.(heic|heif)$/i.test(path ?? "");
+}
 
 function buildPatientWhatsAppMessage(q: QuoteRecord): string {
   const hasPartnerQuote = q.partner_quote_amount || q.partner_quote_notes;
@@ -231,7 +235,7 @@ export default function QuoteDetailPanel({
         {quote.patient_name && <Row label="Nombre" value={quote.patient_name} />}
         {quote.patient_rut && <Row label="RUT" value={quote.patient_rut} />}
         <Row label="WhatsApp" value={quote.patient_phone} />
-        <Row label="Email"    value={quote.patient_email} />
+        {quote.patient_email && <Row label="Email" value={quote.patient_email} />}
         {quote.original_clinic_name && <Row label="Clínica original" value={quote.original_clinic_name} />}
         {quote.original_quote_amount != null && (
           <Row
@@ -254,14 +258,21 @@ export default function QuoteDetailPanel({
               No se pudo generar el link temporal del archivo.
             </p>
           ) : (
-            <a
-              href={signedFileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0EA5E9] hover:underline"
-            >
-              📎 Ver cotización subida →
-            </a>
+            <div className="flex items-center gap-2 flex-wrap">
+              <a
+                href={signedFileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0EA5E9] hover:underline"
+              >
+                📎 Ver cotización subida →
+              </a>
+              {isHeicPath(quote.storage_path) && (
+                <span className="text-xs text-gray-400">
+                  HEIC image — download to view
+                </span>
+              )}
+            </div>
           )}
         </div>
 
