@@ -7,6 +7,7 @@ import { useEffect } from "react";
 type FbqFn = {
   (...args: unknown[]): void;
   callMethod?: (...args: unknown[]) => void;
+  push?: FbqFn;
   queue: unknown[];
   loaded?: boolean;
   version?: string;
@@ -19,9 +20,16 @@ declare global {
   }
 }
 
-// Loads the Meta Pixel base snippet and fires the standard PageView event.
+// Meta's official Pixel base code, unmodified in shape/order. The
+// `if (window.fbq) return` guard lives inside the loader itself (as Meta
+// ships it) so it stays idempotent no matter how many times this function
+// gets called — React 18 Strict Mode double-invokes effects in dev, and
+// this guard is what makes a second call a no-op instead of a second
+// `init`/`track` pair (which is what produces duplicate PageView events).
 // No-op unless NEXT_PUBLIC_META_PIXEL_ID is configured — safe to leave unset.
 function loadMetaPixel(pixelId: string) {
+  if (window.fbq) return;
+
   const fbq: FbqFn = function (...args: unknown[]) {
     if (fbq.callMethod) {
       fbq.callMethod(...args);
@@ -29,16 +37,18 @@ function loadMetaPixel(pixelId: string) {
       fbq.queue.push(args);
     }
   } as FbqFn;
-  fbq.queue = [];
+  if (!window._fbq) window._fbq = fbq;
+  fbq.push = fbq;
   fbq.loaded = true;
   fbq.version = "2.0";
+  fbq.queue = [];
   window.fbq = fbq;
-  window._fbq = fbq;
 
   const script = document.createElement("script");
   script.async = true;
   script.src = "https://connect.facebook.net/en_US/fbevents.js";
-  document.head.appendChild(script);
+  const firstScript = document.getElementsByTagName("script")[0];
+  firstScript?.parentNode?.insertBefore(script, firstScript);
 
   window.fbq("init", pixelId);
   window.fbq("track", "PageView");
@@ -56,7 +66,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
 
     const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
-    if (pixelId && !window.fbq) {
+    if (pixelId) {
       loadMetaPixel(pixelId);
     }
   }, []);
