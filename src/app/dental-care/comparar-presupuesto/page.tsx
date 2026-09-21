@@ -29,6 +29,8 @@ const inputClass =
 
 type Step = "upload" | "details";
 
+type UploadCtaLocation = "hero" | "after_how_it_works" | "faq" | "sticky_mobile";
+
 type Attribution = {
   utm_source: string | null;
   utm_medium: string | null;
@@ -72,6 +74,8 @@ export default function CompararPresupuestoPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [showStickyCta, setShowStickyCta] = useState(false);
+
   const attributionRef = useRef<Attribution>({
     utm_source: null,
     utm_medium: null,
@@ -84,6 +88,7 @@ export default function CompararPresupuestoPage() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploaderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -100,6 +105,39 @@ export default function CompararPresupuestoPage() {
     ph?.capture("LandingView");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sticky mobile CTA: hidden while the uploader is on screen or not yet
+  // reached; appears only once the user has scrolled past it.
+  useEffect(() => {
+    const el = uploaderRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShowStickyCta(false);
+        } else {
+          setShowStickyCta(entry.boundingClientRect.top < 0);
+        }
+      },
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToUploader = useCallback(
+    (location: UploadCtaLocation) => {
+      ph?.capture("UploadCTA_Click", { location });
+      uploaderRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    [ph]
+  );
+
+  const triggerFilePicker = useCallback(() => {
+    ph?.capture("UploadCTA_Click", { location: "hero" });
+    fileInputRef.current?.click();
+  }, [ph]);
 
   const startUpload = useCallback(
     async (candidate: File) => {
@@ -234,11 +272,11 @@ export default function CompararPresupuestoPage() {
   return (
     <div className="flex flex-col min-h-screen overflow-x-hidden bg-[#F0F9FF]">
       <Header />
-      <main className="flex-1 flex flex-col items-center">
+      <main className={`flex-1 flex flex-col items-center ${showStickyCta && !submitted ? "pb-20 md:pb-0" : ""}`}>
         <section className="w-full py-8 md:py-16 px-4">
           <div className="w-full max-w-5xl mx-auto">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0EA5E9] text-center md:text-left mb-3">
-              Comparación de presupuestos dentales
+              PARA PERSONAS QUE YA TIENEN UNA COTIZACIÓN
             </p>
 
             {submitted ? (
@@ -246,27 +284,26 @@ export default function CompararPresupuestoPage() {
                 <SuccessState />
               </div>
             ) : (
-              <div className="grid gap-8 md:grid-cols-2 md:gap-12 md:items-start">
-                <div>
-                  <div className="text-center md:text-left mb-5 md:mb-6">
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[#0C4A6E] leading-snug">
-                      ¿Ya tienes una cotización dental?
-                    </h1>
-                    <p className="mt-3 text-base leading-relaxed text-gray-600">
-                      Súbela y busca una alternativa a un precio más competitivo.
-                    </p>
-                    <p className="mt-2 text-sm text-gray-500">
-                      Revisamos tu presupuesto y consultamos clínicas dentales seleccionadas. Recibes la
-                      alternativa directamente por WhatsApp.
-                    </p>
-                    <TrustBadges />
-                  </div>
-
-                  <HeroVisualCard />
+              <div className="grid gap-6 md:grid-cols-2 md:gap-12 md:items-start">
+                {/* Mensaje principal + beneficios esenciales (mobile: 1-2 / desktop: columna izquierda) */}
+                <div className="text-center md:text-left">
+                  <h1 className="text-[28px] sm:text-3xl md:text-4xl font-bold tracking-tight text-[#0C4A6E] leading-snug">
+                    ¿Te pareció cara tu cotización dental?
+                  </h1>
+                  <p className="mt-3 text-base leading-relaxed text-gray-600">
+                    Sube gratis una foto o PDF de tu presupuesto. Buscamos una alternativa dental más
+                    conveniente, con atención presencial en Providencia.
+                  </p>
+                  <TrustBadges />
                 </div>
 
+                {/* Cargador + privacidad/confianza + qué recibes (mobile: 3-5 / desktop: columna derecha) */}
                 <div className="w-full max-w-md mx-auto md:max-w-none md:mx-0">
-                  <div className="bg-white rounded-2xl border border-[#BAE6FD] p-6 shadow-sm">
+                  <div
+                    id="subir-cotizacion"
+                    ref={uploaderRef}
+                    className="scroll-mt-20 bg-white rounded-2xl border border-[#BAE6FD] p-6 shadow-sm"
+                  >
                     {step === "upload" ? (
                       <UploadStep
                         dragOver={dragOver}
@@ -275,6 +312,7 @@ export default function CompararPresupuestoPage() {
                         uploadError={uploadError}
                         fileInputRef={fileInputRef}
                         onFileChosen={startUpload}
+                        onTriggerClick={triggerFilePicker}
                       />
                     ) : (
                       <DetailsStep
@@ -293,6 +331,8 @@ export default function CompararPresupuestoPage() {
                     )}
                   </div>
 
+                  <PrivacyTrustBlock />
+
                   <TrustRow />
                 </div>
               </div>
@@ -302,14 +342,17 @@ export default function CompararPresupuestoPage() {
 
         {!submitted && (
           <>
-            <HowItWorksSection />
-            <WhyUsSection />
             <ExampleSection />
-            <FaqSection />
+            <HowItWorksSection onCtaClick={() => scrollToUploader("after_how_it_works")} />
+            <WhyUsSection />
+            <FaqSection onCtaClick={() => scrollToUploader("faq")} />
           </>
         )}
       </main>
       <Footer />
+      {!submitted && showStickyCta && (
+        <StickyMobileCta onClick={() => scrollToUploader("sticky_mobile")} />
+      )}
     </div>
   );
 }
@@ -321,6 +364,7 @@ function UploadStep({
   uploadError,
   fileInputRef,
   onFileChosen,
+  onTriggerClick,
 }: {
   dragOver: boolean;
   setDragOver: (v: boolean) => void;
@@ -328,26 +372,12 @@ function UploadStep({
   uploadError: string | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFileChosen: (file: File) => void;
+  onTriggerClick: () => void;
 }) {
   return (
     <div>
       <h2 className="text-lg font-bold text-[#0C4A6E] text-center">Sube tu cotización dental</h2>
-      <p className="text-sm text-gray-500 text-center mt-1 mb-3">¿Qué puedes subir?</p>
-      <div className="flex items-center justify-center gap-2 mb-4">
-        {[
-          ["📷", "Foto"],
-          ["🖼️", "Screenshot"],
-          ["📄", "PDF"],
-        ].map(([icon, label]) => (
-          <span
-            key={label}
-            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600"
-          >
-            <span>{icon}</span>
-            {label}
-          </span>
-        ))}
-      </div>
+      <p className="text-[13px] text-gray-500 text-center mt-1 mb-4">Toma menos de 1 minuto</p>
 
       <input
         ref={fileInputRef}
@@ -363,7 +393,7 @@ function UploadStep({
       <button
         type="button"
         disabled={uploading}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={onTriggerClick}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
@@ -375,7 +405,7 @@ function UploadStep({
           const f = e.dataTransfer.files?.[0];
           if (f) onFileChosen(f);
         }}
-        className={`w-full rounded-xl border-2 border-dashed px-4 py-10 text-center transition-colors disabled:opacity-60 ${
+        className={`w-full rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors disabled:opacity-60 ${
           dragOver ? "border-[#0EA5E9] bg-[#F0F9FF]" : "border-gray-200 hover:border-[#0EA5E9]"
         }`}
       >
@@ -388,9 +418,7 @@ function UploadStep({
           <span className="flex flex-col items-center gap-2">
             <span className="text-3xl">📎</span>
             <span className="text-sm font-semibold text-[#0EA5E9]">Subir mi cotización gratis</span>
-            <span className="text-xs text-gray-400">
-              PDF, JPG, PNG, WEBP o HEIC · máx. 20MB · arrastra o selecciona
-            </span>
+            <span className="text-[13px] text-gray-400">Foto, screenshot o PDF · Máximo 20 MB</span>
           </span>
         )}
       </button>
@@ -401,7 +429,7 @@ function UploadStep({
         </div>
       )}
 
-      <p className="mt-3 flex items-center justify-center gap-1 text-center text-[11px] text-gray-400">
+      <p className="mt-3 flex items-center justify-center gap-1 text-center text-[13px] text-gray-400">
         <span>🔒</span> Tus archivos se manejan de forma confidencial
       </p>
     </div>
@@ -518,21 +546,21 @@ function DetailsStep({
             Enviando…
           </span>
         ) : (
-          "Comparar mi cotización gratis"
+          "Recibir mi alternativa por WhatsApp"
         )}
       </button>
-      <p className="text-xs text-center text-gray-400">
-        Gratis · Sin compromiso · Recibes la alternativa por WhatsApp
+      <p className="text-[13px] text-center text-gray-400">
+        Al enviar, aceptas que te contactemos por WhatsApp para gestionar esta solicitud.
       </p>
     </form>
   );
 }
 
 function TrustBadges() {
-  const items: { icon: string; label: string; tone: "green" | "blue" }[] = [
-    { icon: "✓", label: "Gratis", tone: "green" },
-    { icon: "✓", label: "Sin compromiso", tone: "green" },
-    { icon: "🕒", label: "Respuesta < 24 h", tone: "blue" },
+  const items: { icon: string; label: string; tone: "green" | "blue" | "neutral" }[] = [
+    { icon: "📋", label: "Cotización previa necesaria", tone: "neutral" },
+    { icon: "✓", label: "Gratis y sin compromiso", tone: "green" },
+    { icon: "🕒", label: "Respuesta por WhatsApp < 24 h", tone: "blue" },
   ];
   return (
     <div className="mt-4 flex flex-wrap items-center justify-center md:justify-start gap-2">
@@ -542,7 +570,9 @@ function TrustBadges() {
           className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${
             item.tone === "green"
               ? "border-[#86EFAC] bg-[#F0FDF4] text-[#15803D]"
-              : "border-[#BAE6FD] bg-[#F0F9FF] text-[#0284C7]"
+              : item.tone === "blue"
+              ? "border-[#BAE6FD] bg-[#F0F9FF] text-[#0284C7]"
+              : "border-gray-200 bg-gray-50 text-gray-600"
           }`}
         >
           <span>{item.icon}</span>
@@ -553,70 +583,50 @@ function TrustBadges() {
   );
 }
 
-function HeroVisualCard() {
+function PrivacyTrustBlock() {
   return (
-    <div className="mt-6 md:mt-8 rounded-3xl border border-[#BAE6FD] bg-white p-5 md:p-6 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex-1 min-w-0 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Tu cotización</p>
-          <p className="mt-1 text-sm font-semibold text-gray-800 truncate">Implante + corona</p>
-          <p className="text-lg font-bold text-gray-800">$1.250.000</p>
-        </div>
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#0EA5E9] text-base text-white">
-          →
-        </div>
-        <div className="flex-1 min-w-0 rounded-2xl border border-[#BAE6FD] bg-[#F0F9FF] px-3 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#0284C7]">Alternativa</p>
-          <p className="mt-1 text-sm font-semibold text-[#0C4A6E] truncate">Clínica seleccionada</p>
-          <p className="text-lg font-bold text-[#0284C7]">$890.000</p>
-        </div>
-      </div>
-
-      <div className="mt-4 flex items-center gap-2.5 rounded-2xl border border-[#86EFAC] bg-[#F0FDF4] px-4 py-3">
-        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#25D366] text-sm text-white">
-          💬
-        </span>
-        <p className="text-xs leading-relaxed text-[#14532D]">
-          <span className="font-semibold">WhatsApp:</span> &ldquo;Encontramos una alternativa con un ahorro
-          de $360.000&rdquo;
-        </p>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#BAE6FD] bg-[#F0F9FF] px-3 py-1.5 text-[11px] font-medium text-[#0C4A6E]">
-          🏥 Clínicas seleccionadas
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#86EFAC] bg-[#F0FDF4] px-3 py-1.5 text-[11px] font-medium text-[#15803D]">
-          🔒 Datos protegidos
-        </span>
-      </div>
-
-      <p className="mt-3 text-[11px] text-gray-400">
-        Ejemplo ilustrativo. Los precios reales dependen de la evaluación de cada clínica.
+    <div className="mt-4 rounded-xl border border-[#BAE6FD] bg-white px-4 py-4">
+      <p className="text-[13px] leading-relaxed text-gray-600">
+        Puedes ocultar tu nombre, RUT y otros datos personales. Solo necesitamos ver los tratamientos y
+        precios.
       </p>
+      <p className="mt-2 text-[13px] leading-relaxed text-gray-600">
+        Tus archivos se utilizan únicamente para gestionar tu solicitud.
+      </p>
+      {/*
+        No existe todavía una ruta de política de privacidad real en el repo
+        (verificado: no hay /privacidad, /legal ni similar). Por instrucción
+        del prompt, no se inventa el enlace "Cómo protegemos tus datos" — se
+        deja reportado como pendiente en el resumen final.
+      */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-[11px] font-medium text-gray-600">
+          📍 Atención presencial en Providencia
+        </span>
+      </div>
     </div>
   );
 }
 
 function TrustRow() {
-  const items = ["Revisión de tu presupuesto", "Alternativa competitiva", "Respuesta por WhatsApp"];
+  const items = ["Revisión de tu presupuesto", "Búsqueda de una alternativa", "Respuesta por WhatsApp"];
   return (
-    <div className="mt-5">
-      <p className="text-center text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400 mb-2.5">
+    <div className="mt-4">
+      <p className="text-center md:text-left text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400 mb-2.5">
         ¿Qué recibes?
       </p>
-      <div className="grid grid-cols-3 gap-2 text-center">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {items.map((label) => (
           <div
             key={label}
-            className="rounded-xl border border-[#86EFAC] bg-[#F0FDF4] px-2 py-3 text-xs font-medium text-[#14532D]"
+            className="flex items-center gap-2.5 sm:flex-col sm:text-center rounded-xl border border-[#86EFAC] bg-[#F0FDF4] px-3 py-2.5 sm:py-3 text-[13px] font-medium text-[#14532D]"
           >
-            <span className="block text-[#16A34A] text-base mb-1">✓</span>
-            {label}
+            <span className="text-[#16A34A] text-base flex-shrink-0">✓</span>
+            <span>{label}</span>
           </div>
         ))}
       </div>
-      <p className="mt-3 text-center text-xs text-gray-400">
+      <p className="mt-3 text-center md:text-left text-[13px] text-gray-400">
         Usamos tus datos únicamente para gestionar tu solicitud y buscar una alternativa dental.
       </p>
     </div>
@@ -646,13 +656,48 @@ function SuccessState() {
   );
 }
 
-function HowItWorksSection() {
+function UploadCtaButton({ onClick, className = "" }: { onClick: () => void; className?: string }) {
+  return (
+    <a
+      href="#subir-cotizacion"
+      onClick={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
+      className={`inline-flex h-12 items-center justify-center rounded-full bg-[#0EA5E9] px-6 text-sm font-semibold text-white hover:bg-[#0284C7] transition-colors ${className}`}
+    >
+      Subir mi cotización gratis
+    </a>
+  );
+}
+
+function StickyMobileCta({ onClick }: { onClick: () => void }) {
+  return (
+    <div
+      className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[#BAE6FD] bg-white/95 backdrop-blur px-4 pt-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
+      style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+    >
+      <a
+        href="#subir-cotizacion"
+        onClick={(e) => {
+          e.preventDefault();
+          onClick();
+        }}
+        className="flex h-12 w-full items-center justify-center rounded-full bg-[#0EA5E9] text-sm font-semibold text-white hover:bg-[#0284C7] transition-colors"
+      >
+        Subir mi cotización gratis
+      </a>
+    </div>
+  );
+}
+
+function HowItWorksSection({ onCtaClick }: { onCtaClick: () => void }) {
   const steps = [
     { number: "01", title: "Sube tu cotización", desc: "Puede ser una foto, screenshot o PDF." },
     {
       number: "02",
       title: "La revisamos",
-      desc: "Identificamos el tratamiento y consultamos clínicas seleccionadas.",
+      desc: "Identificamos el tratamiento y consultamos opciones disponibles en Providencia.",
     },
     { number: "03", title: "Recibe una alternativa", desc: "Te la enviamos directamente por WhatsApp." },
   ];
@@ -672,6 +717,9 @@ function HowItWorksSection() {
             </div>
           ))}
         </div>
+        <div className="mt-8 flex justify-center">
+          <UploadCtaButton onClick={onCtaClick} />
+        </div>
       </div>
     </section>
   );
@@ -685,11 +733,15 @@ function WhyUsSection() {
           ¿Por qué podemos conseguirte otra alternativa?
         </h2>
         <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-gray-600">
-          Trabajamos con clínicas dentales que buscan recibir nuevos pacientes. Revisamos tu tratamiento
-          y consultamos alternativas competitivas por ti.
+          Buscamos alternativas dentales con atención presencial en Providencia. Consultamos opciones
+          disponibles según el tratamiento indicado.
         </p>
-        <p className="mx-auto mt-3 max-w-lg text-sm text-gray-500">
+        <p className="mx-auto mt-3 max-w-lg text-[13px] text-gray-500">
           Tú decides si alguna alternativa te interesa. No existe obligación de contratar.
+        </p>
+        <p className="mx-auto mt-3 max-w-lg text-[13px] text-gray-500">
+          El servicio no tiene costo para ti. Perfecto Labs puede recibir una comisión de la clínica si
+          decides atenderte. Tú eliges y no existe obligación de contratar.
         </p>
       </div>
     </section>
@@ -700,9 +752,14 @@ function ExampleSection() {
   return (
     <section className="w-full bg-white py-14 md:py-16">
       <div className="mx-auto max-w-md px-4">
-        <h2 className="text-2xl font-bold tracking-tight text-gray-900 text-center md:text-3xl">
-          Ejemplo de comparación
-        </h2>
+        <div className="text-center">
+          <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            Ejemplo ilustrativo
+          </span>
+          <h2 className="mt-3 text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
+            Ejemplo de comparación
+          </h2>
+        </div>
         <div className="mt-8 rounded-2xl border border-[#BAE6FD] bg-[#F0F9FF] p-6">
           <div className="text-center">
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Cotización actual</p>
@@ -714,14 +771,13 @@ function ExampleSection() {
             <p className="text-xs font-medium uppercase tracking-wide text-[#0284C7]">Alternativa</p>
             <p className="mt-1 text-sm text-gray-700">Clínica seleccionada</p>
             <p className="mt-1 text-2xl font-bold text-[#0284C7]">$890.000</p>
-          </div>
-          <div className="mt-5 rounded-xl bg-white border border-[#BAE6FD] px-4 py-3 text-center">
-            <p className="text-xs font-medium text-gray-500">Ahorro potencial</p>
-            <p className="mt-0.5 text-lg font-bold text-[#0C4A6E]">$360.000</p>
+            <p className="mt-1.5 text-[13px] font-medium text-gray-500">
+              Ahorro estimado en este ejemplo: $360.000
+            </p>
           </div>
         </div>
-        <p className="mt-4 text-xs text-center text-gray-400">
-          Ejemplo ilustrativo. Los precios y tratamientos dependen de la evaluación de cada clínica.
+        <p className="mt-4 text-[13px] text-center text-gray-400">
+          Los precios y tratamientos reales dependen de la evaluación de cada clínica.
         </p>
       </div>
     </section>
@@ -736,10 +792,14 @@ const FAQ_ITEMS = [
     q: "¿Cuándo recibiré una respuesta?",
     a: "Nuestro objetivo es enviarte una alternativa en menos de 24 horas cuando exista una opción disponible.",
   },
+  {
+    q: "¿Dónde es la atención?",
+    a: "Las alternativas disponibles actualmente contemplan atención presencial en Providencia. Recibirás los detalles junto con la propuesta.",
+  },
   { q: "¿Qué hacen con mis datos?", a: "Los usamos para gestionar tu solicitud y buscar una alternativa dental." },
 ];
 
-function FaqSection() {
+function FaqSection({ onCtaClick }: { onCtaClick: () => void }) {
   return (
     <section className="w-full bg-[#F0F9FF] py-14 md:py-16">
       <div className="mx-auto max-w-2xl px-4">
@@ -755,6 +815,9 @@ function FaqSection() {
               </AccordionItem>
             ))}
           </Accordion>
+        </div>
+        <div className="mt-8 flex justify-center">
+          <UploadCtaButton onClick={onCtaClick} />
         </div>
       </div>
     </section>

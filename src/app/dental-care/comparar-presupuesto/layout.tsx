@@ -4,9 +4,9 @@ const PAGE_URL = "https://perfectolabs.cl/dental-care/comparar-presupuesto";
 const OG_IMAGE_URL = "https://perfectolabs.cl/dental-quote-compare-og.jpg";
 
 export const metadata: Metadata = {
-  title: "Compara tu cotización dental gratis | Perfecto Labs",
+  title: "Compara gratis tu cotización dental | Perfecto Labs",
   description:
-    "Sube tu cotización dental y recibe una alternativa competitiva de clínicas seleccionadas. Gratis, sin compromiso y por WhatsApp.",
+    "¿Te pareció cara tu cotización dental? Súbela gratis y busca una alternativa con atención presencial en Providencia.",
   openGraph: {
     title: "¿Ya tienes una cotización dental? Compárala gratis",
     description:
