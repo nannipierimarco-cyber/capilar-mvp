@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LinkButton } from "@/components/ui/link-button";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { ValuePropMarquee } from "@/components/ValuePropMarquee";
+import { dentalGuides } from "@/lib/dentalSeoGuides";
 
 export const metadata: Metadata = {
   title: "Pre-cotización dental online | Perfecto Labs",
@@ -21,6 +23,7 @@ export default function DentalCarePage() {
         <HowItWorksSection />
         <ReportSection />
         <QuoteComparisonBlock />
+        <DentalGuidesSection />
         <DisclaimerSection />
         <FinalCTA />
       </main>
@@ -293,6 +296,48 @@ function QuoteComparisonBlock() {
           <p className="mt-3 text-xs text-gray-400">
             Gratis · Sin compromisos · Respuesta en menos de 24 horas
           </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DentalGuidesSection() {
+  return (
+    <section className="border-y border-[#BAE6FD] bg-[#F0F9FF] py-16 md:py-20">
+      <div className="mx-auto max-w-5xl px-4">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0284C7]">
+            Aprende antes de decidir
+          </p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#0C4A6E] md:text-4xl">
+            Guías para entender y comparar tu presupuesto dental
+          </h2>
+          <p className="mt-4 text-base leading-7 text-slate-600">
+            Revisa qué incluye una cotización, qué preguntas hacer y cómo comparar propuestas con
+            un alcance equivalente.
+          </p>
+        </div>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {dentalGuides.map((guide) => (
+            <Link
+              key={guide.slug}
+              href={`/dental-care/${guide.slug}`}
+              className="group flex min-h-40 flex-col justify-between rounded-2xl border border-[#BAE6FD] bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#7DD3FC] hover:shadow-sm"
+            >
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#0284C7]">
+                  {guide.eyebrow}
+                </p>
+                <h3 className="mt-2 text-lg font-bold leading-6 text-[#0C4A6E]">
+                  {guide.shortTitle}
+                </h3>
+              </div>
+              <p className="mt-5 text-sm font-semibold text-[#0284C7] group-hover:underline">
+                Leer guía →
+              </p>
+            </Link>
+          ))}
         </div>
       </div>
     </section>
